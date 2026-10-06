@@ -17,32 +17,51 @@ import javax.imageio.ImageIO;
  */
 public class Avatar {
     private BufferedImage sprite;
-    protected double x, y;
-    private boolean gauche, droite;
+    protected double w, x, y, z;
+    private boolean bas, gauche, haut, droite ;
 
     public Avatar() {
         try {
-            this.sprite = ImageIO.read(getClass().getClassLoader().getResource("resources/nyancat.png"));
+            this.sprite = ImageIO.read(getClass().getClassLoader().getResource("resources/carotte_basique_avec_poings.png"));
         } catch (IOException ex) {
             Logger.getLogger(Avatar.class.getName()).log(Level.SEVERE, null, ex);
         }
+        
+        this.w = 100;
         this.x = 100;
         this.y = 150;
+        this.z = 100;
+        this.bas = false;
         this.gauche = false;
+        this.haut = false;
         this.droite = false;
+    }
+    
+    public void setBas(boolean bas) {
+        this.bas = bas;    
     }
     
     public void setGauche(boolean gauche) {
         this.gauche = gauche;
     }
+    
+    public void setHaut(boolean haut) {
+        this.haut = haut;
 
+}
     public void setDroite(boolean droite) {
         this.droite = droite;
     }
 
     public void miseAJour() {
+        if (this.bas) {
+            w -= 5;
+        }
         if (this.gauche) {
             x -= 5;
+        }
+        if (this.haut) {
+            y -= 5;
         }
         if (this.droite) {
             x += 5;
