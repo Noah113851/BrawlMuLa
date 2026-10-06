@@ -1,0 +1,160 @@
+Déplacement Avatar
+
+
+
+
+
+
+public class Avatar {
+
+    private BufferedImage sprite;
+    protected double x, y;
+    private boolean gauche, droite;
+
+    private double vy;                 // vitesse verticale
+    private boolean auSol;             // vrai si l'avatar touche le sol
+    private static final double SOL = 150;       // hauteur du sol (y de départ)
+    private static final double GRAVITE = 10;   // accélération vers le bas par tick
+    private static final double VITESSE_SAUT = 25; // force du saut
+
+    public Avatar() {
+        try {
+            this.sprite = ImageIO.read(getClass().getClassLoader().getResource("resources/nyancat.png"));
+        } catch (IOException ex) {
+            Logger.getLogger(Avatar.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        this.x = 100;
+        this.y = SOL;
+        this.vy = 0;
+        this.auSol = true;
+        this.gauche = false;
+        this.droite = false;
+    }
+
+    public void setGauche(boolean gauche) {
+        this.gauche = gauche;
+    }
+
+    public void setDroite(boolean droite) {
+        this.droite = droite;
+    }
+
+    // Déclenche le saut (seulement si l'avatar est au sol)
+    public void saute() {
+        if (this.auSol) {
+            this.vy = -VITESSE_SAUT;
+            this.auSol = false;
+        }
+    }
+
+    public void miseAJour() {
+        // déplacement horizontal (inchangé)
+        if (this.gauche) {
+            x -= 5;
+        }
+        if (this.droite) {
+            x += 5;
+        }
+        if (x > 607 - 52) {
+            x = 607 - 52;
+        }
+        if (x < 0) {
+            x = 0;
+        }
+
+        // déplacement vertical
+        if (!this.auSol) {
+            y += vy;          // on applique la vitesse
+            vy += GRAVITE;    // la gravité ralentit la montée, puis accélère la chute
+            if (y >= SOL) {   // retour au sol
+                y = SOL;
+                vy = 0;
+                this.auSol = true;
+            }
+        }
+    }
+
+    public void rendu(Graphics2D contexte) {
+        contexte.drawImage(this.sprite, (int) x, (int) y, null);
+    }
+
+}
+
+
+
+
+
+public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener {
+
+    private BufferedImage framebuffer;
+    private Graphics2D contexte;
+    private JLabel jLabel1;
+    private Jeu jeu;
+    private Timer timer;
+
+    public FenetreDeJeu() {
+        // initialisation de la fenetre
+        this.setSize(607, 380);
+        this.setResizable(false);
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.addKeyListener(this);
+        this.jLabel1 = new JLabel();
+        this.jLabel1.setPreferredSize(new java.awt.Dimension(607, 380));
+        this.setContentPane(this.jLabel1);
+        this.pack();
+
+        // Creation du jeu
+        this.jeu = new Jeu();
+
+        // Creation du buffer pour l'affichage du jeu et recuperation du contexte graphique
+        this.framebuffer = new BufferedImage(this.jLabel1.getWidth(), this.jLabel1.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        this.jLabel1.setIcon(new ImageIcon(framebuffer));
+        this.contexte = this.framebuffer.createGraphics();
+
+        // Creation du Timer qui appelle this.actionPerformed() tous les 40 ms
+        this.timer = new Timer(40, this);
+        this.timer.start();
+    }
+
+    // Methode appelee par le timer et qui effectue la boucle de jeu
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        this.jeu.miseAJour();
+        this.jeu.rendu(contexte);
+        this.jLabel1.repaint();
+    }
+
+    @Override
+    public void keyTyped(KeyEvent e) {
+        // NOP
+    }
+
+    @Override
+    public void keyPressed(KeyEvent evt) {
+        if (evt.getKeyCode() == evt.VK_RIGHT) {
+            this.jeu.avatar.setDroite(true);
+        }
+        if (evt.getKeyCode() == evt.VK_LEFT) {
+            this.jeu.avatar.setGauche(true);
+        }
+        if (evt.getKeyCode() == evt.VK_SPACE) {
+            this.jeu.avatar.saute();
+        }
+    }
+
+    @Override
+    public void keyReleased(KeyEvent evt) {
+        if (evt.getKeyCode() == evt.VK_RIGHT) {
+            this.jeu.avatar.setDroite(false);
+        }
+        if (evt.getKeyCode() == evt.VK_LEFT) {
+            this.jeu.avatar.setGauche(false);
+        }
+    }
+
+    public static void main(String[] args) {
+        FenetreDeJeu fenetre = new FenetreDeJeu();
+        fenetre.setVisible(true);
+    }
+
+}
