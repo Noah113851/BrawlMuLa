@@ -13,6 +13,9 @@ import java.awt.Image;
  */
 public class Selection extends javax.swing.JFrame {
     
+    private boolean j1Selectionne = false;
+    private boolean j2Selectionne = false;
+    
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Selection.class.getName());
     // Index des 4 personnages (0: Carrot, 1: Nikku, 2: Tomato, 3: Potato)
     private int choixJ1 = 0; 
@@ -35,6 +38,7 @@ public class Selection extends javax.swing.JFrame {
 };
     private void choisirPersonnageJ1(int index) {
     choixJ1 = index;
+    //j1Selectionne = true;
     lblNomJ1.setText(personnages[index]);
     
     String chemin = imagesPersonnages[index];
@@ -46,16 +50,18 @@ public class Selection extends javax.swing.JFrame {
         // 1. Charger l'image originale
         javax.swing.ImageIcon originalIcon = new javax.swing.ImageIcon(imgURL);
 
-        // 2. Redimensionner à une taille fixe (ajustez 200, 200 selon vos besoins)
+        
         Image img = originalIcon.getImage().getScaledInstance(300, 300, Image.SCALE_SMOOTH);
         
-        // 3. Appliquer l'image redimensionnée
+        
         lblAvatarJ1.setIcon(new javax.swing.ImageIcon(img));
 
-        // 4. Forcer l'affichage dans Swing
+        
         lblAvatarJ1.revalidate();
         lblAvatarJ1.repaint();
-    }
+    
+    }    
+        
 }
     
     /**
@@ -66,8 +72,9 @@ public class Selection extends javax.swing.JFrame {
         
         setSize(1280, 760); 
         setLocationRelativeTo(null);
-        
+       
         Musiques_sons.playLoop("src/ressources/Musiques-sons/Character-Select-Theme-Brawlmula-Soundtrack.wav");
+        
         
         
     }
@@ -321,6 +328,15 @@ public class Selection extends javax.swing.JFrame {
     }//GEN-LAST:event_btnCombatMouseEntered
 
     private void btnCombatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCombatActionPerformed
+        if (!j1Selectionne || !j2Selectionne) {
+        javax.swing.JOptionPane.showMessageDialog(
+            this,
+            "Les deux joueurs doivent choisir un personnage avant de lancer le combat !",
+            "Sélection incomplète",
+            javax.swing.JOptionPane.WARNING_MESSAGE
+        );
+        return; // Interrompt le lancement
+    }
         Musiques_sons.stop();
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
         Combat jeu = new Combat(personnages[choixJ1], personnages[choixJ2], cartes[choixCarte]);
