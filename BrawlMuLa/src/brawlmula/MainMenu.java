@@ -22,6 +22,8 @@ public class MainMenu extends javax.swing.JFrame {
         
         setSize(1280, 760); 
         setLocationRelativeTo(null);
+        
+        Musiques_sons.playLoop("src/ressources/Musiques-sons/Welcome-Music-Brawlmula-Soundtrack.wav");
     }
 
     /**
@@ -42,7 +44,6 @@ public class MainMenu extends javax.swing.JFrame {
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setMaximumSize(new java.awt.Dimension(1280, 720));
         setMinimumSize(new java.awt.Dimension(1280, 720));
-        setPreferredSize(new java.awt.Dimension(1280, 720));
         setSize(new java.awt.Dimension(1280, 720));
         getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
@@ -67,7 +68,7 @@ public class MainMenu extends javax.swing.JFrame {
             }
         });
         btnCommencer.addActionListener(this::btnCommencerActionPerformed);
-        getContentPane().add(btnCommencer, new org.netbeans.lib.awtextra.AbsoluteConstraints(430, 460, 440, 60));
+        getContentPane().add(btnCommencer, new org.netbeans.lib.awtextra.AbsoluteConstraints(380, 450, 530, 60));
 
         btnReglages1.setFont(new java.awt.Font("Alegreya Sans SC", 1, 48)); // NOI18N
         btnReglages1.setText("[ Réglages ]");
@@ -85,7 +86,7 @@ public class MainMenu extends javax.swing.JFrame {
             }
         });
         btnReglages1.addActionListener(this::btnReglages1ActionPerformed);
-        getContentPane().add(btnReglages1, new org.netbeans.lib.awtextra.AbsoluteConstraints(520, 540, -1, 60));
+        getContentPane().add(btnReglages1, new org.netbeans.lib.awtextra.AbsoluteConstraints(500, 530, -1, 60));
 
         btnQuitter.setFont(new java.awt.Font("Alegreya Sans SC", 1, 48)); // NOI18N
         btnQuitter.setText("[ Quitter ]");
@@ -103,7 +104,7 @@ public class MainMenu extends javax.swing.JFrame {
             }
         });
         btnQuitter.addActionListener(this::btnQuitterActionPerformed);
-        getContentPane().add(btnQuitter, new org.netbeans.lib.awtextra.AbsoluteConstraints(530, 640, 240, 50));
+        getContentPane().add(btnQuitter, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 630, 280, 50));
 
         jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/brawlmula/INTERFACE/acceuil.jpg"))); // NOI18N
         getContentPane().add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, -1, -1));
@@ -112,12 +113,16 @@ public class MainMenu extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btnCommencerActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCommencerActionPerformed
+        Musiques_sons.stop();
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
         Selection selection = new Selection();
         selection.setVisible(true);
         this.dispose();
     }//GEN-LAST:event_btnCommencerActionPerformed
 
     private void btnCommencerMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCommencerMouseEntered
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
+
         btnCommencer.setForeground(new Color(255, 215, 0));
         
         btnCommencer.setOpaque(true);
@@ -134,6 +139,7 @@ public class MainMenu extends javax.swing.JFrame {
     }//GEN-LAST:event_btnCommencerMouseExited
 
     private void btnQuitterMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnQuitterMouseEntered
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
         btnQuitter.setForeground(new Color(255, 215, 0));
         
         btnQuitter.setOpaque(true);
@@ -150,6 +156,8 @@ public class MainMenu extends javax.swing.JFrame {
     }//GEN-LAST:event_btnQuitterMouseExited
 
     private void btnQuitterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnQuitterActionPerformed
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
+        
         int choix = javax.swing.JOptionPane.showConfirmDialog(
         this,
         "Veux-tu vraiment quitter le jeu ?",
@@ -159,11 +167,13 @@ public class MainMenu extends javax.swing.JFrame {
     );
 
     if (choix == javax.swing.JOptionPane.YES_OPTION) {
+        Musiques_sons.stop();
         System.exit(0);
     }
     }//GEN-LAST:event_btnQuitterActionPerformed
 
     private void btnReglages1MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnReglages1MouseEntered
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
         btnReglages1.setForeground(new Color(255, 215, 0));
         
         btnReglages1.setOpaque(true);
@@ -180,6 +190,8 @@ public class MainMenu extends javax.swing.JFrame {
     }//GEN-LAST:event_btnReglages1MouseExited
 
     private void btnReglages1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnReglages1ActionPerformed
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
+        
         Reglages selection = new Reglages();
         selection.setVisible(true);
         this.dispose();

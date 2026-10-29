@@ -11,12 +11,30 @@ package brawlmula;
 public class Selection extends javax.swing.JFrame {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Selection.class.getName());
-
+    // Index des 4 personnages (0: Carrot, 1: Nikku, 2: Tomato, 3: Potato)
+    private int choixP1 = 0; 
+    private int choixP2 = 1; 
+    private int choixP3 = 2;
+    private int choixP4 = 3;
+    // Index de la carte (0: Marché aux épices, 1: Cuisine)
+    private int choixCarte1 = 0; 
+    private int choixCarte2 = 1;
+    private int choixCarte3 = 2;
+    // Liste des noms des 4 personnages disponibles
+    private final String[] personnages = {"CARROT", "NIKKU", "TOMATO", "POTATO"};
+    private final String[] cartes = {"MARCHÉ AUX ÉPICES", "CUISINE CENTRALE"};
     /**
      * Creates new form Selection
      */
     public Selection() {
         initComponents();
+        
+        setSize(1280, 760); 
+        setLocationRelativeTo(null);
+        
+        Musiques_sons.playLoop("src/ressources/Musiques-sons/Character-Select-Theme-Brawlmula-Soundtrack.wav");
+        
+        
     }
 
     /**
@@ -28,18 +46,17 @@ public class Selection extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        fond = new javax.swing.JLabel();
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
-        getContentPane().setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 400, Short.MAX_VALUE)
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 300, Short.MAX_VALUE)
-        );
+        setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
+        setPreferredSize(new java.awt.Dimension(1280, 760));
+        setSize(new java.awt.Dimension(1280, 760));
+        getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        fond.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        fond.setIcon(new javax.swing.ImageIcon(getClass().getResource("/brawlmula/INTERFACE/choix.jpg"))); // NOI18N
+        fond.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+        getContentPane().add(fond, new org.netbeans.lib.awtextra.AbsoluteConstraints(-40, 0, -1, -1));
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -70,5 +87,6 @@ public class Selection extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JLabel fond;
     // End of variables declaration//GEN-END:variables
 }
