@@ -53,7 +53,7 @@
     <Component class="javax.swing.JButton" name="btnCommencer">
       <Properties>
         <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
-          <Font name="Alegreya Sans SC" size="48" style="1"/>
+          <Font name="Fairfax" size="48" style="1"/>
         </Property>
         <Property name="text" type="java.lang.String" value="[ Commencer Jouer ]"/>
         <Property name="toolTipText" type="java.lang.String" value=""/>
@@ -78,7 +78,7 @@
     <Component class="javax.swing.JButton" name="btnReglages1">
       <Properties>
         <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
-          <Font name="Alegreya Sans SC" size="48" style="1"/>
+          <Font name="Fairfax" size="48" style="1"/>
         </Property>
         <Property name="text" type="java.lang.String" value="[ R&#xe9;glages ]"/>
         <Property name="toolTipText" type="java.lang.String" value=""/>
@@ -96,14 +96,14 @@
       </Events>
       <Constraints>
         <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
-          <AbsoluteConstraints x="500" y="530" width="-1" height="60"/>
+          <AbsoluteConstraints x="480" y="510" width="-1" height="60"/>
         </Constraint>
       </Constraints>
     </Component>
     <Component class="javax.swing.JButton" name="btnQuitter">
       <Properties>
         <Property name="font" type="java.awt.Font" editor="org.netbeans.beaninfo.editors.FontEditor">
-          <Font name="Alegreya Sans SC" size="48" style="1"/>
+          <Font name="Fairfax" size="48" style="1"/>
         </Property>
         <Property name="text" type="java.lang.String" value="[ Quitter ]"/>
         <Property name="toolTipText" type="java.lang.String" value=""/>
@@ -121,7 +121,7 @@
       </Events>
       <Constraints>
         <Constraint layoutClass="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout" value="org.netbeans.modules.form.compat2.layouts.DesignAbsoluteLayout$AbsoluteConstraintsDescription">
-          <AbsoluteConstraints x="510" y="630" width="280" height="50"/>
+          <AbsoluteConstraints x="480" y="580" width="330" height="50"/>
         </Constraint>
       </Constraints>
     </Component>

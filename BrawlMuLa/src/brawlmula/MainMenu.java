@@ -52,7 +52,7 @@ public class MainMenu extends javax.swing.JFrame {
         jLabel3.setPreferredSize(new java.awt.Dimension(1280, 720));
         getContentPane().add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 50, -1, 250));
 
-        btnCommencer.setFont(new java.awt.Font("Alegreya Sans SC", 1, 48)); // NOI18N
+        btnCommencer.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
         btnCommencer.setText("[ Commencer Jouer ]");
         btnCommencer.setToolTipText("");
         btnCommencer.setBorderPainted(false);
@@ -70,7 +70,7 @@ public class MainMenu extends javax.swing.JFrame {
         btnCommencer.addActionListener(this::btnCommencerActionPerformed);
         getContentPane().add(btnCommencer, new org.netbeans.lib.awtextra.AbsoluteConstraints(380, 450, 530, 60));
 
-        btnReglages1.setFont(new java.awt.Font("Alegreya Sans SC", 1, 48)); // NOI18N
+        btnReglages1.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
         btnReglages1.setText("[ Réglages ]");
         btnReglages1.setToolTipText("");
         btnReglages1.setBorderPainted(false);
@@ -86,9 +86,9 @@ public class MainMenu extends javax.swing.JFrame {
             }
         });
         btnReglages1.addActionListener(this::btnReglages1ActionPerformed);
-        getContentPane().add(btnReglages1, new org.netbeans.lib.awtextra.AbsoluteConstraints(500, 530, -1, 60));
+        getContentPane().add(btnReglages1, new org.netbeans.lib.awtextra.AbsoluteConstraints(480, 510, -1, 60));
 
-        btnQuitter.setFont(new java.awt.Font("Alegreya Sans SC", 1, 48)); // NOI18N
+        btnQuitter.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
         btnQuitter.setText("[ Quitter ]");
         btnQuitter.setToolTipText("");
         btnQuitter.setBorderPainted(false);
@@ -104,7 +104,7 @@ public class MainMenu extends javax.swing.JFrame {
             }
         });
         btnQuitter.addActionListener(this::btnQuitterActionPerformed);
-        getContentPane().add(btnQuitter, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 630, 280, 50));
+        getContentPane().add(btnQuitter, new org.netbeans.lib.awtextra.AbsoluteConstraints(480, 580, 330, 50));
 
         jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/brawlmula/INTERFACE/acceuil.jpg"))); // NOI18N
         getContentPane().add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, -1, -1));
@@ -121,9 +121,7 @@ public class MainMenu extends javax.swing.JFrame {
     }//GEN-LAST:event_btnCommencerActionPerformed
 
     private void btnCommencerMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCommencerMouseEntered
-        Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
-
-        btnCommencer.setForeground(new Color(255, 215, 0));
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");      
         
         btnCommencer.setOpaque(true);
     
@@ -132,15 +130,13 @@ public class MainMenu extends javax.swing.JFrame {
     }//GEN-LAST:event_btnCommencerMouseEntered
 
     private void btnCommencerMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCommencerMouseExited
-        btnCommencer.setForeground(new Color(110, 25, 25));
-        
+
         btnCommencer.setOpaque(false);
-        btnCommencer.setForeground(new Color(110, 25, 25));
+        btnCommencer.setForeground(new Color(0, 25, 25));
     }//GEN-LAST:event_btnCommencerMouseExited
 
     private void btnQuitterMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnQuitterMouseEntered
         Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
-        btnQuitter.setForeground(new Color(255, 215, 0));
         
         btnQuitter.setOpaque(true);
     
@@ -149,10 +145,9 @@ public class MainMenu extends javax.swing.JFrame {
     }//GEN-LAST:event_btnQuitterMouseEntered
 
     private void btnQuitterMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnQuitterMouseExited
-        btnQuitter.setForeground(new Color(110, 25, 25));
         
         btnQuitter.setOpaque(false);
-        btnQuitter.setForeground(new Color(110, 25, 25));
+        btnQuitter.setForeground(new Color(0, 25, 25));
     }//GEN-LAST:event_btnQuitterMouseExited
 
     private void btnQuitterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnQuitterActionPerformed
@@ -174,7 +169,6 @@ public class MainMenu extends javax.swing.JFrame {
 
     private void btnReglages1MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnReglages1MouseEntered
         Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
-        btnReglages1.setForeground(new Color(255, 215, 0));
         
         btnReglages1.setOpaque(true);
     
@@ -183,10 +177,9 @@ public class MainMenu extends javax.swing.JFrame {
     }//GEN-LAST:event_btnReglages1MouseEntered
 
     private void btnReglages1MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnReglages1MouseExited
-        btnReglages1.setForeground(new Color(110, 25, 25));
-        
+       
         btnReglages1.setOpaque(false);
-        btnReglages1.setForeground(new Color(110, 25, 25));
+        btnReglages1.setForeground(new Color(0, 25, 25));
     }//GEN-LAST:event_btnReglages1MouseExited
 
     private void btnReglages1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnReglages1ActionPerformed

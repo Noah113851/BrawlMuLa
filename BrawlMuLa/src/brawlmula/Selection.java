@@ -4,6 +4,9 @@
  */
 package brawlmula;
 
+import java.awt.Color;
+import java.awt.Image;
+
 /**
  *
  * @author ndufour
@@ -12,17 +15,49 @@ public class Selection extends javax.swing.JFrame {
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Selection.class.getName());
     // Index des 4 personnages (0: Carrot, 1: Nikku, 2: Tomato, 3: Potato)
-    private int choixP1 = 0; 
-    private int choixP2 = 1; 
-    private int choixP3 = 2;
-    private int choixP4 = 3;
+    private int choixJ1 = 0; 
+    private int choixJ2 = 1; 
+    private int choixJ3 = 2;
+    private int choixJ4 = 3;
     // Index de la carte (0: Marché aux épices, 1: Cuisine)
-    private int choixCarte1 = 0; 
-    private int choixCarte2 = 1;
-    private int choixCarte3 = 2;
+    private int choixCarte = 0; 
+    
     // Liste des noms des 4 personnages disponibles
     private final String[] personnages = {"CARROT", "NIKKU", "TOMATO", "POTATO"};
-    private final String[] cartes = {"MARCHÉ AUX ÉPICES", "CUISINE CENTRALE"};
+    private final String[] cartes = {"MARCHÉ", "CUISINE"};
+    
+    private final String[] imagesPersonnages = {
+    "/ressources/avatars/carrot_fight.png",
+    "/ressources/avatars/nikku_fight.png",
+    "/ressources/avatars/tomato_fight.png",
+    "/ressources/avatars/potato_fight.png"
+            
+};
+    private void choisirPersonnageJ1(int index) {
+    choixJ1 = index;
+    lblNomJ1.setText(personnages[index]);
+    
+    String chemin = imagesPersonnages[index];
+    java.net.URL imgURL = getClass().getResource(chemin);
+        
+        javax.swing.ImageIcon icon = new javax.swing.ImageIcon(imgURL);
+        
+        if (imgURL != null) {
+        // 1. Charger l'image originale
+        javax.swing.ImageIcon originalIcon = new javax.swing.ImageIcon(imgURL);
+
+        // 2. Redimensionner à une taille fixe (ajustez 200, 200 selon vos besoins)
+        Image img = originalIcon.getImage().getScaledInstance(300, 300, Image.SCALE_SMOOTH);
+        
+        // 3. Appliquer l'image redimensionnée
+        lblAvatarJ1.setIcon(new javax.swing.ImageIcon(img));
+
+        // 4. Forcer l'affichage dans Swing
+        lblAvatarJ1.revalidate();
+        lblAvatarJ1.repaint();
+    }
+}
+    
     /**
      * Creates new form Selection
      */
@@ -46,6 +81,19 @@ public class Selection extends javax.swing.JFrame {
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        carrot = new javax.swing.JButton();
+        Tomato = new javax.swing.JButton();
+        Potato = new javax.swing.JButton();
+        Nikku = new javax.swing.JButton();
+        boutton_gauche = new javax.swing.JButton();
+        boutton_droite = new javax.swing.JButton();
+        btnCombat = new javax.swing.JButton();
+        btnMenu = new javax.swing.JButton();
+        lblAvatarJ1 = new javax.swing.JLabel();
+        lblAvatarJ2 = new javax.swing.JLabel();
+        lblNomJ1 = new javax.swing.JLabel();
+        lblNomJ2 = new javax.swing.JLabel();
+        lblNomCartes = new javax.swing.JLabel();
         fond = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -53,13 +101,259 @@ public class Selection extends javax.swing.JFrame {
         setSize(new java.awt.Dimension(1280, 760));
         getContentPane().setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
+        carrot.setIcon(new javax.swing.ImageIcon(getClass().getResource("/brawlmula/INTERFACE/carrot.png"))); // NOI18N
+        carrot.setContentAreaFilled(false);
+        carrot.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        carrot.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                carrotMouseEntered(evt);
+            }
+        });
+        carrot.addActionListener(this::carrotActionPerformed);
+        getContentPane().add(carrot, new org.netbeans.lib.awtextra.AbsoluteConstraints(650, 440, 70, 70));
+
+        Tomato.setIcon(new javax.swing.ImageIcon(getClass().getResource("/brawlmula/INTERFACE/tomato.png"))); // NOI18N
+        Tomato.setContentAreaFilled(false);
+        Tomato.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        Tomato.setFocusPainted(false);
+        Tomato.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                TomatoMouseEntered(evt);
+            }
+        });
+        Tomato.addActionListener(this::TomatoActionPerformed);
+        getContentPane().add(Tomato, new org.netbeans.lib.awtextra.AbsoluteConstraints(490, 440, 70, 70));
+
+        Potato.setIcon(new javax.swing.ImageIcon(getClass().getResource("/brawlmula/INTERFACE/potato.png"))); // NOI18N
+        Potato.setContentAreaFilled(false);
+        Potato.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        Potato.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                PotatoMouseEntered(evt);
+            }
+        });
+        Potato.addActionListener(this::PotatoActionPerformed);
+        getContentPane().add(Potato, new org.netbeans.lib.awtextra.AbsoluteConstraints(730, 440, 70, 70));
+
+        Nikku.setIcon(new javax.swing.ImageIcon(getClass().getResource("/brawlmula/INTERFACE/nikku.png"))); // NOI18N
+        Nikku.setContentAreaFilled(false);
+        Nikku.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        Nikku.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                NikkuMouseEntered(evt);
+            }
+        });
+        Nikku.addActionListener(this::NikkuActionPerformed);
+        getContentPane().add(Nikku, new org.netbeans.lib.awtextra.AbsoluteConstraints(570, 440, 70, 70));
+
+        boutton_gauche.setIcon(new javax.swing.ImageIcon(getClass().getResource("/brawlmula/INTERFACE/fleche gauche.png"))); // NOI18N
+        boutton_gauche.setBorderPainted(false);
+        boutton_gauche.setContentAreaFilled(false);
+        boutton_gauche.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        boutton_gauche.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                boutton_gaucheMouseEntered(evt);
+            }
+        });
+        boutton_gauche.addActionListener(this::boutton_gaucheActionPerformed);
+        getContentPane().add(boutton_gauche, new org.netbeans.lib.awtextra.AbsoluteConstraints(440, 610, 70, 60));
+
+        boutton_droite.setIcon(new javax.swing.ImageIcon(getClass().getResource("/brawlmula/INTERFACE/fleche droite.png"))); // NOI18N
+        boutton_droite.setBorderPainted(false);
+        boutton_droite.setContentAreaFilled(false);
+        boutton_droite.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        boutton_droite.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                boutton_droiteMouseEntered(evt);
+            }
+        });
+        boutton_droite.addActionListener(this::boutton_droiteActionPerformed);
+        getContentPane().add(boutton_droite, new org.netbeans.lib.awtextra.AbsoluteConstraints(780, 610, -1, 60));
+
+        btnCombat.setFont(new java.awt.Font("Fairfax Serif", 1, 48)); // NOI18N
+        btnCombat.setForeground(new java.awt.Color(51, 51, 51));
+        btnCombat.setText("[ COMBAT ]");
+        btnCombat.setBorderPainted(false);
+        btnCombat.setContentAreaFilled(false);
+        btnCombat.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnCombat.setFocusPainted(false);
+        btnCombat.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btnCombatMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btnCombatMouseExited(evt);
+            }
+        });
+        btnCombat.addActionListener(this::btnCombatActionPerformed);
+        getContentPane().add(btnCombat, new org.netbeans.lib.awtextra.AbsoluteConstraints(312, 280, 290, -1));
+
+        btnMenu.setFont(new java.awt.Font("Fairfax Serif", 1, 48)); // NOI18N
+        btnMenu.setForeground(new java.awt.Color(51, 51, 51));
+        btnMenu.setText("[ MENU ]");
+        btnMenu.setBorderPainted(false);
+        btnMenu.setContentAreaFilled(false);
+        btnMenu.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnMenu.setFocusPainted(false);
+        btnMenu.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btnMenuMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btnMenuMouseExited(evt);
+            }
+        });
+        btnMenu.addActionListener(this::btnMenuActionPerformed);
+        getContentPane().add(btnMenu, new org.netbeans.lib.awtextra.AbsoluteConstraints(440, 350, -1, -1));
+
+        lblAvatarJ1.setPreferredSize(new java.awt.Dimension(300, 300));
+        getContentPane().add(lblAvatarJ1, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 140, 360, 350));
+
+        lblAvatarJ2.setPreferredSize(new java.awt.Dimension(300, 300));
+        getContentPane().add(lblAvatarJ2, new org.netbeans.lib.awtextra.AbsoluteConstraints(990, 130, 190, 380));
+
+        lblNomJ1.setFont(new java.awt.Font("Fairfax", 0, 48)); // NOI18N
+        lblNomJ1.setForeground(new java.awt.Color(255, 255, 255));
+        lblNomJ1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        getContentPane().add(lblNomJ1, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 540, 190, 40));
+
+        lblNomJ2.setFont(new java.awt.Font("Fairfax", 0, 48)); // NOI18N
+        lblNomJ2.setForeground(new java.awt.Color(255, 255, 255));
+        lblNomJ2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        getContentPane().add(lblNomJ2, new org.netbeans.lib.awtextra.AbsoluteConstraints(990, 540, 190, 40));
+
+        lblNomCartes.setFont(new java.awt.Font("Fairfax", 0, 36)); // NOI18N
+        lblNomCartes.setForeground(new java.awt.Color(255, 255, 255));
+        lblNomCartes.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        getContentPane().add(lblNomCartes, new org.netbeans.lib.awtextra.AbsoluteConstraints(518, 666, 250, 30));
+
+        fond.setFont(new java.awt.Font("Fairfax", 0, 12)); // NOI18N
         fond.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        fond.setIcon(new javax.swing.ImageIcon(getClass().getResource("/brawlmula/INTERFACE/choix.jpg"))); // NOI18N
+        fond.setIcon(new javax.swing.ImageIcon(getClass().getResource("/brawlmula/INTERFACE/selection.jpg"))); // NOI18N
         fond.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
         getContentPane().add(fond, new org.netbeans.lib.awtextra.AbsoluteConstraints(-40, 0, -1, -1));
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
+
+    private void carrotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_carrotActionPerformed
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
+   
+        choixJ1 = 0; 
+    
+        lblNomJ1.setText(personnages[choixJ1]);
+        choisirPersonnageJ1(0);
+    }//GEN-LAST:event_carrotActionPerformed
+
+    private void TomatoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_TomatoActionPerformed
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
+   
+        choixJ3 = 2; 
+    
+        lblNomJ1.setText(personnages[choixJ3]);
+        choisirPersonnageJ1(2);
+    }//GEN-LAST:event_TomatoActionPerformed
+
+    private void PotatoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_PotatoActionPerformed
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
+   
+        choixJ4 = 3; 
+    
+        lblNomJ1.setText(personnages[choixJ4]);
+        choisirPersonnageJ1(3);
+    }//GEN-LAST:event_PotatoActionPerformed
+
+    private void NikkuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_NikkuActionPerformed
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
+   
+        choixJ2 = 1; 
+    
+        lblNomJ1.setText(personnages[choixJ2]);
+        choisirPersonnageJ1(1);
+    }//GEN-LAST:event_NikkuActionPerformed
+
+    private void carrotMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_carrotMouseEntered
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
+    }//GEN-LAST:event_carrotMouseEntered
+
+    private void NikkuMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_NikkuMouseEntered
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
+    }//GEN-LAST:event_NikkuMouseEntered
+
+    private void TomatoMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_TomatoMouseEntered
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
+    }//GEN-LAST:event_TomatoMouseEntered
+
+    private void PotatoMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_PotatoMouseEntered
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
+    }//GEN-LAST:event_PotatoMouseEntered
+
+    private void boutton_droiteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_boutton_droiteActionPerformed
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
+        
+        choixCarte = (choixCarte + 1) % cartes.length;
+   
+        lblNomCartes.setText(cartes[choixCarte]);
+    }//GEN-LAST:event_boutton_droiteActionPerformed
+
+    private void boutton_gaucheActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_boutton_gaucheActionPerformed
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
+        
+        choixCarte = (choixCarte - 1 + cartes.length) % cartes.length;
+   
+        lblNomCartes.setText(cartes[choixCarte]);
+    }//GEN-LAST:event_boutton_gaucheActionPerformed
+
+    private void boutton_gaucheMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_boutton_gaucheMouseEntered
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
+    }//GEN-LAST:event_boutton_gaucheMouseEntered
+
+    private void boutton_droiteMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_boutton_droiteMouseEntered
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
+    }//GEN-LAST:event_boutton_droiteMouseEntered
+
+    private void btnCombatMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCombatMouseEntered
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
+        btnCombat.setOpaque(true);
+    
+        btnCombat.setBackground(new Color(255, 245, 180)); 
+        btnCombat.setForeground(new Color(180, 40, 20));
+    }//GEN-LAST:event_btnCombatMouseEntered
+
+    private void btnCombatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCombatActionPerformed
+        Musiques_sons.stop();
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
+        Combat jeu = new Combat(personnages[choixJ1], personnages[choixJ2], cartes[choixCarte]);
+        
+        jeu.setVisible(true);
+        this.dispose();
+    }//GEN-LAST:event_btnCombatActionPerformed
+
+    private void btnMenuMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnMenuMouseEntered
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
+        btnMenu.setOpaque(true);
+    
+        btnMenu.setBackground(new Color(255, 245, 180)); 
+        btnMenu.setForeground(new Color(180, 40, 20));
+    }//GEN-LAST:event_btnMenuMouseEntered
+
+    private void btnMenuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnMenuActionPerformed
+        Musiques_sons.stop();
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
+        MainMenu Selection = new MainMenu();
+        Selection.setVisible(true);
+        this.dispose();
+    }//GEN-LAST:event_btnMenuActionPerformed
+
+    private void btnCombatMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCombatMouseExited
+        btnCombat.setOpaque(false);
+        btnCombat.setForeground(new Color(50, 50, 50));
+    }//GEN-LAST:event_btnCombatMouseExited
+
+    private void btnMenuMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnMenuMouseExited
+        btnMenu.setOpaque(false);
+        btnMenu.setForeground(new Color(50, 50, 50));
+    }//GEN-LAST:event_btnMenuMouseExited
 
     /**
      * @param args the command line arguments
@@ -87,6 +381,19 @@ public class Selection extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton Nikku;
+    private javax.swing.JButton Potato;
+    private javax.swing.JButton Tomato;
+    private javax.swing.JButton boutton_droite;
+    private javax.swing.JButton boutton_gauche;
+    private javax.swing.JButton btnCombat;
+    private javax.swing.JButton btnMenu;
+    private javax.swing.JButton carrot;
     private javax.swing.JLabel fond;
+    private javax.swing.JLabel lblAvatarJ1;
+    private javax.swing.JLabel lblAvatarJ2;
+    private javax.swing.JLabel lblNomCartes;
+    private javax.swing.JLabel lblNomJ1;
+    private javax.swing.JLabel lblNomJ2;
     // End of variables declaration//GEN-END:variables
 }
