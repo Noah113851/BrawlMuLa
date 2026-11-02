@@ -84,6 +84,7 @@ public class Avatar {
     private BufferedImage sprite;
     protected double x, y;
     private boolean gauche, droite, haut, bas;
+    private boolean regardeGauche = false;
 
     private double vy;                 // vitesse verticale
     private boolean auSol;             // vrai si l'avatar touche le sol
@@ -135,6 +136,14 @@ public class Avatar {
         // déplacement horizontal (inchangé)
         if (this.gauche) {
             x -= 5;
+            regardeGauche = true;
+        }
+        if (this.droite) {
+            x += 5;
+            regardeGauche = false;
+        }
+        if (this.gauche) {
+            x -= 5;
         }
         if (this.droite) {
             x += 5;
@@ -159,7 +168,13 @@ public class Avatar {
     }
 
     public void rendu(Graphics2D contexte) {
-        contexte.drawImage(this.sprite, (int) x, (int) y, 100, 100, null);;
+        if (regardeGauche) {
+    // image retournée : on dessine de droite à gauche
+    contexte.drawImage(this.sprite, (int) x + 100, (int) y, -100, 100, null);
+        } 
+        else {
+    contexte.drawImage(this.sprite, (int) x, (int) y, 100, 100, null);
+        }
     }
 
 }
