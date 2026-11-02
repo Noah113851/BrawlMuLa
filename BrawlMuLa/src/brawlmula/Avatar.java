@@ -90,7 +90,7 @@ public class Avatar {
     private boolean auSol;             // vrai si l'avatar touche le sol
     private static final double SOL = 420;       // hauteur du sol (y de départ)
     private static final double GRAVITE = 10;   // accélération vers le bas par tick    
-    private static final double VITESSE_SAUT = 25; // force du saut
+    private static final double VITESSE_SAUT = 50; // force du saut
 
     public Avatar() {
         try {
