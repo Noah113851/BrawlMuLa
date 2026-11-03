@@ -15,6 +15,8 @@ public class Selection extends javax.swing.JFrame {
     
     private boolean j1Selectionne = false;
     private boolean j2Selectionne = false;
+    private boolean j3Selectionne = false;
+    private boolean j4Selectionne = false;
     
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Selection.class.getName());
     // Index des 4 personnages (0: Carrot, 1: Nikku, 2: Tomato, 3: Potato)
@@ -22,12 +24,10 @@ public class Selection extends javax.swing.JFrame {
     private int choixJ2 = 1; 
     private int choixJ3 = 2;
     private int choixJ4 = 3;
-    // Index de la carte (0: Marché aux épices, 1: Cuisine)
-    private int choixCarte = 0; 
-    
+       
     // Liste des noms des 4 personnages disponibles
     private final String[] personnages = {"CARROT", "NIKKU", "TOMATO", "POTATO"};
-    private final String[] cartes = {"MARCHÉ", "CUISINE"};
+    private final String[] cartes = {"COLONIE", "CHATEAU", "POTAGER", "MARCHÉ"};
     
     private final String[] imagesPersonnages = {
     "/ressources/avatars/carrot_fight.png",
@@ -36,6 +36,15 @@ public class Selection extends javax.swing.JFrame {
     "/ressources/avatars/potato_fight.png"
             
 };
+    private final String[] imagesCartes = {
+    "/ressources/cartes/colonie.png",
+    "/ressources/cartes/chateau.png",
+    "/ressources/cartes/potager.png",
+    "/ressources/cartes/marche.png"
+            
+};
+    private int choixCarte = 0;
+    
     private void choisirPersonnageJ1(int index) {
     choixJ1 = index;
     //j1Selectionne = true;
@@ -51,7 +60,7 @@ public class Selection extends javax.swing.JFrame {
         javax.swing.ImageIcon originalIcon = new javax.swing.ImageIcon(imgURL);
 
         
-        Image img = originalIcon.getImage().getScaledInstance(300, 300, Image.SCALE_SMOOTH);
+        Image img = originalIcon.getImage().getScaledInstance(240, 240, Image.SCALE_SMOOTH);
         
         
         lblAvatarJ1.setIcon(new javax.swing.ImageIcon(img));
@@ -62,6 +71,29 @@ public class Selection extends javax.swing.JFrame {
     
     }    
         
+}
+    private void afficherCarte(int index) {
+    // 1. Mettre à jour le texte
+    lblNomCartes.setText(cartes[index]);
+
+    // 2. Charger et redimensionner l'image de la carte
+    java.net.URL imgURL = getClass().getResource(imagesCartes[index]);
+    if (imgURL != null) {
+        javax.swing.ImageIcon icon = new javax.swing.ImageIcon(imgURL);
+        
+        if (lblCartes.getWidth() > 0 && lblCartes.getHeight() > 0) {
+            java.awt.Image img = icon.getImage().getScaledInstance(
+                lblCartes.getWidth(), 
+                lblCartes.getHeight(), 
+                java.awt.Image.SCALE_SMOOTH
+            );
+            lblCartes.setIcon(new javax.swing.ImageIcon(img));
+        } else {
+            lblCartes.setIcon(icon);
+        }
+        lblCartes.revalidate();
+        lblCartes.repaint();
+    } 
 }
     
     /**
@@ -96,11 +128,16 @@ public class Selection extends javax.swing.JFrame {
         boutton_droite = new javax.swing.JButton();
         btnCombat = new javax.swing.JButton();
         btnMenu = new javax.swing.JButton();
-        lblAvatarJ1 = new javax.swing.JLabel();
+        lblAvatarJ4 = new javax.swing.JLabel();
+        lblAvatarJ3 = new javax.swing.JLabel();
         lblAvatarJ2 = new javax.swing.JLabel();
-        lblNomJ1 = new javax.swing.JLabel();
+        lblAvatarJ1 = new javax.swing.JLabel();
+        lblNomJ4 = new javax.swing.JLabel();
+        lblNomJ3 = new javax.swing.JLabel();
         lblNomJ2 = new javax.swing.JLabel();
+        lblNomJ1 = new javax.swing.JLabel();
         lblNomCartes = new javax.swing.JLabel();
+        lblCartes = new javax.swing.JLabel();
         fond = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -177,7 +214,7 @@ public class Selection extends javax.swing.JFrame {
         boutton_droite.addActionListener(this::boutton_droiteActionPerformed);
         getContentPane().add(boutton_droite, new org.netbeans.lib.awtextra.AbsoluteConstraints(780, 610, -1, 60));
 
-        btnCombat.setFont(new java.awt.Font("Fairfax Serif", 1, 48)); // NOI18N
+        btnCombat.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
         btnCombat.setForeground(new java.awt.Color(51, 51, 51));
         btnCombat.setText("[ COMBAT ]");
         btnCombat.setBorderPainted(false);
@@ -193,9 +230,9 @@ public class Selection extends javax.swing.JFrame {
             }
         });
         btnCombat.addActionListener(this::btnCombatActionPerformed);
-        getContentPane().add(btnCombat, new org.netbeans.lib.awtextra.AbsoluteConstraints(312, 280, 290, -1));
+        getContentPane().add(btnCombat, new org.netbeans.lib.awtextra.AbsoluteConstraints(312, 280, 300, -1));
 
-        btnMenu.setFont(new java.awt.Font("Fairfax Serif", 1, 48)); // NOI18N
+        btnMenu.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
         btnMenu.setForeground(new java.awt.Color(51, 51, 51));
         btnMenu.setText("[ MENU ]");
         btnMenu.setBorderPainted(false);
@@ -213,30 +250,47 @@ public class Selection extends javax.swing.JFrame {
         btnMenu.addActionListener(this::btnMenuActionPerformed);
         getContentPane().add(btnMenu, new org.netbeans.lib.awtextra.AbsoluteConstraints(440, 350, -1, -1));
 
-        lblAvatarJ1.setPreferredSize(new java.awt.Dimension(300, 300));
-        getContentPane().add(lblAvatarJ1, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 140, 360, 350));
+        lblAvatarJ4.setPreferredSize(new java.awt.Dimension(300, 300));
+        getContentPane().add(lblAvatarJ4, new org.netbeans.lib.awtextra.AbsoluteConstraints(990, 450, 220, 220));
+
+        lblAvatarJ3.setPreferredSize(new java.awt.Dimension(300, 300));
+        getContentPane().add(lblAvatarJ3, new org.netbeans.lib.awtextra.AbsoluteConstraints(90, 450, 230, 220));
 
         lblAvatarJ2.setPreferredSize(new java.awt.Dimension(300, 300));
-        getContentPane().add(lblAvatarJ2, new org.netbeans.lib.awtextra.AbsoluteConstraints(990, 130, 190, 380));
+        getContentPane().add(lblAvatarJ2, new org.netbeans.lib.awtextra.AbsoluteConstraints(990, 110, 220, 230));
 
-        lblNomJ1.setFont(new java.awt.Font("Fairfax", 0, 48)); // NOI18N
-        lblNomJ1.setForeground(new java.awt.Color(255, 255, 255));
-        lblNomJ1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        getContentPane().add(lblNomJ1, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 540, 190, 40));
+        lblAvatarJ1.setPreferredSize(new java.awt.Dimension(300, 300));
+        getContentPane().add(lblAvatarJ1, new org.netbeans.lib.awtextra.AbsoluteConstraints(90, 110, 230, 230));
+
+        lblNomJ4.setFont(new java.awt.Font("Fairfax", 0, 48)); // NOI18N
+        lblNomJ4.setForeground(new java.awt.Color(255, 255, 255));
+        lblNomJ4.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        getContentPane().add(lblNomJ4, new org.netbeans.lib.awtextra.AbsoluteConstraints(990, 680, 210, 40));
+
+        lblNomJ3.setFont(new java.awt.Font("Fairfax", 0, 48)); // NOI18N
+        lblNomJ3.setForeground(new java.awt.Color(255, 255, 255));
+        lblNomJ3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        getContentPane().add(lblNomJ3, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 680, 200, 40));
 
         lblNomJ2.setFont(new java.awt.Font("Fairfax", 0, 48)); // NOI18N
         lblNomJ2.setForeground(new java.awt.Color(255, 255, 255));
         lblNomJ2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        getContentPane().add(lblNomJ2, new org.netbeans.lib.awtextra.AbsoluteConstraints(990, 540, 190, 40));
+        getContentPane().add(lblNomJ2, new org.netbeans.lib.awtextra.AbsoluteConstraints(1000, 340, 200, 40));
+
+        lblNomJ1.setFont(new java.awt.Font("Fairfax", 0, 48)); // NOI18N
+        lblNomJ1.setForeground(new java.awt.Color(255, 255, 255));
+        lblNomJ1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        getContentPane().add(lblNomJ1, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 340, 190, 40));
 
         lblNomCartes.setFont(new java.awt.Font("Fairfax", 0, 36)); // NOI18N
         lblNomCartes.setForeground(new java.awt.Color(255, 255, 255));
         lblNomCartes.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        getContentPane().add(lblNomCartes, new org.netbeans.lib.awtextra.AbsoluteConstraints(518, 666, 250, 30));
+        getContentPane().add(lblNomCartes, new org.netbeans.lib.awtextra.AbsoluteConstraints(518, 666, 260, 30));
+        getContentPane().add(lblCartes, new org.netbeans.lib.awtextra.AbsoluteConstraints(520, 570, 260, 110));
 
         fond.setFont(new java.awt.Font("Fairfax", 0, 12)); // NOI18N
         fond.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        fond.setIcon(new javax.swing.ImageIcon(getClass().getResource("/brawlmula/INTERFACE/selection.jpg"))); // NOI18N
+        fond.setIcon(new javax.swing.ImageIcon(getClass().getResource("/brawlmula/INTERFACE/selection.png"))); // NOI18N
         fond.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
         getContentPane().add(fond, new org.netbeans.lib.awtextra.AbsoluteConstraints(-40, 0, -1, -1));
 
@@ -299,16 +353,17 @@ public class Selection extends javax.swing.JFrame {
         Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
         
         choixCarte = (choixCarte + 1) % cartes.length;
-   
-        lblNomCartes.setText(cartes[choixCarte]);
+        afficherCarte(choixCarte);
+        //lblNomCartes.setText(cartes[choixCarte]);
     }//GEN-LAST:event_boutton_droiteActionPerformed
 
     private void boutton_gaucheActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_boutton_gaucheActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
         
         choixCarte = (choixCarte - 1 + cartes.length) % cartes.length;
-   
-        lblNomCartes.setText(cartes[choixCarte]);
+        afficherCarte(choixCarte);
+    
+        //lblNomCartes.setText(cartes[choixCarte]);
     }//GEN-LAST:event_boutton_gaucheActionPerformed
 
     private void boutton_gaucheMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_boutton_gaucheMouseEntered
@@ -328,10 +383,10 @@ public class Selection extends javax.swing.JFrame {
     }//GEN-LAST:event_btnCombatMouseEntered
 
     private void btnCombatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCombatActionPerformed
-        if (!j1Selectionne || !j2Selectionne) {
+        if (!j1Selectionne || !j2Selectionne || !j3Selectionne || !j4Selectionne) {
         javax.swing.JOptionPane.showMessageDialog(
             this,
-            "Les deux joueurs doivent choisir un personnage avant de lancer le combat !",
+            "Les quatres joueurs doivent choisir un personnage avant de lancer le combat !",
             "Sélection incomplète",
             javax.swing.JOptionPane.WARNING_MESSAGE
         );
@@ -339,7 +394,7 @@ public class Selection extends javax.swing.JFrame {
     }
         Musiques_sons.stop();
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
-        Combat jeu = new Combat(personnages[choixJ1], personnages[choixJ2], cartes[choixCarte]);
+        Combat jeu = new Combat(personnages[choixJ1], personnages[choixJ2], personnages[choixJ3], personnages[choixJ4], imagesCartes[choixCarte]);
         
         jeu.setVisible(true);
         this.dispose();
@@ -408,8 +463,13 @@ public class Selection extends javax.swing.JFrame {
     private javax.swing.JLabel fond;
     private javax.swing.JLabel lblAvatarJ1;
     private javax.swing.JLabel lblAvatarJ2;
+    private javax.swing.JLabel lblAvatarJ3;
+    private javax.swing.JLabel lblAvatarJ4;
+    private javax.swing.JLabel lblCartes;
     private javax.swing.JLabel lblNomCartes;
     private javax.swing.JLabel lblNomJ1;
     private javax.swing.JLabel lblNomJ2;
+    private javax.swing.JLabel lblNomJ3;
+    private javax.swing.JLabel lblNomJ4;
     // End of variables declaration//GEN-END:variables
 }
