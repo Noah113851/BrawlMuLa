@@ -13,7 +13,7 @@ import java.awt.Color;
 public class MainMenu extends javax.swing.JFrame {
 
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(MainMenu.class.getName());
-    
+
     /**
      * Creates new form MainMenu
      */
@@ -134,63 +134,32 @@ public class MainMenu extends javax.swing.JFrame {
     private void btnCreerActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCreerActionPerformed
         Musiques_sons.stop();
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
+
         try {
-            // 1. Récupération de l'adresse IP locale du PC de l'hôte
-            String codePartie = java.net.InetAddress.getLocalHost().getHostAddress();
+            // 1. Démarrer le serveur TCP sur le port 5000
+            Reseau reseau = new Reseau(5000);
 
-            // 2. Création d'un panneau visuel personnalisé pour la fenêtre popup
-            javax.swing.JPanel panel = new javax.swing.JPanel();
-            panel.setLayout(new java.awt.GridLayout(3, 1, 5, 5));
+            // 2. Récupérer l'IP locale (ou code de la partie)
+            String codeIP = java.net.InetAddress.getLocalHost().getHostAddress();
 
-            javax.swing.JLabel lblTitre = new javax.swing.JLabel("Partie créée avec succès !");
-            lblTitre.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
-
-            javax.swing.JLabel lblInfo = new javax.swing.JLabel("Transmettez ce code aux joueurs pour qu'ils rejoignent :");
-
-            // Champ affichant le code en grand, centré et non modifiable
-            javax.swing.JTextField txtCode = new javax.swing.JTextField(codePartie);
-            txtCode.setFont(new java.awt.Font("Monospaced", java.awt.Font.BOLD, 20));
-            txtCode.setHorizontalAlignment(javax.swing.JTextField.CENTER);
-            txtCode.setEditable(false);
-            txtCode.setBackground(java.awt.Color.WHITE);
-
-            panel.add(lblTitre);
-            panel.add(lblInfo);
-            panel.add(txtCode);
-
-            // 3. Affichage de la petite fenêtre Popup
+            // 3. Fenêtre popup : l'exécution s'arrête ici jusqu'au clic sur "OK"
             javax.swing.JOptionPane.showMessageDialog(
                     this,
-                    panel,
+                    "Partie créée avec succès !\n\nCode IP pour le Joueur 2 : " + codeIP + "\n\nCliquez sur OK pour accéder à la sélection.",
                     "Code de la Partie",
                     javax.swing.JOptionPane.INFORMATION_MESSAGE
             );
 
-            // 4. Lancement de l'écoute du réseau en arrière-plan pendant qu'on attend le second joueur
-            new Thread(() -> {
-                try {
-                    Reseau reseau = new Reseau(5000); // Port TCP 5000
-                    reseau.attendreClient();          // Attend le second joueur
-
-                    // Dès que le joueur 2 saisit le code et se connecte, passage à l'écran de sélection
-                    java.awt.EventQueue.invokeLater(() -> {
-                        Selection selection = new Selection(true, reseau);
-                        selection.setVisible(true);
-                        this.dispose();
-                    });
-
-                } catch (Exception e) {
-                    java.awt.EventQueue.invokeLater(() -> {
-                        javax.swing.JOptionPane.showMessageDialog(this,
-                                "Erreur réseau ou déconnexion : " + e.getMessage(),
-                                "Erreur Réseau",
-                                javax.swing.JOptionPane.ERROR_MESSAGE);
-                    });
-                }
-            }).start();
+            // 4. Dès qu'on clique sur OK, basculement direct vers l'écran de sélection (Hôte / J1)
+            Selection fenetreSelection = new Selection(true, reseau);
+            fenetreSelection.setVisible(true);
+            this.dispose();
 
         } catch (Exception e) {
-            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(this,
+                    "Erreur lors de la création de la partie : " + e.getMessage(),
+                    "Erreur Réseau",
+                    javax.swing.JOptionPane.ERROR_MESSAGE);
         }
     }//GEN-LAST:event_btnCreerActionPerformed
 
@@ -281,32 +250,32 @@ public class MainMenu extends javax.swing.JFrame {
     private void btnRejoindreActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRejoindreActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
 
-    String codeEntre = javax.swing.JOptionPane.showInputDialog(this,
-        "Entrez le code de la partie (Adresse IP de l'hôte) :",
-        "Rejoindre une partie",
-        javax.swing.JOptionPane.QUESTION_MESSAGE);
+        String codeEntre = javax.swing.JOptionPane.showInputDialog(this,
+                "Entrez le code de la partie (Adresse IP de l'hôte) :",
+                "Rejoindre une partie",
+                javax.swing.JOptionPane.QUESTION_MESSAGE);
 
-    if (codeEntre != null && !codeEntre.trim().isEmpty()) {
-        new Thread(() -> {
-            try {
-                Reseau reseau = new Reseau(codeEntre.trim(), 5000);
+        if (codeEntre != null && !codeEntre.trim().isEmpty()) {
+            new Thread(() -> {
+                try {
+                    Reseau reseau = new Reseau(codeEntre.trim(), 5000);
 
-                java.awt.EventQueue.invokeLater(() -> {
-                    Selection selection = new Selection(false, reseau);
-                    selection.setVisible(true);
-                    this.dispose();
-                });
+                    java.awt.EventQueue.invokeLater(() -> {
+                        Selection selection = new Selection(false, reseau);
+                        selection.setVisible(true);
+                        this.dispose();
+                    });
 
-            } catch (Exception e) {
-                java.awt.EventQueue.invokeLater(() -> {
-                    javax.swing.JOptionPane.showMessageDialog(this,
-                        "Impossible de rejoindre la partie avec le code : " + codeEntre,
-                        "Code Incorrect ou Hôte Introuvable",
-                        javax.swing.JOptionPane.ERROR_MESSAGE);
-                });
-            }
-        }).start();
-    }
+                } catch (Exception e) {
+                    java.awt.EventQueue.invokeLater(() -> {
+                        javax.swing.JOptionPane.showMessageDialog(this,
+                                "Impossible de rejoindre la partie avec le code : " + codeEntre,
+                                "Code Incorrect ou Hôte Introuvable",
+                                javax.swing.JOptionPane.ERROR_MESSAGE);
+                    });
+                }
+            }).start();
+        }
     }//GEN-LAST:event_btnRejoindreActionPerformed
 
         /**

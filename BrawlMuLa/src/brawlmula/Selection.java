@@ -23,48 +23,48 @@ public class Selection extends javax.swing.JFrame {
 
     private boolean isHost;
     private Reseau reseau;
-    
+
     private void demarrerEcouteReseau() {
-    new Thread(() -> {
-        try {
-            String msg;
-            while ((msg = reseau.lireMessage()) != null) {
-                String messageRecu = msg;
-                // Exécution dans le thread graphique Swing
-                java.awt.EventQueue.invokeLater(() -> {
-                    traiterMessageReseau(messageRecu);
-                });
+        new Thread(() -> {
+            try {
+                String msg;
+                while ((msg = reseau.lireMessage()) != null) {
+                    String messageRecu = msg;
+                    // Exécution dans le thread graphique Swing
+                    java.awt.EventQueue.invokeLater(() -> {
+                        traiterMessageReseau(messageRecu);
+                    });
+                }
+            } catch (Exception e) {
+                System.err.println("Déconnexion du réseau.");
             }
-        } catch (Exception e) {
-            System.err.println("Déconnexion du réseau.");
-        }
-    }).start();
-}
-    private void traiterMessageReseau(String msg) {
-    if (msg.startsWith("CHOIX_J1:")) {
-        choixJ1 = Integer.parseInt(msg.split(":")[1]);
-        j1Selectionne = true;
-        lblNomJ1.setText(personnages.get(choixJ1));
-    } else if (msg.startsWith("CHOIX_J2:")) {
-        choixJ2 = Integer.parseInt(msg.split(":")[1]);
-        j2Selectionne = true;
-        lblNomJ2.setText(personnages.get(choixJ2));
-    } else if (msg.startsWith("MAP:")) {
-        choixCarte = Integer.parseInt(msg.split(":")[1]);
-        afficherCarte(choixCarte);
-    } else if (msg.equals("START_GAME")) {
-        // Lancer le combat automatique reçu depuis l'hôte
-        Combat jeu = new Combat(
-            personnages.get(choixJ1),
-            personnages.get(choixJ2),
-            personnages.get(choixJ3),
-            personnages.get(choixJ4),
-            imagesCartes[choixCarte]
-        );
-        jeu.setVisible(true);
-        this.dispose();
+        }).start();
     }
-}
+
+    private void traiterMessageReseau(String msg) {
+        if (msg.startsWith("CHOIX_J1:")) {
+            int idx = Integer.parseInt(msg.split(":")[1]);
+            choisirPersonnageJ1(idx); // Applique le choix distant sur le cadre J1
+        } else if (msg.startsWith("CHOIX_J2:")) {
+            int idx = Integer.parseInt(msg.split(":")[1]);
+            choisirPersonnageJ2(idx); // Applique le choix distant sur le cadre J2
+
+        } else if (msg.startsWith("MAP:")) {
+            choixCarte = Integer.parseInt(msg.split(":")[1]);
+            afficherCarte(choixCarte);
+        } else if (msg.equals("START_GAME")) {
+            // Lancer le combat automatique reçu depuis l'hôte
+            Combat jeu = new Combat(
+                    personnages.get(choixJ1),
+                    personnages.get(choixJ2),
+                    personnages.get(choixJ3),
+                    personnages.get(choixJ4),
+                    imagesCartes[choixCarte]
+            );
+            jeu.setVisible(true);
+            this.dispose();
+        }
+    }
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Selection.class.getName());
     // Index des 4 personnages (0: Carrot, 1: Nikku, 2: Tomato, 3: Potato)
     private int choixJ1 = 0;
@@ -115,58 +115,60 @@ public class Selection extends javax.swing.JFrame {
 
     }
 
+    private void choisirPersonnage(int index) {
+        if (isHost) {
+            // L'hôte qui a créé la partie contrôle obligatoirement le Joueur 1
+            choisirPersonnageJ1(index);
+            if (reseau != null) {
+                reseau.envoyerMessage("CHOIX_J1:" + index);
+            }
+        } else {
+            // Le client qui a rejoint la partie contrôle obligatoirement le Joueur 2
+            choisirPersonnageJ2(index);
+            if (reseau != null) {
+                reseau.envoyerMessage("CHOIX_J2:" + index);
+            }
+        }
+    }
+
     private void choisirPersonnageJ1(int index) {
         if (index >= 0 && index < personnages.size()) {
             choixJ1 = index;
             j1Selectionne = true;
+
             lblNomJ1.setText(personnages.get(index));
 
             String chemin = imagesPersonnages.get(index);
             java.net.URL imgURL = getClass().getResource(chemin);
-
-            javax.swing.ImageIcon icon = new javax.swing.ImageIcon(imgURL);
-
             if (imgURL != null) {
-                // 1. Charger l'image originale
                 javax.swing.ImageIcon originalIcon = new javax.swing.ImageIcon(imgURL);
-
-                Image img = originalIcon.getImage().getScaledInstance(240, 240, Image.SCALE_SMOOTH);
-
+                java.awt.Image img = originalIcon.getImage().getScaledInstance(240, 240, java.awt.Image.SCALE_SMOOTH);
                 lblAvatarJ1.setIcon(new javax.swing.ImageIcon(img));
-
                 lblAvatarJ1.revalidate();
                 lblAvatarJ1.repaint();
-
             }
-
         }
     }
+
     private void choisirPersonnageJ2(int index) {
         if (index >= 0 && index < personnages.size()) {
             choixJ2 = index;
             j2Selectionne = true;
+
             lblNomJ2.setText(personnages.get(index));
 
             String chemin = imagesPersonnages.get(index);
             java.net.URL imgURL = getClass().getResource(chemin);
-
-            javax.swing.ImageIcon icon = new javax.swing.ImageIcon(imgURL);
-
             if (imgURL != null) {
-                // 1. Charger l'image originale
                 javax.swing.ImageIcon originalIcon = new javax.swing.ImageIcon(imgURL);
-
-                Image img = originalIcon.getImage().getScaledInstance(240, 240, Image.SCALE_SMOOTH);
-
+                java.awt.Image img = originalIcon.getImage().getScaledInstance(240, 240, java.awt.Image.SCALE_SMOOTH);
                 lblAvatarJ2.setIcon(new javax.swing.ImageIcon(img));
-
                 lblAvatarJ2.revalidate();
                 lblAvatarJ2.repaint();
-
             }
-
         }
     }
+
     private void afficherCarte(int index) {
         // 1. Mettre à jour le texte
         lblNomCartes.setText(cartes[index]);
@@ -206,7 +208,25 @@ public class Selection extends javax.swing.JFrame {
         chargerAvatarsDepuisBDD();
 
         if (reseau != null) {
-            demarrerEcouteReseau();
+            if (isHost) {
+                // L'Hôte (J1) est déjà sur la page. On attend la connexion de J2 en arrière-plan.
+                new Thread(() -> {
+                    try {
+                        System.out.println("⏳ En attente de la connexion du Joueur 2...");
+                        reseau.attendreClient(); // Bloquant uniquement dans ce Thread
+                        System.out.println("✅ Joueur 2 connecté !");
+
+                        // Une fois J2 connecté, on démarre la réception des choix
+                        demarrerEcouteReseau();
+                    } catch (Exception e) {
+                        System.err.println("Erreur attente client : " + e.getMessage());
+                    }
+                }).start();
+            } else {
+                // Le Client (J2) est déjà connecté, il écoute directement
+                demarrerEcouteReseau();
+            }
+
         }
 
         Musiques_sons.playLoop("src/ressources/Musiques-sons/Character-Select-Theme-Brawlmula-Soundtrack.wav");
@@ -409,7 +429,7 @@ public class Selection extends javax.swing.JFrame {
         choixJ1 = 0;
 
         choisirPersonnageJ1(0);
-         choisirPersonnageJ2(0);
+        choisirPersonnageJ2(0);
     }//GEN-LAST:event_carrotActionPerformed
 
     private void TomatoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_TomatoActionPerformed
@@ -417,7 +437,7 @@ public class Selection extends javax.swing.JFrame {
 
         choixJ3 = 2;
         choisirPersonnageJ1(2);
-         choisirPersonnageJ2(2);
+        choisirPersonnageJ2(2);
     }//GEN-LAST:event_TomatoActionPerformed
 
     private void PotatoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_PotatoActionPerformed
@@ -426,7 +446,7 @@ public class Selection extends javax.swing.JFrame {
         choixJ4 = 3;
 
         choisirPersonnageJ1(3);
-         choisirPersonnageJ2(3);
+        choisirPersonnageJ2(3);
     }//GEN-LAST:event_PotatoActionPerformed
 
     private void NikkuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_NikkuActionPerformed
@@ -435,7 +455,7 @@ public class Selection extends javax.swing.JFrame {
         choixJ2 = 1;
 
         choisirPersonnageJ1(1);
-         choisirPersonnageJ2(1);
+        choisirPersonnageJ2(1);
     }//GEN-LAST:event_NikkuActionPerformed
 
     private void carrotMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_carrotMouseEntered
