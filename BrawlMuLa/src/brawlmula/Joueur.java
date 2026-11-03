@@ -8,6 +8,7 @@ package brawlmula;
  */
 public class Joueur {
 
+<<<<<<< HEAD
 
     private String pseudo;
     private int x;
@@ -45,5 +46,33 @@ public class Joueur {
         return "Joueur " + emplacement + " : " + pseudo
                 + " (x=" + x + ", y=" + y + ", score=" + score
                 + ", avatar=" + idAvatar + ")";
+=======
+    private String nom;
+    private int positionX;
+    private int positionY;
+    private int score;
+
+    public Joueur(String nom, int positionX, int positionY, int score) {
+        this.nom = nom;
+        this.positionX = positionX;
+        this.positionY = positionY;
+        this.score = score;
+    }
+
+    public String getNom() {
+        return nom;
+    }
+
+    public int getPositionX() {
+        return positionX;
+    }
+
+    public int getPositionY() {
+        return positionY;
+    }
+
+    public int getScore() {
+        return score;
+>>>>>>> 786c2395323c5632720efc50ade634601769174f
     }
 }
