@@ -90,7 +90,7 @@ public class Avatar {
     private boolean auSol;             // vrai si l'avatar touche le sol
     private static final double SOL = 420;       // hauteur du sol (y de départ)
     private static final double GRAVITE = 10;   // accélération vers le bas par tick    
-    private static final double VITESSE_SAUT = 50; // force du saut
+    private static final double VITESSE_SAUT = 70; // force du saut
 
     public Avatar() {
         try {
@@ -104,7 +104,6 @@ public class Avatar {
         this.auSol = true;
         this.gauche = false;
         this.droite = false;
-        this.haut = false ;
         this.bas = false ;
     }
 
@@ -114,6 +113,10 @@ public class Avatar {
 
     public void setDroite(boolean droite) {
         this.droite = droite;
+    }
+    
+    public void setBas(boolean bas) {
+        this.bas = bas;
     }
     
 
@@ -147,7 +150,13 @@ public class Avatar {
         if (x < 0) {
             x = 0;
         }
-
+// chute rapide : on annule la montée et on plonge
+        if (this.bas && !this.auSol) {
+            if (vy < 0) {
+                vy = 0;      // on stoppe la montée
+            }
+            vy += 3;         // on accélère la descente
+        }
         // déplacement vertical
         if (!this.auSol) {
             y += vy;          // on applique la vitesse
@@ -156,6 +165,13 @@ public class Avatar {
                 y = SOL;
                 vy = 0;
                 this.auSol = true;
+            }
+        }
+        
+        // déplacement vers le bas
+        if (this.bas) {
+            if (!this.auSol) {
+                vy += 2;            // chute rapide (fast fall)
             }
         }
     }
