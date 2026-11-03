@@ -116,13 +116,6 @@ public class Avatar {
         this.droite = droite;
     }
     
-    public void setHaut(boolean haut) {
-        this.haut = haut;
-    }
-    
-    public void setBas(boolean bas) {
-        this.bas = bas;
-    }
 
     // Déclenche le saut (seulement si l'avatar est au sol)
     public void saute() {
