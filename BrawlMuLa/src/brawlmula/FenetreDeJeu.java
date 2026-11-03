@@ -15,8 +15,6 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.Timer;
 
-
-
 public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener {
 
     private BufferedImage framebuffer;
@@ -76,7 +74,7 @@ public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener 
         if (evt.getKeyCode() == evt.VK_S) {
             this.jeu.avatar.setBas(true);
         }
-        
+
     }
 
     @Override

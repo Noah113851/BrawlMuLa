@@ -104,7 +104,7 @@ public class Avatar {
         this.auSol = true;
         this.gauche = false;
         this.droite = false;
-        this.bas = false ;
+        this.bas = false;
     }
 
     public void setGauche(boolean gauche) {
@@ -114,11 +114,10 @@ public class Avatar {
     public void setDroite(boolean droite) {
         this.droite = droite;
     }
-    
+
     public void setBas(boolean bas) {
         this.bas = bas;
     }
-    
 
     // Déclenche le saut (seulement si l'avatar est au sol)
     public void saute() {
@@ -167,7 +166,7 @@ public class Avatar {
                 this.auSol = true;
             }
         }
-        
+
         // déplacement vers le bas
         if (this.bas) {
             if (!this.auSol) {
@@ -178,11 +177,10 @@ public class Avatar {
 
     public void rendu(Graphics2D contexte) {
         if (regardeGauche) {
-    // image retournée : on dessine de droite à gauche
-    contexte.drawImage(this.sprite, (int) x + 100, (int) y, -100, 100, null);
-        } 
-        else {
-    contexte.drawImage(this.sprite, (int) x, (int) y, 100, 100, null);
+            // image retournée : on dessine de droite à gauche
+            contexte.drawImage(this.sprite, (int) x + 100, (int) y, -100, 100, null);
+        } else {
+            contexte.drawImage(this.sprite, (int) x, (int) y, 100, 100, null);
         }
     }
 

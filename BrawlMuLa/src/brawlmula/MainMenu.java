@@ -11,7 +11,7 @@ import java.awt.Color;
  * @author ndufour
  */
 public class MainMenu extends javax.swing.JFrame {
-    
+
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(MainMenu.class.getName());
 
     /**
@@ -19,10 +19,10 @@ public class MainMenu extends javax.swing.JFrame {
      */
     public MainMenu() {
         initComponents();
-        
-        setSize(1280, 760); 
+
+        setSize(1280, 760);
         setLocationRelativeTo(null);
-        
+
         Musiques_sons.playLoop("src/ressources/Musiques-sons/Welcome-Music-Brawlmula-Soundtrack.wav");
     }
 
@@ -36,7 +36,8 @@ public class MainMenu extends javax.swing.JFrame {
     private void initComponents() {
 
         jLabel3 = new javax.swing.JLabel();
-        btnCommencer = new javax.swing.JButton();
+        btnRejoindre = new javax.swing.JButton();
+        btnCreer = new javax.swing.JButton();
         btnReglages1 = new javax.swing.JButton();
         btnQuitter = new javax.swing.JButton();
         jLabel2 = new javax.swing.JLabel();
@@ -52,25 +53,43 @@ public class MainMenu extends javax.swing.JFrame {
         jLabel3.setPreferredSize(new java.awt.Dimension(1280, 720));
         getContentPane().add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 50, -1, 250));
 
-        btnCommencer.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
-        btnCommencer.setText("[ Commencer Jouer ]");
-        btnCommencer.setToolTipText("");
-        btnCommencer.setBorderPainted(false);
-        btnCommencer.setContentAreaFilled(false);
-        btnCommencer.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnCommencer.setFocusPainted(false);
-        btnCommencer.addMouseListener(new java.awt.event.MouseAdapter() {
+        btnRejoindre.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
+        btnRejoindre.setText("[ Rejoindre Partie ]");
+        btnRejoindre.setToolTipText("");
+        btnRejoindre.setBorderPainted(false);
+        btnRejoindre.setContentAreaFilled(false);
+        btnRejoindre.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnRejoindre.setFocusPainted(false);
+        btnRejoindre.addMouseListener(new java.awt.event.MouseAdapter() {
             public void mouseEntered(java.awt.event.MouseEvent evt) {
-                btnCommencerMouseEntered(evt);
+                btnRejoindreMouseEntered(evt);
             }
             public void mouseExited(java.awt.event.MouseEvent evt) {
-                btnCommencerMouseExited(evt);
+                btnRejoindreMouseExited(evt);
             }
         });
-        btnCommencer.addActionListener(this::btnCommencerActionPerformed);
-        getContentPane().add(btnCommencer, new org.netbeans.lib.awtextra.AbsoluteConstraints(380, 450, 530, 60));
+        btnRejoindre.addActionListener(this::btnRejoindreActionPerformed);
+        getContentPane().add(btnRejoindre, new org.netbeans.lib.awtextra.AbsoluteConstraints(360, 510, 600, 60));
 
-        btnReglages1.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
+        btnCreer.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
+        btnCreer.setText("[ Créer Partie ]");
+        btnCreer.setToolTipText("");
+        btnCreer.setBorderPainted(false);
+        btnCreer.setContentAreaFilled(false);
+        btnCreer.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnCreer.setFocusPainted(false);
+        btnCreer.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btnCreerMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btnCreerMouseExited(evt);
+            }
+        });
+        btnCreer.addActionListener(this::btnCreerActionPerformed);
+        getContentPane().add(btnCreer, new org.netbeans.lib.awtextra.AbsoluteConstraints(380, 450, 530, 60));
+
+        btnReglages1.setFont(new java.awt.Font("Fairfax", 1, 36)); // NOI18N
         btnReglages1.setText("[ Réglages ]");
         btnReglages1.setToolTipText("");
         btnReglages1.setBorderPainted(false);
@@ -86,9 +105,9 @@ public class MainMenu extends javax.swing.JFrame {
             }
         });
         btnReglages1.addActionListener(this::btnReglages1ActionPerformed);
-        getContentPane().add(btnReglages1, new org.netbeans.lib.awtextra.AbsoluteConstraints(480, 510, -1, 60));
+        getContentPane().add(btnReglages1, new org.netbeans.lib.awtextra.AbsoluteConstraints(520, 570, -1, 60));
 
-        btnQuitter.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
+        btnQuitter.setFont(new java.awt.Font("Fairfax", 1, 36)); // NOI18N
         btnQuitter.setText("[ Quitter ]");
         btnQuitter.setToolTipText("");
         btnQuitter.setBorderPainted(false);
@@ -104,7 +123,7 @@ public class MainMenu extends javax.swing.JFrame {
             }
         });
         btnQuitter.addActionListener(this::btnQuitterActionPerformed);
-        getContentPane().add(btnQuitter, new org.netbeans.lib.awtextra.AbsoluteConstraints(480, 580, 330, 50));
+        getContentPane().add(btnQuitter, new org.netbeans.lib.awtextra.AbsoluteConstraints(490, 630, 330, 50));
 
         jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/brawlmula/INTERFACE/acceuil.jpg"))); // NOI18N
         getContentPane().add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, -1, -1));
@@ -112,113 +131,183 @@ public class MainMenu extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void btnCommencerActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCommencerActionPerformed
+    private void btnCreerActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCreerActionPerformed
         Musiques_sons.stop();
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
-        Selection selection = new Selection();
-        selection.setVisible(true);
-        this.dispose();
-    }//GEN-LAST:event_btnCommencerActionPerformed
 
-    private void btnCommencerMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCommencerMouseEntered
-        Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");      
-        
-        btnCommencer.setOpaque(true);
-    
-        btnCommencer.setBackground(new Color(255, 245, 180)); 
-        btnCommencer.setForeground(new Color(180, 40, 20));
-    }//GEN-LAST:event_btnCommencerMouseEntered
+        try {
+            // 1. Démarrer le serveur TCP sur le port 5000
+            Reseau reseau = new Reseau(5000);
 
-    private void btnCommencerMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCommencerMouseExited
+            // 2. Récupérer l'IP locale (ou code de la partie)
+            String codeIP = java.net.InetAddress.getLocalHost().getHostAddress();
 
-        btnCommencer.setOpaque(false);
-        btnCommencer.setForeground(new Color(0, 25, 25));
-    }//GEN-LAST:event_btnCommencerMouseExited
+            // 3. Fenêtre popup : l'exécution s'arrête ici jusqu'au clic sur "OK"
+            javax.swing.JOptionPane.showMessageDialog(
+                    this,
+                    "Partie créée avec succès !\n\nCode IP pour le Joueur 2 : " + codeIP + "\n\nCliquez sur OK pour accéder à la sélection.",
+                    "Code de la Partie",
+                    javax.swing.JOptionPane.INFORMATION_MESSAGE
+            );
+
+            // 4. Dès qu'on clique sur OK, basculement direct vers l'écran de sélection (Hôte / J1)
+            Selection fenetreSelection = new Selection(true, reseau);
+            fenetreSelection.setVisible(true);
+            this.dispose();
+
+        } catch (Exception e) {
+            javax.swing.JOptionPane.showMessageDialog(this,
+                    "Erreur lors de la création de la partie : " + e.getMessage(),
+                    "Erreur Réseau",
+                    javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }//GEN-LAST:event_btnCreerActionPerformed
+
+    private void btnCreerMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCreerMouseEntered
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
+
+        btnCreer.setOpaque(true);
+
+        btnCreer.setBackground(new Color(255, 245, 180));
+        btnCreer.setForeground(new Color(180, 40, 20));
+    }//GEN-LAST:event_btnCreerMouseEntered
+
+    private void btnCreerMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCreerMouseExited
+
+        btnCreer.setOpaque(false);
+        btnCreer.setForeground(new Color(0, 25, 25));
+    }//GEN-LAST:event_btnCreerMouseExited
 
     private void btnQuitterMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnQuitterMouseEntered
         Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
-        
+
         btnQuitter.setOpaque(true);
-    
-        btnQuitter.setBackground(new Color(255, 245, 180)); 
+
+        btnQuitter.setBackground(new Color(255, 245, 180));
         btnQuitter.setForeground(new Color(180, 40, 20));
     }//GEN-LAST:event_btnQuitterMouseEntered
 
     private void btnQuitterMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnQuitterMouseExited
-        
+
         btnQuitter.setOpaque(false);
         btnQuitter.setForeground(new Color(0, 25, 25));
     }//GEN-LAST:event_btnQuitterMouseExited
 
     private void btnQuitterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnQuitterActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
-        
-        int choix = javax.swing.JOptionPane.showConfirmDialog(
-        this,
-        "Veux-tu vraiment quitter le jeu ?",
-        "Quitter",
-        javax.swing.JOptionPane.YES_NO_OPTION,
-        javax.swing.JOptionPane.QUESTION_MESSAGE
-    );
 
-    if (choix == javax.swing.JOptionPane.YES_OPTION) {
-        Musiques_sons.stop();
-        System.exit(0);
-    }
+        int choix = javax.swing.JOptionPane.showConfirmDialog(
+                this,
+                "Veux-tu vraiment quitter le jeu ?",
+                "Quitter",
+                javax.swing.JOptionPane.YES_NO_OPTION,
+                javax.swing.JOptionPane.QUESTION_MESSAGE
+        );
+
+        if (choix == javax.swing.JOptionPane.YES_OPTION) {
+            Musiques_sons.stop();
+            System.exit(0);
+        }
     }//GEN-LAST:event_btnQuitterActionPerformed
 
     private void btnReglages1MouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnReglages1MouseEntered
         Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
-        
+
         btnReglages1.setOpaque(true);
-    
-        btnReglages1.setBackground(new Color(255, 245, 180)); 
+
+        btnReglages1.setBackground(new Color(255, 245, 180));
         btnReglages1.setForeground(new Color(180, 40, 20));
     }//GEN-LAST:event_btnReglages1MouseEntered
 
     private void btnReglages1MouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnReglages1MouseExited
-       
+
         btnReglages1.setOpaque(false);
         btnReglages1.setForeground(new Color(0, 25, 25));
     }//GEN-LAST:event_btnReglages1MouseExited
 
     private void btnReglages1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnReglages1ActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
-        
+
         Reglages selection = new Reglages();
         selection.setVisible(true);
         this.dispose();
     }//GEN-LAST:event_btnReglages1ActionPerformed
 
-    /**
-     * @param args the command line arguments
-     */
-    public static void main(String args[]) {
-        /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
-         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-         */
-        try {
-            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                if ("Nimbus".equals(info.getName())) {
-                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                    break;
-                }
-            }
-        } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
-        }
-        //</editor-fold>
+    private void btnRejoindreMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRejoindreMouseEntered
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
 
-        /* Create and display the form */
-        java.awt.EventQueue.invokeLater(() -> new MainMenu().setVisible(true));
-    }
+        btnReglages1.setOpaque(true);
+
+        btnReglages1.setBackground(new Color(255, 245, 180));
+        btnReglages1.setForeground(new Color(180, 40, 20));
+    }//GEN-LAST:event_btnRejoindreMouseEntered
+
+    private void btnRejoindreMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRejoindreMouseExited
+        btnReglages1.setOpaque(false);
+        btnReglages1.setForeground(new Color(0, 25, 25));
+    }//GEN-LAST:event_btnRejoindreMouseExited
+
+    private void btnRejoindreActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRejoindreActionPerformed
+        Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
+
+        String codeEntre = javax.swing.JOptionPane.showInputDialog(this,
+                "Entrez le code de la partie (Adresse IP de l'hôte) :",
+                "Rejoindre une partie",
+                javax.swing.JOptionPane.QUESTION_MESSAGE);
+
+        if (codeEntre != null && !codeEntre.trim().isEmpty()) {
+            new Thread(() -> {
+                try {
+                    Reseau reseau = new Reseau(codeEntre.trim(), 5000);
+
+                    java.awt.EventQueue.invokeLater(() -> {
+                        Selection selection = new Selection(false, reseau);
+                        selection.setVisible(true);
+                        this.dispose();
+                    });
+
+                } catch (Exception e) {
+                    java.awt.EventQueue.invokeLater(() -> {
+                        javax.swing.JOptionPane.showMessageDialog(this,
+                                "Impossible de rejoindre la partie avec le code : " + codeEntre,
+                                "Code Incorrect ou Hôte Introuvable",
+                                javax.swing.JOptionPane.ERROR_MESSAGE);
+                    });
+                }
+            }).start();
+        }
+    }//GEN-LAST:event_btnRejoindreActionPerformed
+
+        /**
+         * @param args the command line arguments
+         */
+        public static void main(String args[]) {
+            /* Set the Nimbus look and feel */
+            //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
+            /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
+         * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
+             */
+            try {
+                for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+                    if ("Nimbus".equals(info.getName())) {
+                        javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                        break;
+                    }
+                }
+            } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
+                logger.log(java.util.logging.Level.SEVERE, null, ex);
+            }
+            //</editor-fold>
+
+            /* Create and display the form */
+            java.awt.EventQueue.invokeLater(() -> new MainMenu().setVisible(true));
+        }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton btnCommencer;
+    private javax.swing.JButton btnCreer;
     private javax.swing.JButton btnQuitter;
     private javax.swing.JButton btnReglages1;
+    private javax.swing.JButton btnRejoindre;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     // End of variables declaration//GEN-END:variables
