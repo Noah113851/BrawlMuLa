@@ -413,8 +413,12 @@ public class Selection extends javax.swing.JFrame {
             );
             return; // Interrompt le lancement
         }
-        Musiques_sons.stop();
-        Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
+//          FenetreDeJeu jeu = new FenetreDeJeu(personnages.get(choixJ1), imagesCartes[choixCarte]);
+//          jeu.setVisible(true);
+//          this.dispose();
+
+          Musiques_sons.stop();
+          Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
         Combat jeu = new Combat(
                 personnages.get(choixJ1),
                 personnages.get(choixJ2),

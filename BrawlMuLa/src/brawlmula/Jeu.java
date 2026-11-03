@@ -33,3 +33,40 @@ public class Jeu {
     }
 
 }
+
+
+//package brawlmula;
+//
+//import java.awt.Color;
+//import java.awt.Graphics2D;
+//import java.awt.image.BufferedImage;
+//import javax.imageio.ImageIO;
+//
+//public class Jeu {
+//
+//    public Avatar avatar;
+//    private BufferedImage fond;
+//
+//    public Jeu(String nomPerso, String cheminCarte) {
+//        try {
+//            fond = ImageIO.read(getClass().getResource(cheminCarte));
+//        } catch (Exception ex) {
+//            System.err.println("Fond introuvable : " + cheminCarte);
+//        }
+//        avatar = new Avatar(nomPerso, 100);
+//    }
+//
+//    public void miseAJour() {
+//        avatar.miseAJour();
+//    }
+//
+//    public void rendu(Graphics2D g) {
+//        if (fond != null) {
+//            g.drawImage(fond, 0, 0, 960, 540, null);
+//        } else {
+//            g.setColor(Color.BLACK);
+//            g.fillRect(0, 0, 960, 540);
+//        }
+//        avatar.rendu(g);
+//    }
+//}

@@ -99,3 +99,79 @@ public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener 
     }
 
 }
+
+
+//package brawlmula;
+//
+//import java.awt.Graphics2D;
+//import java.awt.event.ActionEvent;
+//import java.awt.event.ActionListener;
+//import java.awt.event.KeyEvent;
+//import java.awt.event.KeyListener;
+//import java.awt.image.BufferedImage;
+//import javax.swing.ImageIcon;
+//import javax.swing.JFrame;
+//import javax.swing.JLabel;
+//import javax.swing.Timer;
+//
+//public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener {
+//
+//    private BufferedImage framebuffer;
+//    private Graphics2D contexte;
+//    private JLabel jLabel1;
+//    private Jeu jeu;
+//    private Timer timer;
+//
+//    public FenetreDeJeu(String nomPerso, String cheminCarte) {
+//        this.setSize(960, 540);
+//        this.setResizable(false);
+//        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+//        this.addKeyListener(this);
+//        this.jLabel1 = new JLabel();
+//        this.jLabel1.setPreferredSize(new java.awt.Dimension(960, 540));
+//        this.setContentPane(this.jLabel1);
+//        this.pack();
+//        this.setLocationRelativeTo(null);
+//
+//        this.jeu = new Jeu(nomPerso, cheminCarte);
+//
+//        this.framebuffer = new BufferedImage(960, 540, BufferedImage.TYPE_INT_ARGB);
+//        this.jLabel1.setIcon(new ImageIcon(framebuffer));
+//        this.contexte = this.framebuffer.createGraphics();
+//
+//        this.timer = new Timer(40, this);
+//        this.timer.start();
+//
+//        this.setFocusable(true);
+//        this.requestFocus();
+//    }
+//
+//    @Override
+//    public void actionPerformed(ActionEvent e) {
+//        this.jeu.miseAJour();
+//        this.jeu.rendu(contexte);
+//        this.jLabel1.repaint();
+//    }
+//
+//    @Override
+//    public void keyTyped(KeyEvent e) {
+//        // rien
+//    }
+//
+//    @Override
+//    public void keyPressed(KeyEvent evt) {
+//        int k = evt.getKeyCode();
+//        if (k == KeyEvent.VK_D) this.jeu.avatar.setDroite(true);
+//        if (k == KeyEvent.VK_Q) this.jeu.avatar.setGauche(true);
+//        if (k == KeyEvent.VK_S) this.jeu.avatar.setBas(true);
+//        if (k == KeyEvent.VK_SPACE) this.jeu.avatar.saute();
+//    }
+//
+//    @Override
+//    public void keyReleased(KeyEvent evt) {
+//        int k = evt.getKeyCode();
+//        if (k == KeyEvent.VK_D) this.jeu.avatar.setDroite(false);
+//        if (k == KeyEvent.VK_Q) this.jeu.avatar.setGauche(false);
+//        if (k == KeyEvent.VK_S) this.jeu.avatar.setBas(false);
+//    }
+//}
