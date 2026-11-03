@@ -6,77 +6,135 @@ package brawlmula;
 
 import java.awt.Color;
 import java.awt.Image;
+import java.util.ArrayList;
+import java.sql.*;
+import java.util.List;
 
 /**
  *
  * @author ndufour
  */
 public class Selection extends javax.swing.JFrame {
-    
+
     private boolean j1Selectionne = false;
     private boolean j2Selectionne = false;
-    
+    private boolean j3Selectionne = false;
+    private boolean j4Selectionne = false;
+
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Selection.class.getName());
     // Index des 4 personnages (0: Carrot, 1: Nikku, 2: Tomato, 3: Potato)
-    private int choixJ1 = 0; 
-    private int choixJ2 = 1; 
+    private int choixJ1 = 0;
+    private int choixJ2 = 1;
     private int choixJ3 = 2;
     private int choixJ4 = 3;
-    // Index de la carte (0: Marché aux épices, 1: Cuisine)
-    private int choixCarte = 0; 
-    
+
     // Liste des noms des 4 personnages disponibles
-    private final String[] personnages = {"CARROT", "NIKKU", "TOMATO", "POTATO"};
-    private final String[] cartes = {"MARCHÉ", "CUISINE"};
-    
-    private final String[] imagesPersonnages = {
-    "/ressources/avatars/carrot_fight.png",
-    "/ressources/avatars/nikku_fight.png",
-    "/ressources/avatars/tomato_fight.png",
-    "/ressources/avatars/potato_fight.png"
-            
-};
+    private List<String> personnages = new ArrayList<>();
+    private final String[] cartes = {"COLONIE", "CHATEAU", "POTAGER", "MARCHÉ"};
+
+    private List<String> imagesPersonnages = new ArrayList<>();
+    private final String[] imagesCartes = {
+        "/ressources/cartes/colonie.png",
+        "/ressources/cartes/chateau.png",
+        "/ressources/cartes/potager.png",
+        "/ressources/cartes/marche.png"
+
+    };
+    private int choixCarte = 0;
+
+    private void chargerAvatarsDepuisBDD() {
+        // On vide les listes au cas où
+        personnages.clear();
+        imagesPersonnages.clear();
+
+        String url = "jdbc:mariadb://nemrod.ens2m.fr:3306/2026-2027_s1_vs2_tp2_brawlmula";
+        String user = "etudiant";
+        String password = "YTDTvj9TR3CDYCmP";
+
+        // Reconstitution propre du try avec resources (Connection, PreparedStatement ET ResultSet)
+        try (Connection c = DriverManager.getConnection(url, user, password); PreparedStatement r = c.prepareStatement("SELECT nom, avatars_image, pv, degats FROM Avatars"); ResultSet rs = r.executeQuery()) { // <--- rs est bien exécuté ici !
+
+            while (rs.next()) {
+                personnages.add(rs.getString("nom"));
+
+                String cheminImage = rs.getString("avatars_image");
+                if (!cheminImage.startsWith("/")) {
+                    cheminImage = "/ressources/avatars/" + cheminImage;
+                }
+                imagesPersonnages.add(cheminImage);
+            }
+
+        } catch (SQLException ex) {
+            System.err.println("❌ Erreur SQL lors du chargement des avatars : " + ex.getMessage());
+            ex.printStackTrace();
+        }
+
+    }
+
     private void choisirPersonnageJ1(int index) {
-    choixJ1 = index;
-    //j1Selectionne = true;
-    lblNomJ1.setText(personnages[index]);
-    
-    String chemin = imagesPersonnages[index];
-    java.net.URL imgURL = getClass().getResource(chemin);
-        
-        javax.swing.ImageIcon icon = new javax.swing.ImageIcon(imgURL);
-        
+        if (index >= 0 && index < personnages.size()) {
+            choixJ1 = index;
+            j1Selectionne = true;
+            lblNomJ1.setText(personnages.get(index));
+
+            String chemin = imagesPersonnages.get(index);
+            java.net.URL imgURL = getClass().getResource(chemin);
+
+            javax.swing.ImageIcon icon = new javax.swing.ImageIcon(imgURL);
+
+            if (imgURL != null) {
+                // 1. Charger l'image originale
+                javax.swing.ImageIcon originalIcon = new javax.swing.ImageIcon(imgURL);
+
+                Image img = originalIcon.getImage().getScaledInstance(240, 240, Image.SCALE_SMOOTH);
+
+                lblAvatarJ1.setIcon(new javax.swing.ImageIcon(img));
+
+                lblAvatarJ1.revalidate();
+                lblAvatarJ1.repaint();
+
+            }
+
+        }
+    }
+
+    private void afficherCarte(int index) {
+        // 1. Mettre à jour le texte
+        lblNomCartes.setText(cartes[index]);
+
+        // 2. Charger et redimensionner l'image de la carte
+        java.net.URL imgURL = getClass().getResource(imagesCartes[index]);
         if (imgURL != null) {
-        // 1. Charger l'image originale
-        javax.swing.ImageIcon originalIcon = new javax.swing.ImageIcon(imgURL);
+            javax.swing.ImageIcon icon = new javax.swing.ImageIcon(imgURL);
 
-        
-        Image img = originalIcon.getImage().getScaledInstance(300, 300, Image.SCALE_SMOOTH);
-        
-        
-        lblAvatarJ1.setIcon(new javax.swing.ImageIcon(img));
+            if (lblCartes.getWidth() > 0 && lblCartes.getHeight() > 0) {
+                java.awt.Image img = icon.getImage().getScaledInstance(
+                        lblCartes.getWidth(),
+                        lblCartes.getHeight(),
+                        java.awt.Image.SCALE_SMOOTH
+                );
+                lblCartes.setIcon(new javax.swing.ImageIcon(img));
+            } else {
+                lblCartes.setIcon(icon);
+            }
+            lblCartes.revalidate();
+            lblCartes.repaint();
+        }
+    }
 
-        
-        lblAvatarJ1.revalidate();
-        lblAvatarJ1.repaint();
-    
-    }    
-        
-}
-    
     /**
      * Creates new form Selection
      */
     public Selection() {
         initComponents();
-        
-        setSize(1280, 760); 
+
+        setSize(1280, 760);
         setLocationRelativeTo(null);
-       
+
+        chargerAvatarsDepuisBDD();
+
         Musiques_sons.playLoop("src/ressources/Musiques-sons/Character-Select-Theme-Brawlmula-Soundtrack.wav");
-        
-        
-        
+
     }
 
     /**
@@ -96,11 +154,16 @@ public class Selection extends javax.swing.JFrame {
         boutton_droite = new javax.swing.JButton();
         btnCombat = new javax.swing.JButton();
         btnMenu = new javax.swing.JButton();
-        lblAvatarJ1 = new javax.swing.JLabel();
+        lblAvatarJ4 = new javax.swing.JLabel();
+        lblAvatarJ3 = new javax.swing.JLabel();
         lblAvatarJ2 = new javax.swing.JLabel();
-        lblNomJ1 = new javax.swing.JLabel();
+        lblAvatarJ1 = new javax.swing.JLabel();
+        lblNomJ4 = new javax.swing.JLabel();
+        lblNomJ3 = new javax.swing.JLabel();
         lblNomJ2 = new javax.swing.JLabel();
+        lblNomJ1 = new javax.swing.JLabel();
         lblNomCartes = new javax.swing.JLabel();
+        lblCartes = new javax.swing.JLabel();
         fond = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -177,7 +240,7 @@ public class Selection extends javax.swing.JFrame {
         boutton_droite.addActionListener(this::boutton_droiteActionPerformed);
         getContentPane().add(boutton_droite, new org.netbeans.lib.awtextra.AbsoluteConstraints(780, 610, -1, 60));
 
-        btnCombat.setFont(new java.awt.Font("Fairfax Serif", 1, 48)); // NOI18N
+        btnCombat.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
         btnCombat.setForeground(new java.awt.Color(51, 51, 51));
         btnCombat.setText("[ COMBAT ]");
         btnCombat.setBorderPainted(false);
@@ -193,9 +256,9 @@ public class Selection extends javax.swing.JFrame {
             }
         });
         btnCombat.addActionListener(this::btnCombatActionPerformed);
-        getContentPane().add(btnCombat, new org.netbeans.lib.awtextra.AbsoluteConstraints(312, 280, 290, -1));
+        getContentPane().add(btnCombat, new org.netbeans.lib.awtextra.AbsoluteConstraints(312, 280, 300, -1));
 
-        btnMenu.setFont(new java.awt.Font("Fairfax Serif", 1, 48)); // NOI18N
+        btnMenu.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
         btnMenu.setForeground(new java.awt.Color(51, 51, 51));
         btnMenu.setText("[ MENU ]");
         btnMenu.setBorderPainted(false);
@@ -213,30 +276,47 @@ public class Selection extends javax.swing.JFrame {
         btnMenu.addActionListener(this::btnMenuActionPerformed);
         getContentPane().add(btnMenu, new org.netbeans.lib.awtextra.AbsoluteConstraints(440, 350, -1, -1));
 
-        lblAvatarJ1.setPreferredSize(new java.awt.Dimension(300, 300));
-        getContentPane().add(lblAvatarJ1, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 140, 360, 350));
+        lblAvatarJ4.setPreferredSize(new java.awt.Dimension(300, 300));
+        getContentPane().add(lblAvatarJ4, new org.netbeans.lib.awtextra.AbsoluteConstraints(990, 450, 220, 220));
+
+        lblAvatarJ3.setPreferredSize(new java.awt.Dimension(300, 300));
+        getContentPane().add(lblAvatarJ3, new org.netbeans.lib.awtextra.AbsoluteConstraints(90, 450, 230, 220));
 
         lblAvatarJ2.setPreferredSize(new java.awt.Dimension(300, 300));
-        getContentPane().add(lblAvatarJ2, new org.netbeans.lib.awtextra.AbsoluteConstraints(990, 130, 190, 380));
+        getContentPane().add(lblAvatarJ2, new org.netbeans.lib.awtextra.AbsoluteConstraints(990, 110, 220, 230));
 
-        lblNomJ1.setFont(new java.awt.Font("Fairfax", 0, 48)); // NOI18N
-        lblNomJ1.setForeground(new java.awt.Color(255, 255, 255));
-        lblNomJ1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        getContentPane().add(lblNomJ1, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 540, 190, 40));
+        lblAvatarJ1.setPreferredSize(new java.awt.Dimension(300, 300));
+        getContentPane().add(lblAvatarJ1, new org.netbeans.lib.awtextra.AbsoluteConstraints(90, 110, 230, 230));
+
+        lblNomJ4.setFont(new java.awt.Font("Fairfax", 0, 48)); // NOI18N
+        lblNomJ4.setForeground(new java.awt.Color(255, 255, 255));
+        lblNomJ4.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        getContentPane().add(lblNomJ4, new org.netbeans.lib.awtextra.AbsoluteConstraints(990, 680, 210, 40));
+
+        lblNomJ3.setFont(new java.awt.Font("Fairfax", 0, 48)); // NOI18N
+        lblNomJ3.setForeground(new java.awt.Color(255, 255, 255));
+        lblNomJ3.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        getContentPane().add(lblNomJ3, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 680, 200, 40));
 
         lblNomJ2.setFont(new java.awt.Font("Fairfax", 0, 48)); // NOI18N
         lblNomJ2.setForeground(new java.awt.Color(255, 255, 255));
         lblNomJ2.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        getContentPane().add(lblNomJ2, new org.netbeans.lib.awtextra.AbsoluteConstraints(990, 540, 190, 40));
+        getContentPane().add(lblNomJ2, new org.netbeans.lib.awtextra.AbsoluteConstraints(1000, 340, 200, 40));
+
+        lblNomJ1.setFont(new java.awt.Font("Fairfax", 0, 48)); // NOI18N
+        lblNomJ1.setForeground(new java.awt.Color(255, 255, 255));
+        lblNomJ1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        getContentPane().add(lblNomJ1, new org.netbeans.lib.awtextra.AbsoluteConstraints(110, 340, 190, 40));
 
         lblNomCartes.setFont(new java.awt.Font("Fairfax", 0, 36)); // NOI18N
         lblNomCartes.setForeground(new java.awt.Color(255, 255, 255));
         lblNomCartes.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        getContentPane().add(lblNomCartes, new org.netbeans.lib.awtextra.AbsoluteConstraints(518, 666, 250, 30));
+        getContentPane().add(lblNomCartes, new org.netbeans.lib.awtextra.AbsoluteConstraints(518, 666, 260, 30));
+        getContentPane().add(lblCartes, new org.netbeans.lib.awtextra.AbsoluteConstraints(520, 570, 260, 110));
 
         fond.setFont(new java.awt.Font("Fairfax", 0, 12)); // NOI18N
         fond.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        fond.setIcon(new javax.swing.ImageIcon(getClass().getResource("/brawlmula/INTERFACE/selection.jpg"))); // NOI18N
+        fond.setIcon(new javax.swing.ImageIcon(getClass().getResource("/brawlmula/INTERFACE/selection.png"))); // NOI18N
         fond.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
         getContentPane().add(fond, new org.netbeans.lib.awtextra.AbsoluteConstraints(-40, 0, -1, -1));
 
@@ -245,37 +325,32 @@ public class Selection extends javax.swing.JFrame {
 
     private void carrotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_carrotActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
-   
-        choixJ1 = 0; 
-    
-        lblNomJ1.setText(personnages[choixJ1]);
+
+        choixJ1 = 0;
+
         choisirPersonnageJ1(0);
     }//GEN-LAST:event_carrotActionPerformed
 
     private void TomatoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_TomatoActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
-   
-        choixJ3 = 2; 
-    
-        lblNomJ1.setText(personnages[choixJ3]);
+
+        choixJ3 = 2;
         choisirPersonnageJ1(2);
     }//GEN-LAST:event_TomatoActionPerformed
 
     private void PotatoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_PotatoActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
-   
-        choixJ4 = 3; 
-    
-        lblNomJ1.setText(personnages[choixJ4]);
+
+        choixJ4 = 3;
+
         choisirPersonnageJ1(3);
     }//GEN-LAST:event_PotatoActionPerformed
 
     private void NikkuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_NikkuActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
-   
-        choixJ2 = 1; 
-    
-        lblNomJ1.setText(personnages[choixJ2]);
+
+        choixJ2 = 1;
+
         choisirPersonnageJ1(1);
     }//GEN-LAST:event_NikkuActionPerformed
 
@@ -297,18 +372,19 @@ public class Selection extends javax.swing.JFrame {
 
     private void boutton_droiteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_boutton_droiteActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
-        
+
         choixCarte = (choixCarte + 1) % cartes.length;
-   
-        lblNomCartes.setText(cartes[choixCarte]);
+        afficherCarte(choixCarte);
+        //lblNomCartes.setText(cartes[choixCarte]);
     }//GEN-LAST:event_boutton_droiteActionPerformed
 
     private void boutton_gaucheActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_boutton_gaucheActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
-        
+
         choixCarte = (choixCarte - 1 + cartes.length) % cartes.length;
-   
-        lblNomCartes.setText(cartes[choixCarte]);
+        afficherCarte(choixCarte);
+
+        //lblNomCartes.setText(cartes[choixCarte]);
     }//GEN-LAST:event_boutton_gaucheActionPerformed
 
     private void boutton_gaucheMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_boutton_gaucheMouseEntered
@@ -322,25 +398,30 @@ public class Selection extends javax.swing.JFrame {
     private void btnCombatMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnCombatMouseEntered
         Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
         btnCombat.setOpaque(true);
-    
-        btnCombat.setBackground(new Color(255, 245, 180)); 
+
+        btnCombat.setBackground(new Color(255, 245, 180));
         btnCombat.setForeground(new Color(180, 40, 20));
     }//GEN-LAST:event_btnCombatMouseEntered
 
     private void btnCombatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCombatActionPerformed
-        if (!j1Selectionne || !j2Selectionne) {
-        javax.swing.JOptionPane.showMessageDialog(
-            this,
-            "Les deux joueurs doivent choisir un personnage avant de lancer le combat !",
-            "Sélection incomplète",
-            javax.swing.JOptionPane.WARNING_MESSAGE
-        );
-        return; // Interrompt le lancement
-    }
+        if (!j1Selectionne || !j2Selectionne || !j3Selectionne || !j4Selectionne) {
+            javax.swing.JOptionPane.showMessageDialog(
+                    this,
+                    "Les quatres joueurs doivent choisir un personnage avant de lancer le combat !",
+                    "Sélection incomplète",
+                    javax.swing.JOptionPane.WARNING_MESSAGE
+            );
+            return; // Interrompt le lancement
+        }
         Musiques_sons.stop();
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
-        Combat jeu = new Combat(personnages[choixJ1], personnages[choixJ2], cartes[choixCarte]);
-        
+        Combat jeu = new Combat(
+                personnages.get(choixJ1),
+                personnages.get(choixJ2),
+                personnages.get(choixJ3),
+                personnages.get(choixJ4),
+                imagesCartes[choixCarte]);
+
         jeu.setVisible(true);
         this.dispose();
     }//GEN-LAST:event_btnCombatActionPerformed
@@ -348,8 +429,8 @@ public class Selection extends javax.swing.JFrame {
     private void btnMenuMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnMenuMouseEntered
         Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
         btnMenu.setOpaque(true);
-    
-        btnMenu.setBackground(new Color(255, 245, 180)); 
+
+        btnMenu.setBackground(new Color(255, 245, 180));
         btnMenu.setForeground(new Color(180, 40, 20));
     }//GEN-LAST:event_btnMenuMouseEntered
 
@@ -408,8 +489,13 @@ public class Selection extends javax.swing.JFrame {
     private javax.swing.JLabel fond;
     private javax.swing.JLabel lblAvatarJ1;
     private javax.swing.JLabel lblAvatarJ2;
+    private javax.swing.JLabel lblAvatarJ3;
+    private javax.swing.JLabel lblAvatarJ4;
+    private javax.swing.JLabel lblCartes;
     private javax.swing.JLabel lblNomCartes;
     private javax.swing.JLabel lblNomJ1;
     private javax.swing.JLabel lblNomJ2;
+    private javax.swing.JLabel lblNomJ3;
+    private javax.swing.JLabel lblNomJ4;
     // End of variables declaration//GEN-END:variables
 }
