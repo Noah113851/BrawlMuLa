@@ -6,7 +6,7 @@ package brawlmula;
 
 /**
  *
- * @author ndufour
+ * @author dcragnaz
  */
 public class Joueur {
 
