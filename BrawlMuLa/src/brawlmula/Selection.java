@@ -177,7 +177,7 @@ public class Selection extends javax.swing.JFrame {
         boutton_droite.addActionListener(this::boutton_droiteActionPerformed);
         getContentPane().add(boutton_droite, new org.netbeans.lib.awtextra.AbsoluteConstraints(780, 610, -1, 60));
 
-        btnCombat.setFont(new java.awt.Font("Fairfax Serif", 1, 48)); // NOI18N
+        btnCombat.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
         btnCombat.setForeground(new java.awt.Color(51, 51, 51));
         btnCombat.setText("[ COMBAT ]");
         btnCombat.setBorderPainted(false);
@@ -193,9 +193,9 @@ public class Selection extends javax.swing.JFrame {
             }
         });
         btnCombat.addActionListener(this::btnCombatActionPerformed);
-        getContentPane().add(btnCombat, new org.netbeans.lib.awtextra.AbsoluteConstraints(312, 280, 290, -1));
+        getContentPane().add(btnCombat, new org.netbeans.lib.awtextra.AbsoluteConstraints(312, 280, 300, -1));
 
-        btnMenu.setFont(new java.awt.Font("Fairfax Serif", 1, 48)); // NOI18N
+        btnMenu.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
         btnMenu.setForeground(new java.awt.Color(51, 51, 51));
         btnMenu.setText("[ MENU ]");
         btnMenu.setBorderPainted(false);
