@@ -141,7 +141,32 @@ public class Selection extends javax.swing.JFrame {
 
         }
     }
+    private void choisirPersonnageJ2(int index) {
+        if (index >= 0 && index < personnages.size()) {
+            choixJ2 = index;
+            j2Selectionne = true;
+            lblNomJ2.setText(personnages.get(index));
 
+            String chemin = imagesPersonnages.get(index);
+            java.net.URL imgURL = getClass().getResource(chemin);
+
+            javax.swing.ImageIcon icon = new javax.swing.ImageIcon(imgURL);
+
+            if (imgURL != null) {
+                // 1. Charger l'image originale
+                javax.swing.ImageIcon originalIcon = new javax.swing.ImageIcon(imgURL);
+
+                Image img = originalIcon.getImage().getScaledInstance(240, 240, Image.SCALE_SMOOTH);
+
+                lblAvatarJ2.setIcon(new javax.swing.ImageIcon(img));
+
+                lblAvatarJ2.revalidate();
+                lblAvatarJ2.repaint();
+
+            }
+
+        }
+    }
     private void afficherCarte(int index) {
         // 1. Mettre à jour le texte
         lblNomCartes.setText(cartes[index]);
@@ -384,6 +409,7 @@ public class Selection extends javax.swing.JFrame {
         choixJ1 = 0;
 
         choisirPersonnageJ1(0);
+         choisirPersonnageJ2(0);
     }//GEN-LAST:event_carrotActionPerformed
 
     private void TomatoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_TomatoActionPerformed
@@ -391,6 +417,7 @@ public class Selection extends javax.swing.JFrame {
 
         choixJ3 = 2;
         choisirPersonnageJ1(2);
+         choisirPersonnageJ2(2);
     }//GEN-LAST:event_TomatoActionPerformed
 
     private void PotatoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_PotatoActionPerformed
@@ -399,6 +426,7 @@ public class Selection extends javax.swing.JFrame {
         choixJ4 = 3;
 
         choisirPersonnageJ1(3);
+         choisirPersonnageJ2(3);
     }//GEN-LAST:event_PotatoActionPerformed
 
     private void NikkuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_NikkuActionPerformed
@@ -407,6 +435,7 @@ public class Selection extends javax.swing.JFrame {
         choixJ2 = 1;
 
         choisirPersonnageJ1(1);
+         choisirPersonnageJ2(1);
     }//GEN-LAST:event_NikkuActionPerformed
 
     private void carrotMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_carrotMouseEntered
