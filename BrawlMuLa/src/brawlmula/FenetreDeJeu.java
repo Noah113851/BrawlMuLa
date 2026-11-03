@@ -64,25 +64,31 @@ public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener 
 
     @Override
     public void keyPressed(KeyEvent evt) {
-        if (evt.getKeyCode() == evt.VK_RIGHT) {
+        if (evt.getKeyCode() == evt.VK_D) {
             this.jeu.avatar.setDroite(true);
         }
-        if (evt.getKeyCode() == evt.VK_LEFT) {
+        if (evt.getKeyCode() == evt.VK_Q) {
             this.jeu.avatar.setGauche(true);
         }
         if (evt.getKeyCode() == evt.VK_SPACE) {
             this.jeu.avatar.saute();
         }
-
+        if (evt.getKeyCode() == evt.VK_S) {
+            this.jeu.avatar.setBas(true);
+        }
+        
     }
 
     @Override
     public void keyReleased(KeyEvent evt) {
-        if (evt.getKeyCode() == evt.VK_RIGHT) {
+        if (evt.getKeyCode() == evt.VK_D) {
             this.jeu.avatar.setDroite(false);
         }
-        if (evt.getKeyCode() == evt.VK_LEFT) {
+        if (evt.getKeyCode() == evt.VK_Q) {
             this.jeu.avatar.setGauche(false);
+        }
+        if (evt.getKeyCode() == evt.VK_S) {
+            this.jeu.avatar.setBas(false);
         }
 
     }
