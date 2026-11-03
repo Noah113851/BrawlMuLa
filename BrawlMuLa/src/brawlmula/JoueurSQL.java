@@ -10,8 +10,7 @@ package brawlmula;
  */
 
 import java.sql.*;
-import outils.OutilsJDBC;
-import moteur.Joueur;
+
 
 public class JoueurSQL {
     
