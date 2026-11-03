@@ -4,6 +4,7 @@
  */
 package brawlmula;
 
+import javax.swing.SwingUtilities;
 /**
  *
  * @author ndufour
@@ -14,7 +15,12 @@ public class BrawlMuLa {
      * @param args the command line arguments
      */
     public static void main(String[] args) {
-        // TODO code application logic here
+        SwingUtilities.invokeLater(() -> {
+            
+            MainMenu menu = new MainMenu();
+            
+            menu.setVisible(true);            
+        });
     }
     
 }
