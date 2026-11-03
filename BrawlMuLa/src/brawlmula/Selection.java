@@ -117,18 +117,19 @@ public class Selection extends javax.swing.JFrame {
 
     private void choisirPersonnage(int index) {
         if (isHost) {
-            // L'hôte qui a créé la partie contrôle obligatoirement le Joueur 1
+            // L'Hôte modifie UNIQUEMENT son propre emplacement (J1)
             choisirPersonnageJ1(index);
             if (reseau != null) {
                 reseau.envoyerMessage("CHOIX_J1:" + index);
             }
         } else {
-            // Le client qui a rejoint la partie contrôle obligatoirement le Joueur 2
+            // Le Client modifie UNIQUEMENT son propre emplacement (J2)
             choisirPersonnageJ2(index);
             if (reseau != null) {
                 reseau.envoyerMessage("CHOIX_J2:" + index);
             }
         }
+
     }
 
     private void choisirPersonnageJ1(int index) {
@@ -428,16 +429,14 @@ public class Selection extends javax.swing.JFrame {
 
         choixJ1 = 0;
 
-        choisirPersonnageJ1(0);
-        choisirPersonnageJ2(0);
+        choisirPersonnage(0);
     }//GEN-LAST:event_carrotActionPerformed
 
     private void TomatoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_TomatoActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
 
         choixJ3 = 2;
-        choisirPersonnageJ1(2);
-        choisirPersonnageJ2(2);
+        choisirPersonnage(2);
     }//GEN-LAST:event_TomatoActionPerformed
 
     private void PotatoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_PotatoActionPerformed
@@ -445,8 +444,7 @@ public class Selection extends javax.swing.JFrame {
 
         choixJ4 = 3;
 
-        choisirPersonnageJ1(3);
-        choisirPersonnageJ2(3);
+        choisirPersonnage(3);
     }//GEN-LAST:event_PotatoActionPerformed
 
     private void NikkuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_NikkuActionPerformed
@@ -454,8 +452,7 @@ public class Selection extends javax.swing.JFrame {
 
         choixJ2 = 1;
 
-        choisirPersonnageJ1(1);
-        choisirPersonnageJ2(1);
+        choisirPersonnage(1);
     }//GEN-LAST:event_NikkuActionPerformed
 
     private void carrotMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_carrotMouseEntered
