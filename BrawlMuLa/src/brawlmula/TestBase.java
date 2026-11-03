@@ -7,6 +7,7 @@ package brawlmula;
 import java.sql.*;
 
 public class TestBase {
+
     public static void main(String[] args) {
         try {
             Connection c = DriverManager.getConnection("jdbc:mariadb://nemrod.ens2m.fr:3306/2026-2027_s1_vs2_tp2_brawlmula", "etudiant", "YTDTvj9TR3CDYCmP");

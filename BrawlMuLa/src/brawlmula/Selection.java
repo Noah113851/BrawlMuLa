@@ -21,6 +21,50 @@ public class Selection extends javax.swing.JFrame {
     private boolean j3Selectionne = false;
     private boolean j4Selectionne = false;
 
+    private boolean isHost;
+    private Reseau reseau;
+    
+    private void demarrerEcouteReseau() {
+    new Thread(() -> {
+        try {
+            String msg;
+            while ((msg = reseau.lireMessage()) != null) {
+                String messageRecu = msg;
+                // Exécution dans le thread graphique Swing
+                java.awt.EventQueue.invokeLater(() -> {
+                    traiterMessageReseau(messageRecu);
+                });
+            }
+        } catch (Exception e) {
+            System.err.println("Déconnexion du réseau.");
+        }
+    }).start();
+}
+    private void traiterMessageReseau(String msg) {
+    if (msg.startsWith("CHOIX_J1:")) {
+        choixJ1 = Integer.parseInt(msg.split(":")[1]);
+        j1Selectionne = true;
+        lblNomJ1.setText(personnages.get(choixJ1));
+    } else if (msg.startsWith("CHOIX_J2:")) {
+        choixJ2 = Integer.parseInt(msg.split(":")[1]);
+        j2Selectionne = true;
+        lblNomJ2.setText(personnages.get(choixJ2));
+    } else if (msg.startsWith("MAP:")) {
+        choixCarte = Integer.parseInt(msg.split(":")[1]);
+        afficherCarte(choixCarte);
+    } else if (msg.equals("START_GAME")) {
+        // Lancer le combat automatique reçu depuis l'hôte
+        Combat jeu = new Combat(
+            personnages.get(choixJ1),
+            personnages.get(choixJ2),
+            personnages.get(choixJ3),
+            personnages.get(choixJ4),
+            imagesCartes[choixCarte]
+        );
+        jeu.setVisible(true);
+        this.dispose();
+    }
+}
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Selection.class.getName());
     // Index des 4 personnages (0: Carrot, 1: Nikku, 2: Tomato, 3: Potato)
     private int choixJ1 = 0;
@@ -125,16 +169,27 @@ public class Selection extends javax.swing.JFrame {
     /**
      * Creates new form Selection
      */
-    public Selection() {
+    public Selection(boolean isHost, Reseau reseau) {
         initComponents();
 
         setSize(1280, 760);
         setLocationRelativeTo(null);
 
+        this.isHost = isHost;
+        this.reseau = reseau;
+
         chargerAvatarsDepuisBDD();
+
+        if (reseau != null) {
+            demarrerEcouteReseau();
+        }
 
         Musiques_sons.playLoop("src/ressources/Musiques-sons/Character-Select-Theme-Brawlmula-Soundtrack.wav");
 
+    }
+
+    public Selection() {
+        this(true, null);
     }
 
     /**

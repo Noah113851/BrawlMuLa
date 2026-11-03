@@ -9,6 +9,7 @@ package brawlmula;
  * @author ndufour
  */
 public class Joueur {
+
     private String nom;
     private int positionX;
     private int positionY;
@@ -21,10 +22,19 @@ public class Joueur {
         this.score = score;
     }
 
-    public String getNom() { return nom; }
-    public int getPositionX() { return positionX; }
-    public int getPositionY() { return positionY; }
-    public int getScore() { return score; }
-}
-    
+    public String getNom() {
+        return nom;
+    }
 
+    public int getPositionX() {
+        return positionX;
+    }
+
+    public int getPositionY() {
+        return positionY;
+    }
+
+    public int getScore() {
+        return score;
+    }
+}

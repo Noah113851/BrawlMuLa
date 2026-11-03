@@ -9,7 +9,7 @@ package brawlmula;
  * @author Shyturo
  */
 public class Combat extends javax.swing.JFrame {
-    
+
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Combat.class.getName());
     private String joueur1;
     private String joueur2;
@@ -17,27 +17,24 @@ public class Combat extends javax.swing.JFrame {
     private String joueur4;
     private String carte;
 
-    
     public Combat() {
         initComponents();
     }
 
-    
     public Combat(String j1, String j2, String j3, String j4, String carteChoisie) {
         initComponents(); // Initialise l'interface visuelle NetBeans
-        
+
         this.joueur1 = j1;
         this.joueur2 = j2;
         this.joueur3 = j3;
         this.joueur4 = j4;
         this.carte = carteChoisie;
-        
+
         setSize(1280, 760);
         setLocationRelativeTo(null);
-        
+
         System.out.println("Match lancé : " + joueur1 + " VS " + joueur2 + " sur " + carte);
     }
-   
 
     /**
      * This method is called from within the constructor to initialize the form.
