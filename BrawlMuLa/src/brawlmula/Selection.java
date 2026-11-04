@@ -50,16 +50,17 @@ public class Selection extends javax.swing.JFrame {
             choisirPersonnageJ2(idx); // Applique le choix distant sur le cadre J2
 
         } else if (msg.startsWith("MAP:")) {
-            choixCarte = Integer.parseInt(msg.split(":")[1]);
-            afficherCarte(choixCarte);
+            int idxMap = Integer.parseInt(msg.split(":")[1]);
+            choixCarte = idxMap;
+            afficherCarteLocal(choixCarte);
         } else if (msg.equals("START_GAME")) {
             // Lancer le combat automatique reçu depuis l'hôte
-            Combat jeu = new Combat(
+            FenetreDeJeu jeu = new FenetreDeJeu(
                     personnages.get(choixJ1),
                     personnages.get(choixJ2),
                     personnages.get(choixJ3),
                     personnages.get(choixJ4),
-                    imagesCartes[choixCarte]
+                    imagesCartes.get(choixCarte)
             );
             jeu.setVisible(true);
             this.dispose();
@@ -71,20 +72,41 @@ public class Selection extends javax.swing.JFrame {
     private int choixJ2 = 1;
     private int choixJ3 = 2;
     private int choixJ4 = 3;
-
+    private int choixCarte = 0;
     // Liste des noms des 4 personnages disponibles
     private List<String> personnages = new ArrayList<>();
-    private final String[] cartes = {"COLONIE", "CHATEAU", "POTAGER", "MARCHÉ"};
+    private List<String> cartes = new ArrayList<>();
 
     private List<String> imagesPersonnages = new ArrayList<>();
-    private final String[] imagesCartes = {
-        "/ressources/cartes/colonie.png",
-        "/ressources/cartes/chateau.png",
-        "/ressources/cartes/potager.png",
-        "/ressources/cartes/marche.png"
+    private List<String> imagesCartes = new ArrayList<>();
 
-    };
-    private int choixCarte = 0;
+    private void chargerCartesDepuisBDD() {
+        cartes.clear();
+        imagesCartes.clear();
+
+        String url = "jdbc:mariadb://nemrod.ens2m.fr:3306/2026-2027_s1_vs2_tp2_brawlmula";
+        String user = "etudiant";
+        String password = "YTDTvj9TR3CDYCmP";
+
+        // Reconstitution avec le vrai nom de colonne "image"
+        try (Connection c = DriverManager.getConnection(url, user, password); PreparedStatement r = c.prepareStatement("SELECT nom, image FROM Maps"); ResultSet rs = r.executeQuery()) {
+
+            while (rs.next()) {
+                cartes.add(rs.getString("nom"));
+
+                String cheminImage = rs.getString("image");
+                if (!cheminImage.startsWith("/")) {
+                    cheminImage = "/ressources/Maps/" + cheminImage;
+                }
+                imagesCartes.add(cheminImage);
+            }
+            System.out.println("✅ " + cartes.size() + " cartes chargées depuis la BDD.");
+
+        } catch (SQLException ex) {
+            System.err.println("❌ Erreur SQL cartes : " + ex.getMessage());
+            ex.printStackTrace();
+        }
+    }
 
     private void chargerAvatarsDepuisBDD() {
         // On vide les listes au cas où
@@ -113,6 +135,48 @@ public class Selection extends javax.swing.JFrame {
             ex.printStackTrace();
         }
 
+    }
+
+    private void choisirCarte(int index) {
+        // 1. Vérification que la carte existe et que c'est bien l'Hôte qui clique
+        if (isHost && index >= 0 && index < cartes.size()) {
+            choixCarte = index;
+
+            // 2. Affichage local sur le PC de l'Hôte
+            afficherCarteLocal(choixCarte);
+
+            // 3. Envoi du choix au Joueur 2 via le réseau
+            if (reseau != null) {
+                reseau.envoyerMessage("MAP:" + choixCarte);
+            }
+        }
+    }
+
+    private void afficherCarteLocal(int index) {
+        if (index >= 0 && index < cartes.size()) {
+            // 1. Mettre à jour le texte sur "lblNomCartes"
+            lblNomCartes.setText(cartes.get(index));
+
+            // 2. Charger l'image depuis la liste "imagesCartes"
+            String chemin = imagesCartes.get(index);
+            java.net.URL imgURL = getClass().getResource(chemin);
+
+            if (imgURL != null) {
+                javax.swing.ImageIcon originalIcon = new javax.swing.ImageIcon(imgURL);
+
+                int largeur = lblCartes.getWidth() > 0 ? lblCartes.getWidth() : 350;
+                int hauteur = lblCartes.getHeight() > 0 ? lblCartes.getHeight() : 200;
+
+                java.awt.Image img = originalIcon.getImage().getScaledInstance(largeur, hauteur, java.awt.Image.SCALE_SMOOTH);
+
+                // 3. Appliquer l'image sur "lblCartes"
+                lblCartes.setIcon(new javax.swing.ImageIcon(img));
+                lblCartes.revalidate();
+                lblCartes.repaint();
+            } else {
+                System.err.println("❌ Image introuvable au chemin : " + chemin);
+            }
+        }
     }
 
     private void choisirPersonnage(int index) {
@@ -171,26 +235,31 @@ public class Selection extends javax.swing.JFrame {
     }
 
     private void afficherCarte(int index) {
-        // 1. Mettre à jour le texte
-        lblNomCartes.setText(cartes[index]);
+        if (index >= 0 && index < cartes.size()) {
+            // 1. Mise à jour du nom de la carte
+            lblNomCartes.setText(cartes.get(index));
 
-        // 2. Charger et redimensionner l'image de la carte
-        java.net.URL imgURL = getClass().getResource(imagesCartes[index]);
-        if (imgURL != null) {
-            javax.swing.ImageIcon icon = new javax.swing.ImageIcon(imgURL);
+            // 2. Récupération du chemin
+            String chemin = imagesCartes.get(index);
+            java.net.URL imgURL = getClass().getResource(chemin);
 
-            if (lblCartes.getWidth() > 0 && lblCartes.getHeight() > 0) {
-                java.awt.Image img = icon.getImage().getScaledInstance(
-                        lblCartes.getWidth(),
-                        lblCartes.getHeight(),
-                        java.awt.Image.SCALE_SMOOTH
-                );
+            if (imgURL != null) {
+                javax.swing.ImageIcon icon = new javax.swing.ImageIcon(imgURL);
+
+                // Utilise les dimensions du label s'il est affiché, sinon des dimensions par défaut
+                int largeur = lblCartes.getWidth() > 0 ? lblCartes.getWidth() : 350;
+                int hauteur = lblCartes.getHeight() > 0 ? lblCartes.getHeight() : 200;
+
+                java.awt.Image img = icon.getImage().getScaledInstance(largeur, hauteur, java.awt.Image.SCALE_SMOOTH);
                 lblCartes.setIcon(new javax.swing.ImageIcon(img));
+                lblCartes.revalidate();
+                lblCartes.repaint();
+
+                System.out.println("✅ Image chargée : " + chemin);
             } else {
-                lblCartes.setIcon(icon);
+                // Affiche le chemin problématique dans la console NetBeans
+                System.err.println("❌ Fichier introuvable dans le projet : " + chemin);
             }
-            lblCartes.revalidate();
-            lblCartes.repaint();
         }
     }
 
@@ -207,7 +276,18 @@ public class Selection extends javax.swing.JFrame {
         this.reseau = reseau;
 
         chargerAvatarsDepuisBDD();
+        chargerCartesDepuisBDD();
 
+// Forcer l'affichage de la 1ère carte au démarrage
+        if (!cartes.isEmpty()) {
+            afficherCarte(choixCarte);
+
+            if (!isHost) {
+                // Le joueur 2 ne peut pas cliquer sur les boutons de sélection de la carte
+                boutton_droite.setEnabled(false);
+                boutton_gauche.setEnabled(false);
+            }
+        }
         if (reseau != null) {
             if (isHost) {
                 // L'Hôte (J1) est déjà sur la page. On attend la connexion de J2 en arrière-plan.
@@ -473,19 +553,28 @@ public class Selection extends javax.swing.JFrame {
 
     private void boutton_droiteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_boutton_droiteActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
+        if (!cartes.isEmpty()) {
+            choixCarte = (choixCarte + 1) % cartes.size();
+            afficherCarte(choixCarte);
 
-        choixCarte = (choixCarte + 1) % cartes.length;
-        afficherCarte(choixCarte);
-        //lblNomCartes.setText(cartes[choixCarte]);
+            // Envoyer le changement au joueur 2 si on est l'hôte
+            if (isHost && reseau != null) {
+                reseau.envoyerMessage("MAP:" + choixCarte);
+            }
+        }
     }//GEN-LAST:event_boutton_droiteActionPerformed
 
     private void boutton_gaucheActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_boutton_gaucheActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
+        if (!cartes.isEmpty()) {
+            choixCarte = (choixCarte - 1 + cartes.size()) % cartes.size();
+            afficherCarte(choixCarte);
 
-        choixCarte = (choixCarte - 1 + cartes.length) % cartes.length;
-        afficherCarte(choixCarte);
-
-        //lblNomCartes.setText(cartes[choixCarte]);
+            // Envoyer le changement au joueur 2 si on est l'hôte
+            if (isHost && reseau != null) {
+                reseau.envoyerMessage("MAP:" + choixCarte);
+            }
+        }
     }//GEN-LAST:event_boutton_gaucheActionPerformed
 
     private void boutton_gaucheMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_boutton_gaucheMouseEntered
@@ -505,24 +594,24 @@ public class Selection extends javax.swing.JFrame {
     }//GEN-LAST:event_btnCombatMouseEntered
 
     private void btnCombatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCombatActionPerformed
-        if (!j1Selectionne || !j2Selectionne || !j3Selectionne || !j4Selectionne) {
-            javax.swing.JOptionPane.showMessageDialog(
-                    this,
-                    "Les quatres joueurs doivent choisir un personnage avant de lancer le combat !",
-                    "Sélection incomplète",
-                    javax.swing.JOptionPane.WARNING_MESSAGE
-            );
-            return; // Interrompt le lancement
-        }
+//        if (!j1Selectionne || !j2Selectionne || !j3Selectionne || !j4Selectionne) {
+//            javax.swing.JOptionPane.showMessageDialog(
+//                    this,
+//                    "Les quatres joueurs doivent choisir un personnage avant de lancer le combat !",
+//                    "Sélection incomplète",
+//                    javax.swing.JOptionPane.WARNING_MESSAGE
+//            );
+//            return; // Interrompt le lancement
+//        }
         Musiques_sons.stop();
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
-        Combat jeu = new Combat(
+        FenetreDeJeu jeu = new FenetreDeJeu(
                 personnages.get(choixJ1),
                 personnages.get(choixJ2),
                 personnages.get(choixJ3),
                 personnages.get(choixJ4),
-                imagesCartes[choixCarte]);
-
+                imagesCartes.get(choixCarte)
+        );
         jeu.setVisible(true);
         this.dispose();
     }//GEN-LAST:event_btnCombatActionPerformed

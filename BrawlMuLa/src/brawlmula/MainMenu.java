@@ -36,8 +36,8 @@ public class MainMenu extends javax.swing.JFrame {
     private void initComponents() {
 
         jLabel3 = new javax.swing.JLabel();
-        btnRejoindre = new javax.swing.JButton();
         btnCreer = new javax.swing.JButton();
+        btnRejoindre = new javax.swing.JButton();
         btnReglages1 = new javax.swing.JButton();
         btnQuitter = new javax.swing.JButton();
         jLabel2 = new javax.swing.JLabel();
@@ -52,24 +52,6 @@ public class MainMenu extends javax.swing.JFrame {
         jLabel3.setText("jLabel3");
         jLabel3.setPreferredSize(new java.awt.Dimension(1280, 720));
         getContentPane().add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 50, -1, 250));
-
-        btnRejoindre.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
-        btnRejoindre.setText("[ Rejoindre Partie ]");
-        btnRejoindre.setToolTipText("");
-        btnRejoindre.setBorderPainted(false);
-        btnRejoindre.setContentAreaFilled(false);
-        btnRejoindre.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnRejoindre.setFocusPainted(false);
-        btnRejoindre.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                btnRejoindreMouseEntered(evt);
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                btnRejoindreMouseExited(evt);
-            }
-        });
-        btnRejoindre.addActionListener(this::btnRejoindreActionPerformed);
-        getContentPane().add(btnRejoindre, new org.netbeans.lib.awtextra.AbsoluteConstraints(360, 510, 600, 60));
 
         btnCreer.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
         btnCreer.setText("[ Créer Partie ]");
@@ -88,6 +70,24 @@ public class MainMenu extends javax.swing.JFrame {
         });
         btnCreer.addActionListener(this::btnCreerActionPerformed);
         getContentPane().add(btnCreer, new org.netbeans.lib.awtextra.AbsoluteConstraints(380, 450, 530, 60));
+
+        btnRejoindre.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
+        btnRejoindre.setText("[ Rejoindre Partie ]");
+        btnRejoindre.setToolTipText("");
+        btnRejoindre.setBorderPainted(false);
+        btnRejoindre.setContentAreaFilled(false);
+        btnRejoindre.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnRejoindre.setFocusPainted(false);
+        btnRejoindre.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btnRejoindreMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btnRejoindreMouseExited(evt);
+            }
+        });
+        btnRejoindre.addActionListener(this::btnRejoindreActionPerformed);
+        getContentPane().add(btnRejoindre, new org.netbeans.lib.awtextra.AbsoluteConstraints(360, 510, 600, 60));
 
         btnReglages1.setFont(new java.awt.Font("Fairfax", 1, 36)); // NOI18N
         btnReglages1.setText("[ Réglages ]");
@@ -236,15 +236,15 @@ public class MainMenu extends javax.swing.JFrame {
     private void btnRejoindreMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRejoindreMouseEntered
         Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
 
-        btnReglages1.setOpaque(true);
+        btnRejoindre.setOpaque(true);
 
-        btnReglages1.setBackground(new Color(255, 245, 180));
-        btnReglages1.setForeground(new Color(180, 40, 20));
+        btnRejoindre.setBackground(new Color(255, 245, 180));
+        btnRejoindre.setForeground(new Color(180, 40, 20));
     }//GEN-LAST:event_btnRejoindreMouseEntered
 
     private void btnRejoindreMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRejoindreMouseExited
-        btnReglages1.setOpaque(false);
-        btnReglages1.setForeground(new Color(0, 25, 25));
+        btnRejoindre.setOpaque(false);
+        btnRejoindre.setForeground(new Color(0, 25, 25));
     }//GEN-LAST:event_btnRejoindreMouseExited
 
     private void btnRejoindreActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRejoindreActionPerformed
