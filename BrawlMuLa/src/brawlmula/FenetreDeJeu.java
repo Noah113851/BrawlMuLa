@@ -15,6 +15,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.Timer;
 
+/** Fenetre de test du Chateau : meme architecture que la fenetre d'origine. */
 public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener {
 
     private BufferedImage framebuffer;
@@ -29,39 +30,32 @@ public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener 
     private String joueur4;
     private String carte;
 
-    public FenetreDeJeu(String j1, String j2, String j3, String j4, String carteChoisie) {
-        // initialisation de la fenetre
-        this.joueur1 = j1;
-        this.joueur2 = j2;
-        this.joueur3 = j3;
-        this.joueur4 = j4;
-        this.carte = carteChoisie;
-
-        setLocationRelativeTo(null);
-        
-        System.out.println("Match lancé : " + joueur1 + " VS " + joueur2 + " sur " + carte);
+    public FenetreDeJeu() {
+        // Fenetre de test : meme repere que les plateformes du Chateau.
+        this.setResizable(false);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.addKeyListener(this);
         this.jLabel1 = new JLabel();
         this.jLabel1.setPreferredSize(new java.awt.Dimension(1280, 760));
-       
         this.setContentPane(this.jLabel1);
         this.pack();
+        this.setLocationRelativeTo(null);
 
-        // Creation du jeu
+        // Jeu garde l'avatar existant ; le decor et les plateformes sont
+        // maintenant ceux du Chateau (voir Jeu.java).
         this.jeu = new Jeu();
 
-        // Creation du buffer pour l'affichage du jeu et recuperation du contexte graphique
-        this.framebuffer = new BufferedImage(this.jLabel1.getWidth(), this.jLabel1.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        // Affichage original par framebuffer : inchange.
+        this.framebuffer = new BufferedImage(this.jLabel1.getWidth(),
+                this.jLabel1.getHeight(), BufferedImage.TYPE_INT_ARGB);
         this.jLabel1.setIcon(new ImageIcon(framebuffer));
         this.contexte = this.framebuffer.createGraphics();
 
-        // Creation du Timer qui appelle this.actionPerformed() tous les 40 ms
+        // Une seule boucle : 40 ms pour le personnage ET les plateformes.
         this.timer = new Timer(40, this);
         this.timer.start();
     }
 
-    // Methode appelee par le timer et qui effectue la boucle de jeu
     @Override
     public void actionPerformed(ActionEvent e) {
         this.jeu.miseAJour();
@@ -70,44 +64,49 @@ public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener 
     }
 
     @Override
-    public void keyTyped(KeyEvent e) {
-        // NOP
-    }
+    public void keyTyped(KeyEvent e) { /* NOP */ }
 
     @Override
     public void keyPressed(KeyEvent evt) {
-        if (evt.getKeyCode() == evt.VK_D) {
+        if (evt.getKeyCode() == KeyEvent.VK_D) {
             this.jeu.avatar.setDroite(true);
         }
-        if (evt.getKeyCode() == evt.VK_Q) {
+        if (evt.getKeyCode() == KeyEvent.VK_Q) {
             this.jeu.avatar.setGauche(true);
         }
-        if (evt.getKeyCode() == evt.VK_SPACE) {
+        if (evt.getKeyCode() == KeyEvent.VK_SPACE) {
             this.jeu.avatar.saute();
         }
-        if (evt.getKeyCode() == evt.VK_S) {
+        if (evt.getKeyCode() == KeyEvent.VK_S) {
             this.jeu.avatar.setBas(true);
         }
-
     }
 
     @Override
     public void keyReleased(KeyEvent evt) {
-        if (evt.getKeyCode() == evt.VK_D) {
+        if (evt.getKeyCode() == KeyEvent.VK_D) {
             this.jeu.avatar.setDroite(false);
         }
-        if (evt.getKeyCode() == evt.VK_Q) {
+        if (evt.getKeyCode() == KeyEvent.VK_Q) {
             this.jeu.avatar.setGauche(false);
         }
-        if (evt.getKeyCode() == evt.VK_S) {
+        if (evt.getKeyCode() == KeyEvent.VK_S) {
             this.jeu.avatar.setBas(false);
         }
-
     }
 
-//    public static void main(String[] args) {
-//        FenetreDeJeu fenetre = new FenetreDeJeu();
-//        fenetre.setVisible(true);
-//    }
+    @Override
+    public void dispose() {
+        if (timer != null) timer.stop();
+        if (contexte != null) contexte.dispose();
+        super.dispose();
+    }
 
+    public static void main(String[] args) {
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            FenetreDeJeu fenetre = new FenetreDeJeu();
+            fenetre.setVisible(true);
+        });
+    }
 }
+

@@ -1,35 +1,39 @@
 package brawlmula;
 
 import java.awt.Graphics2D;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-import javax.imageio.ImageIO;
 
-
+/**
+ * Meme role que le Jeu.java d'origine : gere l'Avatar et son rendu.
+ * Pour FenetreDeJeu, on lui ajoute simplement le Chateau et les plateformes.
+ */
 public class Jeu {
 
-    private BufferedImage fond;
     public Avatar avatar;
+    private final PanneauCombat panneauCombat;
 
     public Jeu() {
-        try {
-            this.fond = ImageIO.read(getClass().getClassLoader().getResource("brawlmula/INTERFACE/acceuil.jpg"));
-        } catch (IOException ex) {
-            Logger.getLogger(Jeu.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        this.avatar = new Avatar();
+        // Un seul objet PanneauCombat fournit decor, sprites, plateformes ET physique.
+        panneauCombat = new PanneauCombat("/ressources/cartes/chateau.png");
+        panneauCombat.setSize(ConfigurationCarte.LARGEUR, ConfigurationCarte.HAUTEUR);
+        panneauCombat.setAfficherHitboxes(false);
+
+        // Conserve le constructeur Avatar() et les controles existants.
+        avatar = new Avatar();
+        avatar.connecterPlateformes(panneauCombat.getGestionnairePlateformes());
     }
 
     public void miseAJour() {
-        this.avatar.miseAJour();
+        // IMPORTANT : ici, le panneau n'est PAS ajoute comme composant Swing,
+        // son propre Timer de 16 ms ne demarre donc jamais.
+        // Une seule mise a jour des plateformes par tick de FenetreDeJeu.
+        panneauCombat.getGestionnairePlateformes().miseAJour(0.040);
+        avatar.miseAJour();
     }
 
     public void rendu(Graphics2D contexte) {
-        contexte.drawImage(this.fond, 0, 0, 960, 540, null);
-        this.avatar.rendu(contexte);
+        // Le panneau est peint dans le framebuffer original de FenetreDeJeu.
+        panneauCombat.paint(contexte);
+        avatar.rendu(contexte);
     }
-
 }
+

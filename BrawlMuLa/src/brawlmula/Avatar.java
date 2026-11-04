@@ -12,73 +12,9 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 
 /**
- *
- * @author dcragnaz
+ * Avatar d'origine avec branchement facultatif aux plateformes.
+ * Garde les memes touches, vitesses, saut, gravite, rendu et constructeur.
  */
-//public class Avatar {
-//    private BufferedImage sprite;
-//    protected double w, x, y, z;
-//    private boolean bas, gauche, haut, droite ;
-//
-//    public Avatar() {
-//        try {
-//            this.sprite = ImageIO.read(getClass().getClassLoader().getResource("resources/carotte_basique_avec_poings.png"));
-//        } catch (IOException ex) {
-//            Logger.getLogger(Avatar.class.getName()).log(Level.SEVERE, null, ex);
-//        }
-//        
-//        this.w = 100;
-//        this.x = 100;
-//        this.y = 150;
-//        this.z = 100;
-//        this.bas = false;
-//        this.gauche = false;
-//        this.haut = false;
-//        this.droite = false;
-//    }
-//    
-//    public void setBas(boolean bas) {
-//        this.bas = bas;    
-//    }
-//    
-//    public void setGauche(boolean gauche) {
-//        this.gauche = gauche;
-//    }
-//    
-//    public void setHaut(boolean haut) {
-//        this.haut = haut;
-//
-//}
-//    public void setDroite(boolean droite) {
-//        this.droite = droite;
-//    }
-//
-//    public void miseAJour() {
-//        if (this.bas) {
-//            w -= 5;
-//        }
-//        if (this.gauche) {
-//            x -= 5;
-//        }
-//        if (this.haut) {
-//            y -= 5;
-//        }
-//        if (this.droite) {
-//            x += 5;
-//        }
-//        if (x > 607-52) {
-//            x = 607-52;
-//        }
-//        if (x < 0) {
-//            x = 0;
-//        }
-//    }
-//
-//    public void rendu(Graphics2D contexte) {
-//        contexte.drawImage(this.sprite, (int) x, (int) y, null);
-//    }
-//
-//}
 public class Avatar {
 
     private BufferedImage sprite;
@@ -86,15 +22,29 @@ public class Avatar {
     private boolean gauche, droite, haut, bas;
     private boolean regardeGauche = false;
 
-    private double vy;                 // vitesse verticale
-    private boolean auSol;             // vrai si l'avatar touche le sol
-    private static final double SOL = 420;       // hauteur du sol (y de départ)
-    private static final double GRAVITE = 10;   // accélération vers le bas par tick    
-    private static final double VITESSE_SAUT = 70; // force du saut
+    private double vy;
+    private boolean auSol;
+    private static final double SOL = 420;
+    private static final double GRAVITE = 10;
+    private static final double VITESSE_SAUT = 70;
+    private static final double LARGEUR_AVATAR = 100;
+    private static final double HAUTEUR_AVATAR = 100;
+
+    // Ajouts minimaux pour le test du Chateau.
+    private GestionnairePlateforme gestionnaire;
+    private Plateforme support;
+    private double dernierSupportX;
+
+    // Plateforme que le joueur vient de quitter en appuyant sur S.
+    // On ignore temporairement les plateformes TRAVERSABLES pendant
+    // que ses pieds depassent le dessus de cette plateforme.
+    private Plateforme plateformeEnCoursDeTraverse;
+    private static final double MARGE_TRAVERSEE = 8.0;
 
     public Avatar() {
         try {
-            this.sprite = ImageIO.read(getClass().getClassLoader().getResource("ressources/avatars/carrot_fight.png"));
+            this.sprite = ImageIO.read(getClass().getClassLoader()
+                    .getResource("ressources/avatars/carrot_fight.png"));
         } catch (IOException ex) {
             Logger.getLogger(Avatar.class.getName()).log(Level.SEVERE, null, ex);
         }
@@ -105,6 +55,24 @@ public class Avatar {
         this.gauche = false;
         this.droite = false;
         this.bas = false;
+    }
+
+    /**
+     * A appeler UNE fois depuis Jeu : le personnage partage exactement
+     * les memes plateformes que celles dessinees par PanneauCombat.
+     */
+    public void connecterPlateformes(GestionnairePlateforme gestionnaire) {
+        if (gestionnaire == null) {
+            throw new IllegalArgumentException("GestionnairePlateforme manquant");
+        }
+        this.gestionnaire = gestionnaire;
+        this.support = null;
+        this.dernierSupportX = 0;
+        this.plateformeEnCoursDeTraverse = null;
+        this.x = 600;
+        this.y = 400; // Pieds en y=500 : dessus de la grande plateforme du Chateau.
+        this.vy = 0;
+        this.auSol = true;
     }
 
     public void setGauche(boolean gauche) {
@@ -119,16 +87,20 @@ public class Avatar {
         this.bas = bas;
     }
 
-    // Déclenche le saut (seulement si l'avatar est au sol)
     public void saute() {
         if (this.auSol) {
             this.vy = -VITESSE_SAUT;
             this.auSol = false;
+            this.support = null;
+            this.plateformeEnCoursDeTraverse = null;
         }
     }
 
     public void miseAJour() {
-        // déplacement horizontal (inchangé)
+        double ancienX = x;
+        double ancienY = y;
+
+        // Deplacement horizontal d'origine, conserve tel quel.
         if (this.gauche) {
             x -= 5;
             regardeGauche = true;
@@ -143,45 +115,122 @@ public class Avatar {
         if (this.droite) {
             x += 5;
         }
-        if (x > 960 - 100) {
-            x = 960 - 100;
-        }
-        if (x < 0) {
-            x = 0;
-        }
-// chute rapide : on annule la montée et on plonge
-        if (this.bas && !this.auSol) {
-            if (vy < 0) {
-                vy = 0;      // on stoppe la montée
-            }
-            vy += 3;         // on accélère la descente
-        }
-        // déplacement vertical
-        if (!this.auSol) {
-            y += vy;          // on applique la vitesse
-            vy += GRAVITE;    // la gravité ralentit la montée, puis accélère la chute
-            if (y >= SOL) {   // retour au sol
-                y = SOL;
-                vy = 0;
-                this.auSol = true;
-            }
+
+        // Sur Chateau, le repere est 1280 px et non 960.
+        double largeurMonde = gestionnaire == null ? 960 : ConfigurationCarte.LARGEUR;
+        if (x > largeurMonde - LARGEUR_AVATAR) x = largeurMonde - LARGEUR_AVATAR;
+        if (x < 0) x = 0;
+
+        // Appuyer sur S lorsque les pieds reposent sur une petite plateforme :
+        // on la quitte sans la rendre solide pendant notre descente.
+        // Attention : la grande plateforme SOLIDE reste infranchissable.
+        if (gestionnaire != null && bas && auSol && support != null
+                && support.getType() == Plateforme.Type.TRAVERSABLE) {
+            plateformeEnCoursDeTraverse = support;
+            support = null;
+            auSol = false;
+            vy = Math.max(vy, 7.0); // lancer une petite impulsion vers le bas
         }
 
-        // déplacement vers le bas
-        if (this.bas) {
+        // Chute rapide d'origine.
+        if (this.bas && !this.auSol) {
+            if (vy < 0) vy = 0;
+            vy += 3;
+        }
+
+        if (gestionnaire == null) {
+            // Comportement historique si l'avatar est cree hors du test Chateau.
             if (!this.auSol) {
-                vy += 2;            // chute rapide (fast fall)
+                y += vy;
+                vy += GRAVITE;
+                if (y >= SOL) {
+                    y = SOL;
+                    vy = 0;
+                    this.auSol = true;
+                }
             }
+            if (this.bas && !this.auSol) vy += 2;
+            return;
+        }
+
+        // Partie nouvelle : adapter les positions voulues a la physique du Chateau.
+        Plateforme supportPrecedent = auSol ? support : null;
+        if (supportPrecedent != null) {
+            // Porter le joueur lorsqu'une plateforme se deplace horizontalement.
+            x += supportPrecedent.getX() - dernierSupportX;
+            x = Math.max(0, Math.min(x, ConfigurationCarte.LARGEUR - LARGEUR_AVATAR));
+        }
+
+        double ySouhaite;
+        if (auSol) {
+            ySouhaite = supportPrecedent == null ? y + 1
+                    : supportPrecedent.getY() - HAUTEUR_AVATAR + 1;
+        } else {
+            ySouhaite = y + vy;
+            vy += GRAVITE;
+            if (bas) vy += 2;
+        }
+
+        // Apres le debut de la traversee, on reactivera les collisions
+        // TRAVERSABLES des que les pieds auront depasse de 8 px le dessus
+        // de la plateforme quittee (meme si S a deja ete relachee).
+        // La comparaison est faite AVANT la collision pour ne pas se recoller.
+        if (plateformeEnCoursDeTraverse != null
+                && ancienY + HAUTEUR_AVATAR >
+                   plateformeEnCoursDeTraverse.getY() + MARGE_TRAVERSEE) {
+            plateformeEnCoursDeTraverse = null;
+        }
+        boolean ignorerTraversables = plateformeEnCoursDeTraverse != null;
+
+        // ResultatColision : un seul l, conforme au projet BrawlMuLa.
+        ResultatColision resultat = gestionnaire.resoudre(
+                ancienX, ancienY, x, ySouhaite,
+                LARGEUR_AVATAR, HAUTEUR_AVATAR, ignorerTraversables);
+
+        x = resultat.getX();
+        y = resultat.getY();
+        if (resultat.estAuSol()) {
+            auSol = true;
+            vy = 0;
+            support = resultat.getSupport();
+            plateformeEnCoursDeTraverse = null;
+        } else if (supportPrecedent != null &&
+                x < supportPrecedent.getX() + supportPrecedent.getLargeur() &&
+                x + LARGEUR_AVATAR > supportPrecedent.getX()) {
+            // Une plateforme verticale qui monte peut ne pas etre detectee par
+            // le balayage ; dans ce cas conserver son appui jusqu'a la quitter.
+            y = supportPrecedent.getY() - HAUTEUR_AVATAR;
+            vy = 0;
+            auSol = true;
+            support = supportPrecedent;
+            plateformeEnCoursDeTraverse = null;
+        } else {
+            if (resultat.touchePlafond() && vy < 0) vy = 0;
+            auSol = false;
+            support = null;
+        }
+        if (support != null) {
+            dernierSupportX = support.getX();
+        }
+
+        // Reapparition si on tombe hors de l'arene pendant les tests.
+        if (y > ConfigurationCarte.HAUTEUR + 150) {
+            x = 600;
+            y = 400;
+            vy = 0;
+            auSol = true;
+            support = null;
+            plateformeEnCoursDeTraverse = null;
         }
     }
 
     public void rendu(Graphics2D contexte) {
         if (regardeGauche) {
-            // image retournée : on dessine de droite à gauche
-            contexte.drawImage(this.sprite, (int) x + 100, (int) y, -100, 100, null);
+            contexte.drawImage(this.sprite, (int) x + 100, (int) y,
+                    -100, 100, null);
         } else {
-            contexte.drawImage(this.sprite, (int) x, (int) y, 100, 100, null);
+            contexte.drawImage(this.sprite, (int) x, (int) y,
+                    100, 100, null);
         }
     }
-
 }
