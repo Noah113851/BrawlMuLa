@@ -55,7 +55,7 @@ public class Selection extends javax.swing.JFrame {
             afficherCarteLocal(choixCarte);
         } else if (msg.equals("START_GAME")) {
             // Lancer le combat automatique reçu depuis l'hôte
-            FenetreDeJeu jeu = new FenetreDeJeu(
+            Combat jeu = new Combat(
                     personnages.get(choixJ1),
                     personnages.get(choixJ2),
                     personnages.get(choixJ3),
@@ -605,7 +605,7 @@ public class Selection extends javax.swing.JFrame {
 //        }
         Musiques_sons.stop();
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
-        FenetreDeJeu jeu = new FenetreDeJeu(
+        Combat jeu = new Combat(
                 personnages.get(choixJ1),
                 personnages.get(choixJ2),
                 personnages.get(choixJ3),
