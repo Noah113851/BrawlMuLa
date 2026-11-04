@@ -16,8 +16,7 @@ public class Jeu {
     public Jeu() {
 
         // Un seul objet PanneauCombat fournit decor, sprites, plateformes ET physique.
-        panneauCombat = new PanneauCombat("/ressources/cartes/chateau.png");
-
+        panneauCombat = new PanneauCombat("/ressources/Maps/chateau.png");
         this("/ressources/Maps/chateau.png");
     }
 
@@ -50,6 +49,7 @@ public class Jeu {
         if (Double.isFinite(solLePlusHaut)) {
             avatar.y = solLePlusHaut - HAUTEUR_AVATAR;
         }
+
     }
 
     public void miseAJour() {
@@ -68,3 +68,4 @@ public class Jeu {
         return panneauCombat;
     }
 }
+
