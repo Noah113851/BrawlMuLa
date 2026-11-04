@@ -13,126 +13,100 @@ import java.awt.image.BufferedImage;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
 /**
- * Fenetre de test du Chateau : meme architecture que la fenetre d'origine.
+ * Fenetre de test + fenetre de combat lancee depuis Selection.
+ * Conserve exactement la boucle Jeu.miseAJour()/Jeu.rendu(), le framebuffer,
+ * les touches Q/D/ESPACE/S et la cadence de 40 ms.
+ * Le choix de la carte est transmis UNE SEULE FOIS a Jeu(String).
  */
 public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener {
 
-    private BufferedImage framebuffer;
-    private Graphics2D contexte;
-    private JLabel jLabel1;
-    private Jeu jeu;
-    private Timer timer;
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Combat.class.getName());
-    private String joueur1;
-    private String joueur2;
-    private String joueur3;
-    private String joueur4;
-    private String carte;
+    private final BufferedImage framebuffer;
+    private final Graphics2D contexte;
+    private final JLabel jLabel1;
+    private final Jeu jeu;
+    private final Timer timer;
 
-    public FenetreDeJeu(String j1, String j2, String j3, String j4, String carteChoisie) {
-        this.joueur1 = j1;
-        this.joueur2 = j2;
-        this.joueur3 = j3;
-        this.joueur4 = j4;
-        this.carte = carteChoisie;
+    /** Lancement historique de la fenetre de test Chateau. */
+    public FenetreDeJeu() {
+        this("/ressources/Maps/chateau.png");
+    }
 
-        // Charger le décor et les plateformes de la carte choisie
-        PanneauCombat panneau = new PanneauCombat(carteChoisie);
+    /** Lancement direct sur une carte pour le test ou un autre ecran. */
+    public FenetreDeJeu(String carteChoisie) {
+        setTitle("BrawlMuLa - " + carteChoisie.substring(carteChoisie.lastIndexOf('/') + 1));
+        setResizable(false);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        addKeyListener(this);
 
-        // Installer le panneau dans la fenêtre de combat
-        setContentPane(panneau);
+        jLabel1 = new JLabel();
+        jLabel1.setPreferredSize(new java.awt.Dimension(
+                ConfigurationCarte.LARGEUR, ConfigurationCarte.HAUTEUR));
+        setContentPane(jLabel1);
         pack();
         setLocationRelativeTo(null);
 
-        System.out.println("Match lancé : "
-                + joueur1 + " VS " + joueur2
-                + " sur " + carte);
+        // IMPORTANT : ne pas creer un PanneauCombat ici, ni appeler new Jeu()
+        // sans argument. Jeu recupere la carte choisie et le MEME gestionnaire
+        // de collisions que le decor / les plateformes affiches.
+        Combat jeu = new Combat(carteChoisie);
 
-// Fenetre de test : meme repere que les plateformes du Chateau.
-        this.setResizable(false);
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.addKeyListener(this);
-        this.jLabel1 = new JLabel();
-        this.jLabel1.setPreferredSize(new java.awt.Dimension(1280, 760));
-        this.setContentPane(this.jLabel1);
-        this.pack();
-        this.setLocationRelativeTo(null);
+        framebuffer = new BufferedImage(jLabel1.getWidth(),
+                jLabel1.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        jLabel1.setIcon(new ImageIcon(framebuffer));
+        contexte = framebuffer.createGraphics();
 
-        // Jeu garde l'avatar existant ; le decor et les plateformes sont
-        // maintenant ceux du Chateau (voir Jeu.java).
-        this.jeu = new Jeu();
+        timer = new Timer(40, this);
+        timer.setCoalesce(true);
+        timer.start();
+    }
 
-        // Affichage original par framebuffer : inchange.
-        this.framebuffer = new BufferedImage(this.jLabel1.getWidth(),
-                this.jLabel1.getHeight(), BufferedImage.TYPE_INT_ARGB);
-        this.jLabel1.setIcon(new ImageIcon(framebuffer));
-        this.contexte = this.framebuffer.createGraphics();
-
-        // Une seule boucle : 40 ms pour le personnage ET les plateformes.
-        this.timer = new Timer(40, this);
-        this.timer.start();
+    /** Appel utilise par Selection.java (noms des 4 joueurs + carte). */
+    public FenetreDeJeu(String j1, String j2, String j3, String j4,
+                        String carteChoisie) {
+        this(carteChoisie);
+        System.out.println("Match lance : " + j1 + " VS " + j2
+                + " | Carte : " + carteChoisie);
+        // Ce test affiche toujours 1 Avatar : le multijoueur est un module distinct.
     }
 
     @Override
-    public void actionPerformed(ActionEvent e) {
-        this.jeu.miseAJour();
-        this.jeu.rendu(contexte);
-        this.jLabel1.repaint();
+    public void actionPerformed(ActionEvent evenement) {
+        jeu.miseAJour();
+        jeu.rendu(contexte);
+        jLabel1.repaint();
     }
 
     @Override
-    public void keyTyped(KeyEvent e) {
-        /* NOP */ }
+    public void keyTyped(KeyEvent evt) { }
 
     @Override
     public void keyPressed(KeyEvent evt) {
-        if (evt.getKeyCode() == KeyEvent.VK_D) {
-            this.jeu.avatar.setDroite(true);
-        }
-        if (evt.getKeyCode() == KeyEvent.VK_Q) {
-            this.jeu.avatar.setGauche(true);
-        }
-        if (evt.getKeyCode() == KeyEvent.VK_SPACE) {
-            this.jeu.avatar.saute();
-        }
-        if (evt.getKeyCode() == KeyEvent.VK_S) {
-            this.jeu.avatar.setBas(true);
-        }
+        if (evt.getKeyCode() == KeyEvent.VK_D) jeu.avatar.setDroite(true);
+        if (evt.getKeyCode() == KeyEvent.VK_Q) jeu.avatar.setGauche(true);
+        if (evt.getKeyCode() == KeyEvent.VK_SPACE) jeu.avatar.saute();
+        if (evt.getKeyCode() == KeyEvent.VK_S) jeu.avatar.setBas(true);
     }
 
     @Override
     public void keyReleased(KeyEvent evt) {
-        if (evt.getKeyCode() == KeyEvent.VK_D) {
-            this.jeu.avatar.setDroite(false);
-        }
-        if (evt.getKeyCode() == KeyEvent.VK_Q) {
-            this.jeu.avatar.setGauche(false);
-        }
-        if (evt.getKeyCode() == KeyEvent.VK_S) {
-            this.jeu.avatar.setBas(false);
-        }
+        if (evt.getKeyCode() == KeyEvent.VK_D) jeu.avatar.setDroite(false);
+        if (evt.getKeyCode() == KeyEvent.VK_Q) jeu.avatar.setGauche(false);
+        if (evt.getKeyCode() == KeyEvent.VK_S) jeu.avatar.setBas(false);
     }
 
     @Override
     public void dispose() {
-        if (timer != null) {
-            timer.stop();
-        }
-        if (contexte != null) {
-            contexte.dispose();
-        }
+        if (timer != null) timer.stop();
+        if (contexte != null) contexte.dispose();
         super.dispose();
     }
+
+    /** Run File : garde le test Chateau habituel. */
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> new FenetreDeJeu().setVisible(true));
+    }
 }
-
-//    public static void main(String[] args) {
-//        javax.swing.SwingUtilities.invokeLater(() -> {
-//            FenetreDeJeu fenetre = new FenetreDeJeu();
-//            fenetre.setVisible(true);
-//        });
-//    }
-//}
-
