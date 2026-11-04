@@ -110,8 +110,15 @@ public final class GestionnairePlateforme {
 
             // La hitbox traverse le haut de la plateforme, y compris si celle-ci
             // monte vers elle. Selectionne la surface la plus haute atteinte.
-            if (piedAvant <= ancienDessus + EPS
-                    && piedSouhaite >= nouveauDessus - EPS) {
+            // Une plateforme TRAVERSABLE ne bloque que si les pieds
+            // DESCENDENT (ou restent immobiles) dans le repere de l'ecran.
+            // Ainsi un saut vers le haut n'est jamais intercepte, meme si
+            // la plateforme mobile est elle aussi en train de monter.
+            boolean descendOuImmobile = piedSouhaite >= piedAvant - EPS;
+            boolean collisionParDessus = piedAvant <= ancienDessus + EPS
+                    && piedSouhaite >= nouveauDessus - EPS;
+            if (collisionParDessus && (p.getType() == Plateforme.Type.SOLIDE
+                    || descendOuImmobile)) {
                 double dessusCorrige = nouveauDessus - hauteur;
                 if (y >= dessusCorrige - EPS) {
                     if (!sol || dessusCorrige < y - EPS) {

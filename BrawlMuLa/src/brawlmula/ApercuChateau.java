@@ -15,7 +15,7 @@ public final class ApercuChateau {
             JFrame fenetre = new JFrame("BrawlMuLa - Test des plateformes du Chateau");
             PanneauCombat panneau = new PanneauCombat("/ressources/cartes/chateau.png");
             // Activer pour regler les zones de collision, desactiver pour le jeu.
-            panneau.setAfficherHitboxes(false);
+            panneau.setAfficherHitboxes(true);
             System.out.println("PNG du Chateau charge : "
                     + panneau.spritePlateformesChateauCharge());
             fenetre.setDefaultCloseOperation(WindowConstants.DISPOSE_ON_CLOSE);
