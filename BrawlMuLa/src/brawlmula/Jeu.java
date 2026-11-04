@@ -13,7 +13,7 @@ public class Jeu {
 
     public Jeu() {
         // Un seul objet PanneauCombat fournit decor, sprites, plateformes ET physique.
-        panneauCombat = new PanneauCombat("/ressources/cartes/chateau.png");
+        panneauCombat = new PanneauCombat("/ressources/Maps/chateau.png");
         panneauCombat.setSize(ConfigurationCarte.LARGEUR, ConfigurationCarte.HAUTEUR);
         panneauCombat.setAfficherHitboxes(false);
 
