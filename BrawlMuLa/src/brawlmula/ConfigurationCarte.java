@@ -27,7 +27,7 @@ public final class ConfigurationCarte {
 
     /**
      * Selection.java passe deja la chaine du type
-     * "/ressources/cartes/chateau.png" a Combat.java.
+     * "/ressources/Maps/chateau.png" a Combat.java.
      */
     public static ConfigurationCarte depuisChemin(String chemin) {
         if (chemin == null) {
@@ -37,16 +37,16 @@ public final class ConfigurationCarte {
         ConfigurationCarte carte;
 
         if (normalise.endsWith("/colonie.png")) {
-            carte = new ConfigurationCarte("COLONIE", "/ressources/cartes/colonie.png");
+            carte = new ConfigurationCarte("COLONIE", "/ressources/Maps/colonie.png");
             carte.creerColonie();
         } else if (normalise.endsWith("/chateau.png")) {
-            carte = new ConfigurationCarte("CHATEAU", "/ressources/cartes/chateau.png");
+            carte = new ConfigurationCarte("CHATEAU", "/ressources/Maps/chateau.png");
             carte.creerChateau();
         } else if (normalise.endsWith("/potager.png")) {
-            carte = new ConfigurationCarte("POTAGER", "/ressources/cartes/potager.png");
+            carte = new ConfigurationCarte("POTAGER", "/ressources/Maps/potager.png");
             carte.creerPotager();
         } else if (normalise.endsWith("/marche.png")) {
-            carte = new ConfigurationCarte("MARCHE", "/ressources/cartes/marche.png");
+            carte = new ConfigurationCarte("MARCHE", "/ressources/Maps/marche.png");
             carte.creerMarche();
         } else {
             throw new IllegalArgumentException("Carte inconnue : " + chemin);
