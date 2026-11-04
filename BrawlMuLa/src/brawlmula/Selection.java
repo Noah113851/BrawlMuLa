@@ -14,77 +14,102 @@ import java.util.List;
  *
  * @author ndufour
  */
-public class Selection extends javax.swing.JFrame {
+  
 
-    private boolean j1Selectionne = false;
-    private boolean j2Selectionne = false;
-    private boolean j3Selectionne = false;
-    private boolean j4Selectionne = false;
+    public class Selection extends javax.swing.JFrame {
 
-    private boolean isHost;
-    private Reseau reseau;
+        private boolean j1Selectionne = false;
+        private boolean j2Selectionne = false;
+        private boolean j3Selectionne = false;
+        private boolean j4Selectionne = false;
 
-    private void demarrerEcouteReseau() {
-        new Thread(() -> {
-            try {
-                String msg;
-                while ((msg = reseau.lireMessage()) != null) {
-                    String messageRecu = msg;
-                    // Exécution dans le thread graphique Swing
-                    java.awt.EventQueue.invokeLater(() -> {
-                        traiterMessageReseau(messageRecu);
-                    });
+        private boolean isHost;
+        private Reseau reseau;
+
+        private void demarrerEcouteReseau() {
+            new Thread(() -> {
+                try {
+                    String msg;
+                    while ((msg = reseau.lireMessage()) != null) {
+                        String messageRecu = msg;
+                        // Exécution dans le thread graphique Swing
+                        java.awt.EventQueue.invokeLater(() -> {
+                            traiterMessageReseau(messageRecu);
+                        });
+                    }
+                } catch (Exception e) {
+                    System.err.println("Déconnexion du réseau.");
                 }
-            } catch (Exception e) {
-                System.err.println("Déconnexion du réseau.");
+            }).start();
+        }
+
+        private void traiterMessageReseau(String msg) {
+            if (msg.startsWith("CHOIX_J1:")) {
+                int idx = Integer.parseInt(msg.split(":")[1]);
+                choisirPersonnageJ1(idx); // Applique le choix distant sur le cadre J1
+            } else if (msg.startsWith("CHOIX_J2:")) {
+                int idx = Integer.parseInt(msg.split(":")[1]);
+                choisirPersonnageJ2(idx); // Applique le choix distant sur le cadre J2
+
+            } else if (msg.startsWith("MAP:")) {
+                choixCarte = Integer.parseInt(msg.split(":")[1]);
+                afficherCarte(choixCarte);
+            } else if (msg.equals("START_GAME")) {
+                // Lancer le combat automatique reçu depuis l'hôte
+                Combat jeu = new Combat(
+                        personnages.get(choixJ1),
+                        personnages.get(choixJ2),
+                        personnages.get(choixJ3),
+                        personnages.get(choixJ4),
+                        imagesCartes[choixCarte]
+                );
+                jeu.setVisible(true);
+                this.dispose();
             }
-        }).start();
-    }
+        }
+        private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Selection.class.getName());
+        // Index des 4 personnages (0: Carrot, 1: Nikku, 2: Tomato, 3: Potato)
+        private int choixJ1 = 0;
+        private int choixJ2 = 1;
+        private int choixJ3 = 2;
+        private int choixJ4 = 3;
+        private int choixCarte = 0;
+        // Liste des noms des 4 personnages disponibles
+        private List<String> personnages = new ArrayList<>();
+        private List<String> cartes = new ArrayList<>();
 
-    private void traiterMessageReseau(String msg) {
-        if (msg.startsWith("CHOIX_J1:")) {
-            int idx = Integer.parseInt(msg.split(":")[1]);
-            choisirPersonnageJ1(idx); // Applique le choix distant sur le cadre J1
-        } else if (msg.startsWith("CHOIX_J2:")) {
-            int idx = Integer.parseInt(msg.split(":")[1]);
-            choisirPersonnageJ2(idx); // Applique le choix distant sur le cadre J2
+        private List<String> imagesPersonnages = new ArrayList<>();
+        private List<String> imagesCartes = new ArrayList<>();
 
-        } else if (msg.startsWith("MAP:")) {
-            choixCarte = Integer.parseInt(msg.split(":")[1]);
-            afficherCarte(choixCarte);
-        } else if (msg.equals("START_GAME")) {
-            // Lancer le combat automatique reçu depuis l'hôte
-            Combat jeu = new Combat(
-                    personnages.get(choixJ1),
-                    personnages.get(choixJ2),
-                    personnages.get(choixJ3),
-                    personnages.get(choixJ4),
-                    imagesCartes[choixCarte]
-            );
-            jeu.setVisible(true);
-            this.dispose();
+  
+
+    private void chargerCartesDepuisBDD() {
+        cartes.clear();
+        imagesCartes.clear();
+
+        String url = "jdbc:mariadb://nemrod.ens2m.fr:3306/2026-2027_s1_vs2_tp2_brawlmula";
+        String user = "etudiant";
+        String password = "YTDTvj9TR3CDYCmP";
+
+        // Reconstitution sécurisée de la requête SQL
+        try (Connection c = DriverManager.getConnection(url, user, password); PreparedStatement r = c.prepareStatement("SELECT nom, carte_image FROM Cartes"); ResultSet rs = r.executeQuery()) {
+
+            while (rs.next()) {
+                cartes.add(rs.getString("nom"));
+
+                String chemin = rs.getString("carte_image");
+                if (!chemin.startsWith("/")) {
+                    chemin = "/ressources/cartes/" + chemin;
+                }
+                imagesCartes.add(chemin);
+            }
+
+            System.out.println("✅ " + cartes.size() + " cartes chargées depuis la BDD.");
+
+        } catch (SQLException ex) {
+            System.err.println("❌ Erreur SQL lors du chargement des cartes : " + ex.getMessage());
         }
     }
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Selection.class.getName());
-    // Index des 4 personnages (0: Carrot, 1: Nikku, 2: Tomato, 3: Potato)
-    private int choixJ1 = 0;
-    private int choixJ2 = 1;
-    private int choixJ3 = 2;
-    private int choixJ4 = 3;
-
-    // Liste des noms des 4 personnages disponibles
-    private List<String> personnages = new ArrayList<>();
-    private final String[] cartes = {"COLONIE", "CHATEAU", "POTAGER", "MARCHÉ"};
-
-    private List<String> imagesPersonnages = new ArrayList<>();
-    private final String[] imagesCartes = {
-        "/ressources/cartes/colonie.png",
-        "/ressources/cartes/chateau.png",
-        "/ressources/cartes/potager.png",
-        "/ressources/cartes/marche.png"
-
-    };
-    private int choixCarte = 0;
 
     private void chargerAvatarsDepuisBDD() {
         // On vide les listes au cas où
@@ -516,7 +541,7 @@ public class Selection extends javax.swing.JFrame {
         }
         Musiques_sons.stop();
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
-        Combat jeu = new Combat(
+        FenetreDeJeu jeu = new FenetreDeJeu(
                 personnages.get(choixJ1),
                 personnages.get(choixJ2),
                 personnages.get(choixJ3),
