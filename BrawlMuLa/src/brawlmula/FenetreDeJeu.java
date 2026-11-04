@@ -15,7 +15,9 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.Timer;
 
-/** Fenetre de test du Chateau : meme architecture que la fenetre d'origine. */
+/**
+ * Fenetre de test du Chateau : meme architecture que la fenetre d'origine.
+ */
 public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener {
 
     private BufferedImage framebuffer;
@@ -30,8 +32,26 @@ public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener 
     private String joueur4;
     private String carte;
 
-    public FenetreDeJeu() {
-        // Fenetre de test : meme repere que les plateformes du Chateau.
+    public FenetreDeJeu(String j1, String j2, String j3, String j4, String carteChoisie) {
+        this.joueur1 = j1;
+        this.joueur2 = j2;
+        this.joueur3 = j3;
+        this.joueur4 = j4;
+        this.carte = carteChoisie;
+
+        // Charger le décor et les plateformes de la carte choisie
+        PanneauCombat panneau = new PanneauCombat(carteChoisie);
+
+        // Installer le panneau dans la fenêtre de combat
+        setContentPane(panneau);
+        pack();
+        setLocationRelativeTo(null);
+
+        System.out.println("Match lancé : "
+                + joueur1 + " VS " + joueur2
+                + " sur " + carte);
+
+// Fenetre de test : meme repere que les plateformes du Chateau.
         this.setResizable(false);
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.addKeyListener(this);
@@ -64,7 +84,8 @@ public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener 
     }
 
     @Override
-    public void keyTyped(KeyEvent e) { /* NOP */ }
+    public void keyTyped(KeyEvent e) {
+        /* NOP */ }
 
     @Override
     public void keyPressed(KeyEvent evt) {
@@ -97,16 +118,21 @@ public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener 
 
     @Override
     public void dispose() {
-        if (timer != null) timer.stop();
-        if (contexte != null) contexte.dispose();
+        if (timer != null) {
+            timer.stop();
+        }
+        if (contexte != null) {
+            contexte.dispose();
+        }
         super.dispose();
     }
-
-    public static void main(String[] args) {
-        javax.swing.SwingUtilities.invokeLater(() -> {
-            FenetreDeJeu fenetre = new FenetreDeJeu();
-            fenetre.setVisible(true);
-        });
-    }
 }
+
+//    public static void main(String[] args) {
+//        javax.swing.SwingUtilities.invokeLater(() -> {
+//            FenetreDeJeu fenetre = new FenetreDeJeu();
+//            fenetre.setVisible(true);
+//        });
+//    }
+//}
 
