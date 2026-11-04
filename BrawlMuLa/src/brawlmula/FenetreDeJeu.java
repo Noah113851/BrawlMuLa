@@ -23,6 +23,12 @@ public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener 
     private JLabel jLabel1;
     private Jeu jeu;
     private Timer timer;
+    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Combat.class.getName());
+    private String joueur1;
+    private String joueur2;
+    private String joueur3;
+    private String joueur4;
+    private String carte;
 
     public FenetreDeJeu() {
         // Fenetre de test : meme repere que les plateformes du Chateau.
