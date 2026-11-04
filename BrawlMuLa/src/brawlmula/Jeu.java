@@ -3,8 +3,8 @@ package brawlmula;
 import java.awt.Graphics2D;
 
 /**
- * Meme role que le Jeu.java d'origine : gere l'Avatar et son rendu.
- * Pour FenetreDeJeu, on lui ajoute simplement le Chateau et les plateformes.
+ * Meme role que le Jeu.java d'origine : gere l'Avatar et son rendu. Pour
+ * FenetreDeJeu, on lui ajoute simplement le Chateau et les plateformes.
  */
 public class Jeu {
 
@@ -12,7 +12,9 @@ public class Jeu {
     private final PanneauCombat panneauCombat;
     private static final double HAUTEUR_AVATAR = 100; // comme Avatar.rendu()
 
-    /** Compatibilite : FenetreDeJeu() continue d'ouvrir le Chateau. */
+    /**
+     * Compatibilite : FenetreDeJeu() continue d'ouvrir le Chateau.
+     */
     public Jeu() {
 
         // Un seul objet PanneauCombat fournit decor, sprites, plateformes ET physique.
@@ -20,7 +22,9 @@ public class Jeu {
         this("/ressources/Maps/chateau.png");
     }
 
-    /** Une meme physique, mais un decor et des plateformes selon la carte. */
+    /**
+     * Une meme physique, mais un decor et des plateformes selon la carte.
+     */
     public Jeu(String cheminCarte) {
         panneauCombat = new PanneauCombat(cheminCarte);
 
@@ -33,8 +37,8 @@ public class Jeu {
     }
 
     /**
-     * Place le personnage juste au-dessus du sol fixe de la carte choisie.
-     * Son code de deplacement et de collision reste celui qui fonctionne deja.
+     * Place le personnage juste au-dessus du sol fixe de la carte choisie. Son
+     * code de deplacement et de collision reste celui qui fonctionne deja.
      */
     private void placerAvatarSurPlateformePrincipale() {
         double solLePlusHaut = Double.POSITIVE_INFINITY;
@@ -68,4 +72,3 @@ public class Jeu {
         return panneauCombat;
     }
 }
-

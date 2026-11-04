@@ -286,6 +286,7 @@ public class Selection extends javax.swing.JFrame {
                 // Le joueur 2 ne peut pas cliquer sur les boutons de sélection de la carte
                 boutton_droite.setEnabled(false);
                 boutton_gauche.setEnabled(false);
+                btnCombat.setEnabled(false);
             }
         }
         if (reseau != null) {
@@ -594,6 +595,10 @@ public class Selection extends javax.swing.JFrame {
     }//GEN-LAST:event_btnCombatMouseEntered
 
     private void btnCombatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCombatActionPerformed
+        if (!isHost) {
+            return;
+        }
+
 //        if (!j1Selectionne || !j2Selectionne || !j3Selectionne || !j4Selectionne) {
 //            javax.swing.JOptionPane.showMessageDialog(
 //                    this,
@@ -605,7 +610,13 @@ public class Selection extends javax.swing.JFrame {
 //        }
         Musiques_sons.stop();
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
-        Combat jeu = new Combat(
+
+        String cheminCarte = imagesCartes.get(choixCarte);
+        if (cheminCarte.contains("/cartes/")) {
+            cheminCarte = cheminCarte.replace("/cartes/", "/Maps/");
+        }
+
+        FenetreDeJeu jeu = new FenetreDeJeu(
                 personnages.get(choixJ1),
                 personnages.get(choixJ2),
                 personnages.get(choixJ3),
