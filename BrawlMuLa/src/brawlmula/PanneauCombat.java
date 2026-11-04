@@ -1,3 +1,4 @@
+
 package brawlmula;
 
 import java.awt.Color;
@@ -8,84 +9,131 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
-/**
- * Affiche la carte retenue dans Selection et anime UNIQUEMENT ses plateformes.
- * Aucun mouvement d'avatar ni aucune gestion du clavier ici.
- *
- * Les positions restent dans le repere logique de 1280 x 760 pixels.
- */
 public final class PanneauCombat extends JPanel {
 
-    // Le PNG doit contenir UNE plateforme sur fond transparent, pas quatre
-    // plateformes collees dans une seule image. S'il a un autre nom, changer
-    // cette constante ou renommer le fichier dans NetBeans.
-    public static final String SPRITE_CHATEAU = "/ressources/plateformes_chateau.png";
+    // Images des deux types de plateformes du Chateau
+    public static final String SPRITE_CHATEAU_HAUT =
+            "/ressources/plateformes/plateforme_chateau_1.png";
+
+    public static final String SPRITE_CHATEAU_MILIEU =
+            "/ressources/plateformes/plateforme_chateau_2.png";
 
     private final ConfigurationCarte carte;
     private final BufferedImage decor;
-    private final BufferedImage spriteChateau; // null : dessin de secours
+
+    private final BufferedImage spriteChateauHaut;
+    private final BufferedImage spriteChateauMilieu;
+
+    // Associe chaque plateforme a son image
+    private final Map<Plateforme, BufferedImage> imagesPlateformes =
+            new IdentityHashMap<>();
+
     private final Timer timer;
     private long precedentNanos;
-    private boolean afficherHitboxes;
+    private boolean afficherHitboxes = false;
 
     public PanneauCombat(String cheminCarte) {
+
+        // Chargement de la carte selectionnee
         this.carte = ConfigurationCarte.depuisChemin(cheminCarte);
         this.decor = lireImageObligatoire(carte.getCheminDecor());
 
-        // Pour les autres cartes, garder provisoirement les plateformes dessinees.
+        // Chargement des sprites du Chateau
         if ("CHATEAU".equals(carte.getNom())) {
-            this.spriteChateau = lireSpriteFacultatif(SPRITE_CHATEAU);
+
+            spriteChateauHaut =
+                    lireSpriteFacultatif(SPRITE_CHATEAU_HAUT);
+
+            spriteChateauMilieu =
+                    lireSpriteFacultatif(SPRITE_CHATEAU_MILIEU);
+
+            attribuerImagesChateau();
+
         } else {
-            this.spriteChateau = null;
+            spriteChateauHaut = null;
+            spriteChateauMilieu = null;
         }
 
-        setPreferredSize(new Dimension(ConfigurationCarte.LARGEUR,
-                                       ConfigurationCarte.HAUTEUR));
+        setPreferredSize(new Dimension(
+                ConfigurationCarte.LARGEUR,
+                ConfigurationCarte.HAUTEUR
+        ));
+
         setDoubleBuffered(true);
         setBackground(Color.BLACK);
+
+        // Actualisation des plateformes toutes les 16 ms
         timer = new Timer(16, e -> animer());
         timer.setCoalesce(true);
     }
 
+    // Charge le decor obligatoire
     private BufferedImage lireImageObligatoire(String chemin) {
+
         URL url = getClass().getResource(chemin);
+
         if (url == null) {
-            throw new IllegalStateException("Decor introuvable : " + chemin
-                    + " (verifier BrawlMuLa/src/ressources/cartes/)");
+            throw new IllegalStateException(
+                    "Decor introuvable : " + chemin
+            );
         }
+
         try {
             BufferedImage image = ImageIO.read(url);
+
             if (image == null) {
-                throw new IllegalStateException("Format du decor invalide : " + chemin);
+                throw new IOException("Image invalide");
             }
+
             return image;
-        } catch (IOException ex) {
-            throw new IllegalStateException("Lecture impossible : " + chemin, ex);
+
+        } catch (IOException e) {
+            throw new IllegalStateException(
+                    "Erreur de chargement : " + chemin, e
+            );
         }
     }
 
+    // Charge un sprite PNG avec fond transparent
     private BufferedImage lireSpriteFacultatif(String chemin) {
+
         URL url = getClass().getResource(chemin);
+
         if (url == null) {
-            System.err.println("[BrawlMuLa] PNG des plateformes introuvable : " + chemin
-                    + ". Dessin provisoire active. Renommer le PNG dans src/ressources/.");
+            System.err.println(
+                    "Sprite introuvable : " + chemin
+            );
             return null;
         }
+
         try {
             BufferedImage image = ImageIO.read(url);
+
             if (image == null) {
-                throw new IOException("Image PNG non reconnue");
+                throw new IOException("Image invalide");
             }
-            // Enleve les marges transparentes, souvent presentes dans les PNG.
-            int gauche = image.getWidth(), droite = -1;
-            int haut = image.getHeight(), bas = -1;
+
+            // Suppression des marges transparentes
+            int gauche = image.getWidth();
+            int droite = -1;
+            int haut = image.getHeight();
+            int bas = -1;
+
             for (int y = 0; y < image.getHeight(); y++) {
                 for (int x = 0; x < image.getWidth(); x++) {
-                    if ((image.getRGB(x, y) >>> 24) > 4) {
+
+                    int alpha = image.getRGB(x, y) >>> 24;
+
+                    if (alpha > 4) {
                         gauche = Math.min(gauche, x);
                         droite = Math.max(droite, x);
                         haut = Math.min(haut, y);
@@ -93,30 +141,83 @@ public final class PanneauCombat extends JPanel {
                     }
                 }
             }
+
             if (droite < gauche) {
-                throw new IOException("PNG transparent/vide");
+                throw new IOException("PNG transparent ou vide");
             }
-            return image.getSubimage(gauche, haut,
-                                     droite - gauche + 1, bas - haut + 1);
+
+            BufferedImage sprite = image.getSubimage(
+                    gauche,
+                    haut,
+                    droite - gauche + 1,
+                    bas - haut + 1
+            );
+
+            System.out.println("Sprite charge : " + chemin);
+
+            return sprite;
+
         } catch (IOException e) {
-            System.err.println("[BrawlMuLa] PNG inutilisable : " + chemin
-                    + " (" + e.getMessage() + "). Dessin provisoire active.");
+            System.err.println(
+                    "Erreur sprite : " + e.getMessage()
+            );
             return null;
         }
     }
 
+    // Attribution des images aux plateformes du Chateau
+    private void attribuerImagesChateau() {
+
+        List<Plateforme> aeriennes = new ArrayList<>();
+
+        for (Plateforme p : carte.getPlateformes().getPlateformes()) {
+
+            if (p.getType() == Plateforme.Type.TRAVERSABLE) {
+                aeriennes.add(p);
+            }
+        }
+
+        // Classement selon la hauteur initiale :
+        // les deux plateformes les plus hautes en premier
+        aeriennes.sort(
+                Comparator.comparingDouble(Plateforme::getY)
+        );
+
+        for (int i = 0; i < aeriennes.size(); i++) {
+
+            BufferedImage image;
+
+            if (i < 2) {
+                image = spriteChateauHaut;
+            } else {
+                image = spriteChateauMilieu;
+            }
+
+            imagesPlateformes.put(aeriennes.get(i), image);
+        }
+    }
+
+    // Animation des plateformes mobiles
     private void animer() {
+
         long maintenant = System.nanoTime();
-        double dt = (maintenant - precedentNanos) / 1_000_000_000.0;
+
+        double dt = (maintenant - precedentNanos)
+                / 1_000_000_000.0;
+
         precedentNanos = maintenant;
-        // Blocage momentane de la fenetre : eviter un bond important.
-        carte.getPlateformes().miseAJour(Math.max(0.0, Math.min(dt, 0.05)));
+
+        dt = Math.max(0.0, Math.min(dt, 0.05));
+
+        carte.getPlateformes().miseAJour(dt);
+
         repaint();
     }
 
     @Override
     public void addNotify() {
         super.addNotify();
+
         precedentNanos = System.nanoTime();
         timer.start();
     }
@@ -127,64 +228,112 @@ public final class PanneauCombat extends JPanel {
         super.removeNotify();
     }
 
+    // Affichage du jeu
     @Override
     protected void paintComponent(Graphics graphismes) {
-        super.paintComponent(graphismes);
-        Graphics2D g = (Graphics2D) graphismes.create();
-        try {
-            // Meme repere physique, meme si l'utilisateur redimensionne la fenetre.
-            g.scale(getWidth() / (double) ConfigurationCarte.LARGEUR,
-                    getHeight() / (double) ConfigurationCarte.HAUTEUR);
-            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                               RenderingHints.VALUE_ANTIALIAS_ON);
-            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
-                               RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-            g.drawImage(decor, 0, 0,
-                        ConfigurationCarte.LARGEUR,
-                        ConfigurationCarte.HAUTEUR, null);
 
+        super.paintComponent(graphismes);
+
+        Graphics2D g = (Graphics2D) graphismes.create();
+
+        try {
+
+            // Adaptation a la taille de la fenetre
+            g.scale(
+                    getWidth() / (double) ConfigurationCarte.LARGEUR,
+                    getHeight() / (double) ConfigurationCarte.HAUTEUR
+            );
+
+            g.setRenderingHint(
+                    RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_BILINEAR
+            );
+
+            g.setRenderingHint(
+                    RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON
+            );
+
+            // Affichage du decor
+            g.drawImage(
+                    decor,
+                    0,
+                    0,
+                    ConfigurationCarte.LARGEUR,
+                    ConfigurationCarte.HAUTEUR,
+                    null
+            );
+
+            // Affichage des plateformes
             for (Plateforme p : carte.getPlateformes().getPlateformes()) {
-                // La grande plateforme SOLIDE du Chateau existe deja sur le decor.
+
+                // Les plateformes solides sont deja dans le decor
                 if (p.getType() != Plateforme.Type.TRAVERSABLE) {
                     continue;
                 }
+
                 int x = (int) Math.round(p.getX());
                 int y = (int) Math.round(p.getY());
+
                 int w = (int) Math.round(p.getLargeur());
                 int h = (int) Math.round(p.getHauteur());
-                if (spriteChateau != null) {
-                    g.drawImage(spriteChateau, x, y, w, h, null);
+
+                BufferedImage sprite = imagesPlateformes.get(p);
+
+                if (sprite != null) {
+
+                    // Affichage du PNG correspondant
+                    g.drawImage(sprite, x, y, w, h, null);
+
                 } else {
+
+                    // Affichage provisoire si aucun PNG
                     dessinerPlateformeProvisoire(g, x, y, w, h);
                 }
             }
 
+            // Affichage optionnel des collisions
             if (afficherHitboxes) {
                 carte.getPlateformes().dessinerHitboxes(g);
             }
+
         } finally {
             g.dispose();
         }
     }
 
-    private static void dessinerPlateformeProvisoire(Graphics2D g,
-                                                     int x, int y, int w, int h) {
-        g.setColor(new Color(0, 0, 0, 95));
-        g.fillRoundRect(x + 4, y + 7, w, h, 12, 12);
+    // Dessin de secours
+    private static void dessinerPlateformeProvisoire(
+            Graphics2D g, int x, int y, int w, int h) {
+
         g.setColor(new Color(126, 84, 52));
         g.fillRoundRect(x, y, w, h, 10, 10);
+
         g.setColor(new Color(220, 175, 110));
-        g.fillRoundRect(x + 3, y + 2,
-                        Math.max(1, w - 6), Math.max(1, h / 3), 8, 8);
-        g.setColor(new Color(67, 46, 32));
-        g.drawRoundRect(x, y, w, h, 10, 10);
+        g.fillRoundRect(
+                x + 3,
+                y + 2,
+                Math.max(1, w - 6),
+                Math.max(1, h / 3),
+                8,
+                8
+        );
     }
 
-    public ConfigurationCarte getConfiguration() { return carte; }
+    public ConfigurationCarte getConfiguration() {
+        return carte;
+    }
+
+    // Attention : GestionnairePlateforme SANS S
     public GestionnairePlateforme getGestionnairePlateformes() {
         return carte.getPlateformes();
     }
-    public boolean spritePlateformesChateauCharge() { return spriteChateau != null; }
+
+    public boolean spritePlateformesChateauCharge() {
+        return spriteChateauHaut != null
+                && spriteChateauMilieu != null;
+    }
+
     public void setAfficherHitboxes(boolean afficher) {
         afficherHitboxes = afficher;
         repaint();

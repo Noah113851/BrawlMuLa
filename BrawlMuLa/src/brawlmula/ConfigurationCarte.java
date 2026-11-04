@@ -78,29 +78,31 @@ public final class ConfigurationCarte {
      * Le sol principal est SOLIDE, son sprite est dans le decor.
      */
     private void creerChateau() {
-        // Terrasse principale du chateau (le dessus est a y=500).
-        plateformes.ajouter(Plateforme.fixe(195, 500, 815, 34,
-                                           Plateforme.Type.SOLIDE));
+        // Grande terrasse : deja dessinee dans le decor.
+        plateformes.ajouter(Plateforme.fixe(
+                195, 500, 815, 34, Plateforme.Type.SOLIDE));
 
-        // Haut gauche : glisse de 56 pixels vers la droite puis revient.
-        plateformes.ajouter(Plateforme.mobile(264, 219, 320, 219,
-                                              172, 18, 46,
-                                              Plateforme.Type.TRAVERSABLE));
+        // Les 2 plateformes du haut : visuel plateforme_chateau_1.png.
+        // 230 x 52 px, plus large et plus epais qu'avant (172 x 18).
+        // Haut gauche : mouvement horizontal de 56 pixels.
+        plateformes.ajouter(Plateforme.mobile(
+                245, 217, 301, 217, 230, 52, 46,
+                Plateforme.Type.TRAVERSABLE));
 
-        // Haut droite : glisse de 56 pixels vers la gauche puis revient.
-        plateformes.ajouter(Plateforme.mobile(851, 199, 795, 199,
-                                              154, 18, 46,
-                                              Plateforme.Type.TRAVERSABLE));
+        // Haut droite : meme sprite, direction opposee.
+        plateformes.ajouter(Plateforme.mobile(
+                805, 198, 749, 198, 230, 52, 46,
+                Plateforme.Type.TRAVERSABLE));
 
-        // Milieu gauche : monte de 42 pixels puis redescend.
-        plateformes.ajouter(Plateforme.mobile(342, 361, 342, 319,
-                                              182, 18, 30,
-                                              Plateforme.Type.TRAVERSABLE));
+        // Les 2 plateformes du milieu : visuel plateforme_chateau_2.png.
+        // 240 x 55 px ; trajectoires verticales independantes.
+        plateformes.ajouter(Plateforme.mobile(
+                320, 323, 320, 365, 240, 55, 30,
+                Plateforme.Type.TRAVERSABLE));
 
-        // Milieu droite : descend de 42 pixels puis remonte.
-        plateformes.ajouter(Plateforme.mobile(744, 344, 744, 386,
-                                              174, 18, 30,
-                                              Plateforme.Type.TRAVERSABLE));
+        plateformes.ajouter(Plateforme.mobile(
+                720, 382, 720, 340, 240, 55, 30,
+                Plateforme.Type.TRAVERSABLE));
     }
 
     private void creerPotager() {
