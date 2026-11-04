@@ -14,17 +14,12 @@ public class Jeu {
 
     /** Compatibilite : FenetreDeJeu() continue d'ouvrir le Chateau. */
     public Jeu() {
-<<<<<<< Updated upstream
-        // Un seul objet PanneauCombat fournit decor, sprites, plateformes ET physique.
-        panneauCombat = new PanneauCombat("/ressources/cartes/chateau.png");
-=======
         this("/ressources/Maps/chateau.png");
     }
 
     /** Une meme physique, mais un decor et des plateformes selon la carte. */
     public Jeu(String cheminCarte) {
         panneauCombat = new PanneauCombat(cheminCarte);
->>>>>>> Stashed changes
         panneauCombat.setSize(ConfigurationCarte.LARGEUR, ConfigurationCarte.HAUTEUR);
         panneauCombat.setAfficherHitboxes(false);
 

@@ -27,7 +27,7 @@ public final class ConfigurationCarte {
 
     /**
      * Selection.java passe deja la chaine du type
-     * "/ressources/cartes/chateau.png" a Combat.java.
+     * "/ressources/Maps/chateau.png" a Combat.java.
      */
     public static ConfigurationCarte depuisChemin(String chemin) {
         if (chemin == null) {
@@ -37,16 +37,16 @@ public final class ConfigurationCarte {
         ConfigurationCarte carte;
 
         if (normalise.endsWith("/colonie.png")) {
-            carte = new ConfigurationCarte("COLONIE", "/ressources/cartes/colonie.png");
+            carte = new ConfigurationCarte("COLONIE", "/ressources/Maps/colonie.png");
             carte.creerColonie();
         } else if (normalise.endsWith("/chateau.png")) {
-            carte = new ConfigurationCarte("CHATEAU", "/ressources/cartes/chateau.png");
+            carte = new ConfigurationCarte("CHATEAU", "/ressources/Maps/chateau.png");
             carte.creerChateau();
         } else if (normalise.endsWith("/potager.png")) {
-            carte = new ConfigurationCarte("POTAGER", "/ressources/cartes/potager.png");
+            carte = new ConfigurationCarte("POTAGER", "/ressources/Maps/potager.png");
             carte.creerPotager();
         } else if (normalise.endsWith("/marche.png")) {
-            carte = new ConfigurationCarte("MARCHE", "/ressources/cartes/marche.png");
+            carte = new ConfigurationCarte("MARCHE", "/ressources/Maps/marche.png");
             carte.creerMarche();
         } else {
             throw new IllegalArgumentException("Carte inconnue : " + chemin);
@@ -115,30 +115,45 @@ public final class ConfigurationCarte {
     }
 
     /**
-     * MARCHE : 2 petites plateformes mobiles et 1 grande plateforme centrale.
-     * Coordonnees de depart pour un decor logique de 1280 x 760.
-     * Ces valeurs pourront etre ajustees apres essai avec les PNG definitifs.
+     * MARCHE (1280 x 760) :
+     * - 2 petites plateformes a gauche et 2 a droite ;
+     * - la plus haute de chaque cote suit un cercle ;
+     * - la plus basse de chaque cote fait un aller-retour horizontal ;
+     * - la grande plateforme centrale ne bouge pas.
      *
-     * Les 3 plateformes aeriennes sont TRAVERSABLES : passage en montant,
-     * atterrissage en descendant, et chute au travers avec S.
-     * Le sol de la place est SOLIDE : on ne peut pas le traverser avec S.
+     * Les plateformes aeriennes sont TRAVERSABLES : le personnage passe
+     * en montant, atterrit en redescendant et peut tomber avec la touche S.
+     * Les positions sont reglables apres verification visuelle dans le jeu.
      */
     private void creerMarche() {
-        // Sol de la place, visible dans l'image du decor.
+        // Sol de la place : solide, deja visible sur le decor.
         plateformes.ajouter(Plateforme.fixe(
                 90, 635, 1100, 34, Plateforme.Type.SOLIDE));
 
-        // En haut a gauche : sprite plateforme_marche_haut_gauche.png
-        plateformes.ajouter(Plateforme.mobile(
-                245, 205, 300, 205, 230, 52, 46,
+        // HAUT GAUCHE : cercle de rayon 40 px, sens horaire.
+        // Le centre concerne le coin SUPERIEUR GAUCHE du sprite.
+        // Vitesse tangentielle : 52 pixels/seconde.
+        plateformes.ajouter(Plateforme.circulaire(
+                230, 195, 40, 230, 52, 52, 0.0, true,
                 Plateforme.Type.TRAVERSABLE));
 
-        // En haut a droite : sprite plateforme_marche_haut_droite.png
+        // BAS GAUCHE : aller-retour horizontal.
         plateformes.ajouter(Plateforme.mobile(
-                805, 205, 750, 205, 230, 52, 46,
+                175, 305, 250, 305, 220, 52, 45,
                 Plateforme.Type.TRAVERSABLE));
 
-        // Grande plateforme centrale : sprite plateforme_marche_principale.png
+        // HAUT DROITE : cercle de meme rayon, sens antihoraire.
+        // Demarre a gauche du centre (angle PI) pour varier la phase.
+        plateformes.ajouter(Plateforme.circulaire(
+                845, 195, 40, 230, 52, 52, Math.PI, false,
+                Plateforme.Type.TRAVERSABLE));
+
+        // BAS DROITE : aller-retour horizontal, en sens oppose.
+        plateformes.ajouter(Plateforme.mobile(
+                875, 305, 800, 305, 220, 52, 45,
+                Plateforme.Type.TRAVERSABLE));
+
+        // Grande plateforme centrale fixe : PNG principal du Marche.
         plateformes.ajouter(Plateforme.fixe(
                 310, 365, 660, 115, Plateforme.Type.TRAVERSABLE));
     }
