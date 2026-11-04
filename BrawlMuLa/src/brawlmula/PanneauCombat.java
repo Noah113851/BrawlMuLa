@@ -18,22 +18,34 @@ import javax.imageio.ImageIO;
 import javax.swing.JPanel;
 import javax.swing.Timer;
 
+/**
+ * Decor et plateformes de la carte choisie. Aucune gestion de personnage.
+ * Compatible avec le test Chateau et la nouvelle fenetre Marche.
+ */
 public final class PanneauCombat extends JPanel {
 
-    // Images des deux types de plateformes du Chateau
     public static final String SPRITE_CHATEAU_HAUT =
             "/ressources/plateformes/plateforme_chateau_1.png";
-
     public static final String SPRITE_CHATEAU_MILIEU =
             "/ressources/plateformes/plateforme_chateau_2.png";
 
+    // Noms deja presents dans ton dossier ressources.plateformes de NetBeans.
+    public static final String SPRITE_MARCHE_HAUT_GAUCHE =
+            "/ressources/plateformes/plateforme_marche_haut_gauche.png";
+    public static final String SPRITE_MARCHE_HAUT_DROITE =
+            "/ressources/plateformes/plateforme_marche_haut_droite.png";
+    public static final String SPRITE_MARCHE_PRINCIPALE =
+            "/ressources/plateformes/plateforme_marche_principale.png";
+
     private final ConfigurationCarte carte;
     private final BufferedImage decor;
+    private BufferedImage spriteChateauHaut;
+    private BufferedImage spriteChateauMilieu;
+    private BufferedImage spriteMarcheGauche;
+    private BufferedImage spriteMarcheDroite;
+    private BufferedImage spriteMarchePrincipale;
 
-    private final BufferedImage spriteChateauHaut;
-    private final BufferedImage spriteChateauMilieu;
-
-    // Associe chaque plateforme a son image
+    // Association stable aux plateformes, meme si elles bougent.
     private final Map<Plateforme, BufferedImage> imagesPlateformes =
             new IdentityHashMap<>();
 
@@ -42,98 +54,60 @@ public final class PanneauCombat extends JPanel {
     private boolean afficherHitboxes = false;
 
     public PanneauCombat(String cheminCarte) {
+        carte = ConfigurationCarte.depuisChemin(cheminCarte);
+        decor = lireImageObligatoire(carte.getCheminDecor());
 
-        // Chargement de la carte selectionnee
-        this.carte = ConfigurationCarte.depuisChemin(cheminCarte);
-        this.decor = lireImageObligatoire(carte.getCheminDecor());
-
-        // Chargement des sprites du Chateau
         if ("CHATEAU".equals(carte.getNom())) {
-
-            spriteChateauHaut =
-                    lireSpriteFacultatif(SPRITE_CHATEAU_HAUT);
-
-            spriteChateauMilieu =
-                    lireSpriteFacultatif(SPRITE_CHATEAU_MILIEU);
-
+            spriteChateauHaut = lireSpriteFacultatif(SPRITE_CHATEAU_HAUT);
+            spriteChateauMilieu = lireSpriteFacultatif(SPRITE_CHATEAU_MILIEU);
             attribuerImagesChateau();
-
-        } else {
-            spriteChateauHaut = null;
-            spriteChateauMilieu = null;
+        } else if ("MARCHE".equals(carte.getNom())) {
+            spriteMarcheGauche = lireSpriteFacultatif(SPRITE_MARCHE_HAUT_GAUCHE);
+            spriteMarcheDroite = lireSpriteFacultatif(SPRITE_MARCHE_HAUT_DROITE);
+            spriteMarchePrincipale = lireSpriteFacultatif(SPRITE_MARCHE_PRINCIPALE);
+            attribuerImagesMarche();
         }
 
-        setPreferredSize(new Dimension(
-                ConfigurationCarte.LARGEUR,
-                ConfigurationCarte.HAUTEUR
-        ));
-
+        setPreferredSize(new Dimension(ConfigurationCarte.LARGEUR,
+                                       ConfigurationCarte.HAUTEUR));
         setDoubleBuffered(true);
         setBackground(Color.BLACK);
-
-        // Actualisation des plateformes toutes les 16 ms
         timer = new Timer(16, e -> animer());
         timer.setCoalesce(true);
     }
 
-    // Charge le decor obligatoire
     private BufferedImage lireImageObligatoire(String chemin) {
-
         URL url = getClass().getResource(chemin);
-
         if (url == null) {
-            throw new IllegalStateException(
-                    "Decor introuvable : " + chemin
-            );
+            throw new IllegalStateException("Decor introuvable : " + chemin);
         }
-
         try {
             BufferedImage image = ImageIO.read(url);
-
             if (image == null) {
-                throw new IOException("Image invalide");
+                throw new IOException("Image du decor invalide");
             }
-
             return image;
-
         } catch (IOException e) {
-            throw new IllegalStateException(
-                    "Erreur de chargement : " + chemin, e
-            );
+            throw new IllegalStateException("Erreur de lecture : " + chemin, e);
         }
     }
 
-    // Charge un sprite PNG avec fond transparent
+    /** Charge une image PNG et supprime ses marges transparentes. */
     private BufferedImage lireSpriteFacultatif(String chemin) {
-
         URL url = getClass().getResource(chemin);
-
         if (url == null) {
-            System.err.println(
-                    "Sprite introuvable : " + chemin
-            );
+            System.err.println("[BrawlMuLa] Sprite non trouve : " + chemin
+                    + " (dessin provisoire utilise)");
             return null;
         }
-
         try {
             BufferedImage image = ImageIO.read(url);
-
-            if (image == null) {
-                throw new IOException("Image invalide");
-            }
-
-            // Suppression des marges transparentes
-            int gauche = image.getWidth();
-            int droite = -1;
-            int haut = image.getHeight();
-            int bas = -1;
-
+            if (image == null) throw new IOException("Image invalide");
+            int gauche = image.getWidth(), droite = -1;
+            int haut = image.getHeight(), bas = -1;
             for (int y = 0; y < image.getHeight(); y++) {
                 for (int x = 0; x < image.getWidth(); x++) {
-
-                    int alpha = image.getRGB(x, y) >>> 24;
-
-                    if (alpha > 4) {
+                    if ((image.getRGB(x, y) >>> 24) > 4) {
                         gauche = Math.min(gauche, x);
                         droite = Math.max(droite, x);
                         haut = Math.min(haut, y);
@@ -141,83 +115,54 @@ public final class PanneauCombat extends JPanel {
                     }
                 }
             }
-
-            if (droite < gauche) {
-                throw new IOException("PNG transparent ou vide");
-            }
-
-            BufferedImage sprite = image.getSubimage(
-                    gauche,
-                    haut,
-                    droite - gauche + 1,
-                    bas - haut + 1
-            );
-
+            if (droite < gauche) throw new IOException("Image transparente/vide");
             System.out.println("Sprite charge : " + chemin);
-
-            return sprite;
-
+            return image.getSubimage(gauche, haut,
+                    droite - gauche + 1, bas - haut + 1);
         } catch (IOException e) {
-            System.err.println(
-                    "Erreur sprite : " + e.getMessage()
-            );
+            System.err.println("[BrawlMuLa] Sprite inutilisable : " + chemin
+                    + " (" + e.getMessage() + ")");
             return null;
         }
     }
 
-    // Attribution des images aux plateformes du Chateau
     private void attribuerImagesChateau() {
-
         List<Plateforme> aeriennes = new ArrayList<>();
-
         for (Plateforme p : carte.getPlateformes().getPlateformes()) {
-
-            if (p.getType() == Plateforme.Type.TRAVERSABLE) {
-                aeriennes.add(p);
-            }
+            if (p.getType() == Plateforme.Type.TRAVERSABLE) aeriennes.add(p);
         }
-
-        // Classement selon la hauteur initiale :
-        // les deux plateformes les plus hautes en premier
-        aeriennes.sort(
-                Comparator.comparingDouble(Plateforme::getY)
-        );
-
+        aeriennes.sort(Comparator.comparingDouble(Plateforme::getY));
         for (int i = 0; i < aeriennes.size(); i++) {
-
-            BufferedImage image;
-
-            if (i < 2) {
-                image = spriteChateauHaut;
-            } else {
-                image = spriteChateauMilieu;
-            }
-
-            imagesPlateformes.put(aeriennes.get(i), image);
+            imagesPlateformes.put(aeriennes.get(i),
+                    i < 2 ? spriteChateauHaut : spriteChateauMilieu);
         }
     }
 
-    // Animation des plateformes mobiles
+    private void attribuerImagesMarche() {
+        for (Plateforme p : carte.getPlateformes().getPlateformes()) {
+            if (p.getType() != Plateforme.Type.TRAVERSABLE) continue;
+            if (p.getLargeur() >= 400) {
+                // Grande plateforme centrale (distincte des deux petites).
+                imagesPlateformes.put(p, spriteMarchePrincipale);
+            } else if (p.getX() < ConfigurationCarte.LARGEUR / 2) {
+                imagesPlateformes.put(p, spriteMarcheGauche);
+            } else {
+                imagesPlateformes.put(p, spriteMarcheDroite);
+            }
+        }
+    }
+
     private void animer() {
-
         long maintenant = System.nanoTime();
-
-        double dt = (maintenant - precedentNanos)
-                / 1_000_000_000.0;
-
+        double dt = (maintenant - precedentNanos) / 1_000_000_000.0;
         precedentNanos = maintenant;
-
-        dt = Math.max(0.0, Math.min(dt, 0.05));
-
-        carte.getPlateformes().miseAJour(dt);
-
+        carte.getPlateformes().miseAJour(Math.max(0.0, Math.min(dt, 0.05)));
         repaint();
     }
 
     @Override
     public void addNotify() {
         super.addNotify();
-
         precedentNanos = System.nanoTime();
         timer.start();
     }
@@ -228,110 +173,68 @@ public final class PanneauCombat extends JPanel {
         super.removeNotify();
     }
 
-    // Affichage du jeu
     @Override
     protected void paintComponent(Graphics graphismes) {
-
         super.paintComponent(graphismes);
-
         Graphics2D g = (Graphics2D) graphismes.create();
-
         try {
+            g.scale(getWidth() / (double) ConfigurationCarte.LARGEUR,
+                    getHeight() / (double) ConfigurationCarte.HAUTEUR);
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+                    RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
+            g.drawImage(decor, 0, 0, ConfigurationCarte.LARGEUR,
+                    ConfigurationCarte.HAUTEUR, null);
 
-            // Adaptation a la taille de la fenetre
-            g.scale(
-                    getWidth() / (double) ConfigurationCarte.LARGEUR,
-                    getHeight() / (double) ConfigurationCarte.HAUTEUR
-            );
-
-            g.setRenderingHint(
-                    RenderingHints.KEY_INTERPOLATION,
-                    RenderingHints.VALUE_INTERPOLATION_BILINEAR
-            );
-
-            g.setRenderingHint(
-                    RenderingHints.KEY_ANTIALIASING,
-                    RenderingHints.VALUE_ANTIALIAS_ON
-            );
-
-            // Affichage du decor
-            g.drawImage(
-                    decor,
-                    0,
-                    0,
-                    ConfigurationCarte.LARGEUR,
-                    ConfigurationCarte.HAUTEUR,
-                    null
-            );
-
-            // Affichage des plateformes
             for (Plateforme p : carte.getPlateformes().getPlateformes()) {
-
-                // Les plateformes solides sont deja dans le decor
-                if (p.getType() != Plateforme.Type.TRAVERSABLE) {
-                    continue;
-                }
-
+                // Le sol SOLIDE est deja visible dans le decor.
+                if (p.getType() != Plateforme.Type.TRAVERSABLE) continue;
                 int x = (int) Math.round(p.getX());
                 int y = (int) Math.round(p.getY());
-
                 int w = (int) Math.round(p.getLargeur());
                 int h = (int) Math.round(p.getHauteur());
-
                 BufferedImage sprite = imagesPlateformes.get(p);
-
                 if (sprite != null) {
-
-                    // Affichage du PNG correspondant
                     g.drawImage(sprite, x, y, w, h, null);
-
                 } else {
-
-                    // Affichage provisoire si aucun PNG
                     dessinerPlateformeProvisoire(g, x, y, w, h);
                 }
             }
-
-            // Affichage optionnel des collisions
             if (afficherHitboxes) {
                 carte.getPlateformes().dessinerHitboxes(g);
             }
-
         } finally {
             g.dispose();
         }
     }
 
-    // Dessin de secours
-    private static void dessinerPlateformeProvisoire(
-            Graphics2D g, int x, int y, int w, int h) {
-
+    private static void dessinerPlateformeProvisoire(Graphics2D g,
+                                                     int x, int y, int w, int h) {
+        g.setColor(new Color(0, 0, 0, 95));
+        g.fillRoundRect(x + 4, y + 7, w, h, 12, 12);
         g.setColor(new Color(126, 84, 52));
         g.fillRoundRect(x, y, w, h, 10, 10);
-
         g.setColor(new Color(220, 175, 110));
-        g.fillRoundRect(
-                x + 3,
-                y + 2,
-                Math.max(1, w - 6),
-                Math.max(1, h / 3),
-                8,
-                8
-        );
+        g.fillRoundRect(x + 3, y + 2, Math.max(1, w - 6), Math.max(1, h / 3), 8, 8);
+        g.setColor(new Color(67, 46, 32));
+        g.drawRoundRect(x, y, w, h, 10, 10);
     }
 
-    public ConfigurationCarte getConfiguration() {
-        return carte;
-    }
+    public ConfigurationCarte getConfiguration() { return carte; }
 
-    // Attention : GestionnairePlateforme SANS S
+    // Orthographe du projet local : SANS "s" final.
     public GestionnairePlateforme getGestionnairePlateformes() {
         return carte.getPlateformes();
     }
 
     public boolean spritePlateformesChateauCharge() {
-        return spriteChateauHaut != null
-                && spriteChateauMilieu != null;
+        return spriteChateauHaut != null && spriteChateauMilieu != null;
+    }
+
+    public boolean spritePlateformesMarcheCharge() {
+        return spriteMarcheGauche != null && spriteMarcheDroite != null
+                && spriteMarchePrincipale != null;
     }
 
     public void setAfficherHitboxes(boolean afficher) {
@@ -339,4 +242,3 @@ public final class PanneauCombat extends JPanel {
         repaint();
     }
 }
-

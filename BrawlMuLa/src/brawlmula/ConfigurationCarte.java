@@ -114,13 +114,33 @@ public final class ConfigurationCarte {
                                               Plateforme.Type.TRAVERSABLE));
     }
 
+    /**
+     * MARCHE : 2 petites plateformes mobiles et 1 grande plateforme centrale.
+     * Coordonnees de depart pour un decor logique de 1280 x 760.
+     * Ces valeurs pourront etre ajustees apres essai avec les PNG definitifs.
+     *
+     * Les 3 plateformes aeriennes sont TRAVERSABLES : passage en montant,
+     * atterrissage en descendant, et chute au travers avec S.
+     * Le sol de la place est SOLIDE : on ne peut pas le traverser avec S.
+     */
     private void creerMarche() {
-        plateformes.ajouter(Plateforme.fixe(90, 635, 1100, 36, Plateforme.Type.SOLIDE));
-        plateformes.ajouter(Plateforme.fixe(535, 420, 210, 20, Plateforme.Type.TRAVERSABLE));
-        plateformes.ajouter(Plateforme.mobile(190, 330, 380, 330, 180, 20, 85,
-                                              Plateforme.Type.TRAVERSABLE));
-        plateformes.ajouter(Plateforme.mobile(910, 330, 720, 330, 180, 20, 85,
-                                              Plateforme.Type.TRAVERSABLE));
+        // Sol de la place, visible dans l'image du decor.
+        plateformes.ajouter(Plateforme.fixe(
+                90, 635, 1100, 34, Plateforme.Type.SOLIDE));
+
+        // En haut a gauche : sprite plateforme_marche_haut_gauche.png
+        plateformes.ajouter(Plateforme.mobile(
+                245, 205, 300, 205, 230, 52, 46,
+                Plateforme.Type.TRAVERSABLE));
+
+        // En haut a droite : sprite plateforme_marche_haut_droite.png
+        plateformes.ajouter(Plateforme.mobile(
+                805, 205, 750, 205, 230, 52, 46,
+                Plateforme.Type.TRAVERSABLE));
+
+        // Grande plateforme centrale : sprite plateforme_marche_principale.png
+        plateformes.ajouter(Plateforme.fixe(
+                310, 365, 660, 115, Plateforme.Type.TRAVERSABLE));
     }
 
     public String getNom() {
