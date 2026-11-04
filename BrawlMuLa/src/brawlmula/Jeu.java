@@ -16,9 +16,6 @@ public class Jeu {
      * Compatibilite : FenetreDeJeu() continue d'ouvrir le Chateau.
      */
     public Jeu() {
-
-        // Un seul objet PanneauCombat fournit decor, sprites, plateformes ET physique.
-        panneauCombat = new PanneauCombat("/ressources/Maps/chateau.png");
         this("/ressources/Maps/chateau.png");
     }
 
@@ -27,7 +24,6 @@ public class Jeu {
      */
     public Jeu(String cheminCarte) {
         panneauCombat = new PanneauCombat(cheminCarte);
-
         panneauCombat.setSize(ConfigurationCarte.LARGEUR, ConfigurationCarte.HAUTEUR);
         panneauCombat.setAfficherHitboxes(false);
 
@@ -43,8 +39,13 @@ public class Jeu {
     private void placerAvatarSurPlateformePrincipale() {
         double solLePlusHaut = Double.POSITIVE_INFINITY;
         double avatarX = avatar.x; // 600 apres connecterPlateformes()
+        boolean marche = "MARCHE".equals(
+                panneauCombat.getConfiguration().getNom());
         for (Plateforme p : panneauCombat.getGestionnairePlateformes().getPlateformes()) {
-            if (p.getType() == Plateforme.Type.SOLIDE
+            boolean supportDepart = p.getType() == Plateforme.Type.SOLIDE
+                    || (marche && p.getType() == Plateforme.Type.TRAVERSABLE
+                            && p.getLargeur() >= 400);
+            if (supportDepart
                     && avatarX + HAUTEUR_AVATAR > p.getX()
                     && avatarX < p.getX() + p.getLargeur()) {
                 solLePlusHaut = Math.min(solLePlusHaut, p.getY());
@@ -53,7 +54,6 @@ public class Jeu {
         if (Double.isFinite(solLePlusHaut)) {
             avatar.y = solLePlusHaut - HAUTEUR_AVATAR;
         }
-
     }
 
     public void miseAJour() {

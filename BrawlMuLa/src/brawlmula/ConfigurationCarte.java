@@ -114,13 +114,48 @@ public final class ConfigurationCarte {
                                               Plateforme.Type.TRAVERSABLE));
     }
 
+    /**
+     * MARCHE : surfaces de collision et sprites volontairement distincts.
+     * Les hitbox sont des BANDELETTES fines au-dessus des plateformes.
+     * PanneauCombat applique un decalage visuel (-10/-9 pour les petites,
+     * -16/-12 pour la grande) afin de dessiner le PNG autour de la hitbox.
+     *
+     * L'ordre est stable : sol, haute gauche, basse gauche,
+     * haute droite, basse droite, grande centrale.
+     * Les deux hautes decrivent des cercles de rayon 40 px.
+     */
     private void creerMarche() {
-        plateformes.ajouter(Plateforme.fixe(90, 635, 1100, 36, Plateforme.Type.SOLIDE));
-        plateformes.ajouter(Plateforme.fixe(535, 420, 210, 20, Plateforme.Type.TRAVERSABLE));
-        plateformes.ajouter(Plateforme.mobile(190, 330, 380, 330, 180, 20, 85,
-                                              Plateforme.Type.TRAVERSABLE));
-        plateformes.ajouter(Plateforme.mobile(910, 330, 720, 330, 180, 20, 85,
-                                              Plateforme.Type.TRAVERSABLE));
+        // Sol en pierre, deja dessine dans le decor : SOLIDE.
+        plateformes.ajouter(Plateforme.fixe(
+                90, 635, 1100, 34, Plateforme.Type.SOLIDE));
+
+        // Les petites : hitbox 212 x 14 au niveau de leur surface d'appui.
+        // Leur sprite dessine mesure 232 x 57 (avec marges et dessous visible).
+        // HAUTE GAUCHE, cercle horaire, centre du mouvement de la hitbox.
+        plateformes.ajouter(Plateforme.circulaire(
+                190, 138, 40, 212, 14, 52, 0.0, true,
+                Plateforme.Type.TRAVERSABLE));
+
+        // BASSE GAUCHE, mouvement horizontal discret.
+        plateformes.ajouter(Plateforme.mobile(
+                178, 315, 250, 315, 212, 14, 45,
+                Plateforme.Type.TRAVERSABLE));
+
+        // HAUTE DROITE, meme rayon et vitesse, sens antihoraire.
+        plateformes.ajouter(Plateforme.circulaire(
+                878, 138, 40, 212, 14, 52, Math.PI, false,
+                Plateforme.Type.TRAVERSABLE));
+
+        // BASSE DROITE, sens inverse de la basse gauche.
+        plateformes.ajouter(Plateforme.mobile(
+                888, 315, 816, 315, 212, 14, 45,
+                Plateforme.Type.TRAVERSABLE));
+
+        // GRANDE CENTRALE abaissee : hitbox sur le dessus du PNG.
+        // Sprite visible : 674 x 115, de x=303 a 977 et y=433 a 548.
+        // Seule la surface (642 x 18) porte le personnage.
+        plateformes.ajouter(Plateforme.fixe(
+                319, 445, 642, 18, Plateforme.Type.TRAVERSABLE));
     }
 
     public String getNom() {
