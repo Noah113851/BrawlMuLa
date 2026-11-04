@@ -39,7 +39,7 @@ public class Jeu {
     private void placerAvatarSurPlateformePrincipale() {
         double solLePlusHaut = Double.POSITIVE_INFINITY;
         double avatarX = avatar.x; // 600 apres connecterPlateformes()
-        boolean marche = "MARCHE".equals(
+        boolean marche = "MARCH".equals(
                 panneauCombat.getConfiguration().getNom());
         for (Plateforme p : panneauCombat.getGestionnairePlateformes().getPlateformes()) {
             boolean supportDepart = p.getType() == Plateforme.Type.SOLIDE

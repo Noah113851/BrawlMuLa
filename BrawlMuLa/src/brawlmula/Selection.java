@@ -54,13 +54,17 @@ public class Selection extends javax.swing.JFrame {
             choixCarte = idxMap;
             afficherCarteLocal(choixCarte);
         } else if (msg.equals("START_GAME")) {
-            // Lancer le combat automatique reçu depuis l'hôte
+            String cheminCarte = imagesCartes.get(choixCarte);
+            if (cheminCarte.contains("/cartes/")) {
+                cheminCarte = cheminCarte.replace("/cartes/", "/Maps/");
+            }
+
             FenetreDeJeu jeu = new FenetreDeJeu(
                     personnages.get(choixJ1),
                     personnages.get(choixJ2),
                     personnages.get(choixJ3),
                     personnages.get(choixJ4),
-                    imagesCartes.get(choixCarte)
+                    cheminCarte
             );
             jeu.setVisible(true);
             this.dispose();
@@ -615,7 +619,9 @@ public class Selection extends javax.swing.JFrame {
         if (cheminCarte.contains("/cartes/")) {
             cheminCarte = cheminCarte.replace("/cartes/", "/Maps/");
         }
-
+        if (reseau != null) {
+            reseau.envoyerMessage("START_GAME");
+        }
         FenetreDeJeu jeu = new FenetreDeJeu(
                 personnages.get(choixJ1),
                 personnages.get(choixJ2),
