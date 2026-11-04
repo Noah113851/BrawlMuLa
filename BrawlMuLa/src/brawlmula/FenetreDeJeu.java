@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
- */
 package brawlmula;
 
 import java.awt.Graphics2D;
@@ -52,7 +48,7 @@ public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener 
         // IMPORTANT : ne pas creer un PanneauCombat ici, ni appeler new Jeu()
         // sans argument. Jeu recupere la carte choisie et le MEME gestionnaire
         // de collisions que le decor / les plateformes affiches.
-        Combat jeu = new Combat(carteChoisie);
+        jeu = new Jeu(carteChoisie);
 
         framebuffer = new BufferedImage(jLabel1.getWidth(),
                 jLabel1.getHeight(), BufferedImage.TYPE_INT_ARGB);

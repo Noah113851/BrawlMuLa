@@ -2,6 +2,7 @@ package brawlmula;
 
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Rectangle;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -189,15 +190,22 @@ public final class PanneauCombat extends JPanel {
             for (Plateforme p : carte.getPlateformes().getPlateformes()) {
                 // Le sol SOLIDE est deja visible dans le decor.
                 if (p.getType() != Plateforme.Type.TRAVERSABLE) continue;
-                int x = (int) Math.round(p.getX());
-                int y = (int) Math.round(p.getY());
-                int w = (int) Math.round(p.getLargeur());
-                int h = (int) Math.round(p.getHauteur());
+                // Au Marche, la hitbox n'occupe que la surface d'appui.
+                // Le PNG est plus grand et depasse SOUS la ligne de collision.
+                // Le Chateau et les autres cartes gardent leur rendu actuel.
+                Rectangle zone = "MARCHE".equals(carte.getNom())
+                        ? rectangleAffichageMarche(p)
+                        : new Rectangle((int) Math.round(p.getX()),
+                                        (int) Math.round(p.getY()),
+                                        (int) Math.round(p.getLargeur()),
+                                        (int) Math.round(p.getHauteur()));
                 BufferedImage sprite = imagesPlateformes.get(p);
                 if (sprite != null) {
-                    g.drawImage(sprite, x, y, w, h, null);
+                    g.drawImage(sprite, zone.x, zone.y,
+                            zone.width, zone.height, null);
                 } else {
-                    dessinerPlateformeProvisoire(g, x, y, w, h);
+                    dessinerPlateformeProvisoire(g, zone.x, zone.y,
+                            zone.width, zone.height);
                 }
             }
             if (afficherHitboxes) {
@@ -206,6 +214,24 @@ public final class PanneauCombat extends JPanel {
         } finally {
             g.dispose();
         }
+    }
+
+    /**
+     * Rectangle VISUEL du PNG du Marche, distinct de la hitbox physique.
+     * Le coin y de la hitbox est situe legerement sous le bord du sprite :
+     * les pieds touchent la surface et non le feuillage ou le tissu en-dessous.
+     * Ce calcul ne change ni les PNG ni la physique du Chateau.
+     */
+    static Rectangle rectangleAffichageMarche(Plateforme plateforme) {
+        boolean grande = plateforme.getLargeur() >= 400;
+        int margeX = grande ? 16 : 10;
+        int margeY = grande ? 12 : 9;
+        int hauteurVisuelle = grande ? 115 : 57;
+        return new Rectangle(
+                (int) Math.round(plateforme.getX()) - margeX,
+                (int) Math.round(plateforme.getY()) - margeY,
+                (int) Math.round(plateforme.getLargeur()) + 2 * margeX,
+                hauteurVisuelle);
     }
 
     private static void dessinerPlateformeProvisoire(Graphics2D g,

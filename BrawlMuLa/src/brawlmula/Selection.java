@@ -55,7 +55,7 @@ public class Selection extends javax.swing.JFrame {
             afficherCarteLocal(choixCarte);
         } else if (msg.equals("START_GAME")) {
             // Lancer le combat automatique reçu depuis l'hôte
-            Combat jeu = new Combat(
+            FenetreDeJeu jeu = new FenetreDeJeu(
                     personnages.get(choixJ1),
                     personnages.get(choixJ2),
                     personnages.get(choixJ3),

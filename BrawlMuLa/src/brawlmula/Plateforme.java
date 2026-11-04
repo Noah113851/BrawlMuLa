@@ -25,6 +25,15 @@ public final class Plateforme {
     private final double vitesse;  // pixels par seconde, 0 pour une plateforme fixe
     private final double longueurTrajet;
 
+    // Parametres de l'eventuelle trajectoire circulaire.
+    // Le cercle decrit le mouvement du coin superieur gauche du sprite.
+    private final boolean cercle;
+    private final double centreX;
+    private final double centreY;
+    private final double rayon;
+    private final int sensRotation; // +1 horaire a l'ecran, -1 antihoraire
+    private double angle;
+
     private double x;
     private double y;
     private double ancienX;
@@ -34,6 +43,16 @@ public final class Plateforme {
     private Plateforme(double departX, double departY, double arriveeX,
                       double arriveeY, double largeur, double hauteur,
                       double vitesse, Type type) {
+        this(departX, departY, arriveeX, arriveeY,
+                largeur, hauteur, vitesse, type,
+                false, 0.0, 0.0, 0.0, 0.0, 0);
+    }
+
+    private Plateforme(double departX, double departY, double arriveeX,
+                       double arriveeY, double largeur, double hauteur,
+                       double vitesse, Type type, boolean cercle,
+                       double centreX, double centreY, double rayon,
+                       double angleInitial, int sensRotation) {
         if (type == null) {
             throw new IllegalArgumentException("Le type ne peut pas etre null.");
         }
@@ -53,9 +72,21 @@ public final class Plateforme {
         this.arriveeY = arriveeY;
         this.vitesse = vitesse;
         this.longueurTrajet = Math.hypot(arriveeX - departX, arriveeY - departY);
-        if (vitesse > 0 && longueurTrajet == 0) {
+        if (vitesse > 0 && longueurTrajet == 0 && !cercle) {
             throw new IllegalArgumentException("Une plateforme mobile doit avoir un trajet non nul.");
         }
+        if (cercle && (!Double.isFinite(centreX) || !Double.isFinite(centreY)
+                || !Double.isFinite(rayon) || rayon <= 0
+                || !Double.isFinite(angleInitial) || vitesse <= 0
+                || (sensRotation != 1 && sensRotation != -1))) {
+            throw new IllegalArgumentException("Parametres du cercle invalides.");
+        }
+        this.cercle = cercle;
+        this.centreX = centreX;
+        this.centreY = centreY;
+        this.rayon = rayon;
+        this.angle = angleInitial;
+        this.sensRotation = sensRotation;
         this.x = departX;
         this.y = departY;
         this.ancienX = departX;
@@ -83,6 +114,33 @@ public final class Plateforme {
                               largeur, hauteur, vitesse, type);
     }
 
+    /**
+     * Cree une plateforme mobile sur une trajectoire CIRCULAIRE.
+     * centreX/centreY : centre du cercle decrit par le coin superieur gauche.
+     * rayon : rayon en pixels ; vitesse : vitesse tangentielle en pixels/s.
+     * angleInitial : en radians (0 = point a droite du centre).
+     * sensHoraire : true = rotation horaire a l'ecran (Y augmente vers le bas).
+     * La plateforme reste horizontale pendant le mouvement.
+     */
+    public static Plateforme circulaire(double centreX, double centreY,
+                                        double rayon, double largeur,
+                                        double hauteur, double vitesse,
+                                        double angleInitial, boolean sensHoraire,
+                                        Type type) {
+        if (!Double.isFinite(centreX) || !Double.isFinite(centreY)
+                || !Double.isFinite(rayon) || rayon <= 0
+                || !Double.isFinite(angleInitial)
+                || !Double.isFinite(vitesse) || vitesse <= 0) {
+            throw new IllegalArgumentException("Cercle ou vitesse invalides.");
+        }
+        double initialX = centreX + rayon * Math.cos(angleInitial);
+        double initialY = centreY + rayon * Math.sin(angleInitial);
+        return new Plateforme(initialX, initialY, initialX, initialY,
+                largeur, hauteur, vitesse, type,
+                true, centreX, centreY, rayon, angleInitial,
+                sensHoraire ? 1 : -1);
+    }
+
     /** Avance la plateforme de dt secondes. Aucun mouvement de personnage ici. */
     public void miseAJour(double dt) {
         if (!Double.isFinite(dt) || dt < 0) {
@@ -91,6 +149,14 @@ public final class Plateforme {
         ancienX = x;
         ancienY = y;
         if (vitesse == 0 || dt == 0) {
+            return;
+        }
+        if (cercle) {
+            // Conversion vitesse tangentielle -> vitesse angulaire (rad/s).
+            angle = (angle + sensRotation * (vitesse / rayon) * dt)
+                    % (2.0 * Math.PI);
+            x = centreX + rayon * Math.cos(angle);
+            y = centreY + rayon * Math.sin(angle);
             return;
         }
         double cycle = 2 * longueurTrajet;
@@ -104,6 +170,7 @@ public final class Plateforme {
 
     public Type getType() { return type; }
     public boolean estMobile() { return vitesse > 0; }
+    public boolean estCirculaire() { return cercle; }
     public double getX() { return x; }
     public double getY() { return y; }
     public double getAncienX() { return ancienX; }

@@ -3,8 +3,8 @@ package brawlmula;
 import java.awt.Graphics2D;
 
 /**
- * Meme role que le Jeu.java d'origine : gere l'Avatar et son rendu.
- * Pour FenetreDeJeu, on lui ajoute simplement le Chateau et les plateformes.
+ * Jeu commun aux fenetres de test Chateau et Marche.
+ * Garde le meme Avatar, les memes commandes et la meme boucle a 40 ms.
  */
 public class Jeu {
 
@@ -14,16 +14,12 @@ public class Jeu {
 
     /** Compatibilite : FenetreDeJeu() continue d'ouvrir le Chateau. */
     public Jeu() {
-
-        // Un seul objet PanneauCombat fournit decor, sprites, plateformes ET physique.
-        panneauCombat = new PanneauCombat("/ressources/Maps/chateau.png");
         this("/ressources/Maps/chateau.png");
     }
 
     /** Une meme physique, mais un decor et des plateformes selon la carte. */
     public Jeu(String cheminCarte) {
         panneauCombat = new PanneauCombat(cheminCarte);
-
         panneauCombat.setSize(ConfigurationCarte.LARGEUR, ConfigurationCarte.HAUTEUR);
         panneauCombat.setAfficherHitboxes(false);
 
@@ -33,14 +29,21 @@ public class Jeu {
     }
 
     /**
-     * Place le personnage juste au-dessus du sol fixe de la carte choisie.
+     * Place le personnage sur un support de depart de la carte choisie.
+     * Au Marche, il apparait sur la grande plateforme centrale abaissee.
+     * Le Chateau conserve son sol solide habituel.
      * Son code de deplacement et de collision reste celui qui fonctionne deja.
      */
     private void placerAvatarSurPlateformePrincipale() {
         double solLePlusHaut = Double.POSITIVE_INFINITY;
         double avatarX = avatar.x; // 600 apres connecterPlateformes()
+        boolean marche = "MARCHE".equals(
+                panneauCombat.getConfiguration().getNom());
         for (Plateforme p : panneauCombat.getGestionnairePlateformes().getPlateformes()) {
-            if (p.getType() == Plateforme.Type.SOLIDE
+            boolean supportDepart = p.getType() == Plateforme.Type.SOLIDE
+                    || (marche && p.getType() == Plateforme.Type.TRAVERSABLE
+                            && p.getLargeur() >= 400);
+            if (supportDepart
                     && avatarX + HAUTEUR_AVATAR > p.getX()
                     && avatarX < p.getX() + p.getLargeur()) {
                 solLePlusHaut = Math.min(solLePlusHaut, p.getY());
@@ -49,7 +52,6 @@ public class Jeu {
         if (Double.isFinite(solLePlusHaut)) {
             avatar.y = solLePlusHaut - HAUTEUR_AVATAR;
         }
-
     }
 
     public void miseAJour() {
@@ -68,4 +70,3 @@ public class Jeu {
         return panneauCombat;
     }
 }
-
