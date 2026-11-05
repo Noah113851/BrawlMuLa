@@ -25,7 +25,7 @@ public class Avatar {
     private double vy;
     private boolean auSol;
     private static final double SOL = 420;
-    private static final double GRAVITE = 10;
+    private static final double GRAVITE = 20;
     private static final double VITESSE_SAUT = 70;
     private static final double LARGEUR_AVATAR = 100;
     private static final double HAUTEUR_AVATAR = 100;
