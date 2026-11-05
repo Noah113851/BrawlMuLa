@@ -30,6 +30,7 @@ public class Selection extends javax.swing.JFrame {
                 String msg;
                 while ((msg = reseau.lireMessage()) != null) {
                     String messageRecu = msg;
+
                     // Exécution dans le thread graphique Swing
                     java.awt.EventQueue.invokeLater(() -> {
                         traiterMessageReseau(messageRecu);
@@ -264,6 +265,57 @@ public class Selection extends javax.swing.JFrame {
                 // Affiche le chemin problématique dans la console NetBeans
                 System.err.println("❌ Fichier introuvable dans le projet : " + chemin);
             }
+        }
+    }
+    // Classe pour transporter la configuration choisie dans l'IHM
+
+    public class ParametresPartie {
+
+        private String avatarJ1;
+        private String avatarJ2;
+        private String avatarJ3;
+        private String avatarJ4;
+        private String cheminCarte;
+        private boolean isHost;
+        private Reseau reseau;
+
+        public ParametresPartie(String j1, String j2, String j3, String j4, String carte, boolean isHost, Reseau reseau) {
+            this.avatarJ1 = j1;
+            this.avatarJ2 = j2;
+            this.avatarJ2 = j3;
+            this.avatarJ2 = j4;
+            this.cheminCarte = carte;
+            this.isHost = isHost;
+            this.reseau = reseau;
+        }
+
+        // Getters
+        public String getAvatarJ1() {
+            return avatarJ1;
+        }
+
+        public String getAvatarJ2() {
+            return avatarJ2;
+        }
+
+        public String getAvatarJ3() {
+            return avatarJ3;
+        }
+
+        public String getAvatarJ4() {
+            return avatarJ4;
+        }
+
+        public String getCheminCarte() {
+            return cheminCarte;
+        }
+
+        public boolean isHost() {
+            return isHost;
+        }
+
+        public Reseau getReseau() {
+            return reseau;
         }
     }
 
@@ -619,16 +671,14 @@ public class Selection extends javax.swing.JFrame {
         if (cheminCarte.contains("/cartes/")) {
             cheminCarte = cheminCarte.replace("/cartes/", "/Maps/");
         }
-        if (reseau != null) {
-            reseau.envoyerMessage("START_GAME");
-        }
         FenetreDeJeu jeu = new FenetreDeJeu(
                 personnages.get(choixJ1),
                 personnages.get(choixJ2),
                 personnages.get(choixJ3),
                 personnages.get(choixJ4),
-                imagesCartes.get(choixCarte)
+                cheminCarte
         );
+
         jeu.setVisible(true);
         this.dispose();
     }//GEN-LAST:event_btnCombatActionPerformed
