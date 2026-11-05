@@ -25,22 +25,10 @@ public class Selection extends javax.swing.JFrame {
     private Reseau reseau;
 
     private void demarrerEcouteReseau() {
-        new Thread(() -> {
-            try {
-                String msg;
-                while ((msg = reseau.lireMessage()) != null) {
-                    String messageRecu = msg;
-
-                    // Exécution dans le thread graphique Swing
-                    java.awt.EventQueue.invokeLater(() -> {
-                        traiterMessageReseau(messageRecu);
-                    });
-                }
-            } catch (Exception e) {
-                System.err.println("Déconnexion du réseau.");
-            }
-        }).start();
+    if (reseau != null) {
+        reseau.demarrerEcoute(this::traiterMessageReseau);
     }
+}
 
     private void traiterMessageReseau(String msg) {
         if (msg.startsWith("CHOIX_J1:")) {
