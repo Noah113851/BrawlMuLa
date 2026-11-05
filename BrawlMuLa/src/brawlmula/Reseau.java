@@ -17,75 +17,101 @@ public class Reseau {
     private static final String USER = "etudiant";
     private static final String PASSWORD = "YTDTvj9TR3CDYCmP";
 
-    private final String role; // "HOST" ou "CLIENT"
-    private int dernierIdLu = 0;
+    private String monIdJoueur; // "P1", "P2", "P3" ou "P4"
+    private int dernierIdLu = 0; // Commence à 0 pour relire tous les choix existants
     private boolean enEcoute = false;
 
-    // Constructeur pour l'Hôte
+    // Constructeur Hôte (Joueur 1)
     public Reseau(int port) {
-        this.role = "HOST";
-        viderSalon(); // Nettoie les anciens messages de la session précédente
+        this.monIdJoueur = "P1";
+        this.dernierIdLu = 0;
     }
 
-    // Constructeur pour le Client
+    // Constructeur Client (Joueurs 2, 3, 4)
     public Reseau(String ip, int port) {
-        this.role = "CLIENT";
-        // Synchroniser au dernier ID existant pour ne pas relire les anciens messages
-        this.dernierIdLu = getDernierIdActuel();
+        this.monIdJoueur = "P2"; // Valeur temporaire avant attribution dans inscrireClientEtObtenirNumero
+        this.dernierIdLu = 0;
     }
 
     private Connection getConnexion() throws SQLException {
         return DriverManager.getConnection(URL, USER, PASSWORD);
     }
 
-    // Nettoyer la table lors de la création d'une partie
-    private void viderSalon() {
-        try (Connection c = getConnexion(); PreparedStatement st = c.prepareStatement("DELETE FROM reseau_salon")) {
+    // L'hôte réinitialise la table au lancement de la session
+    public void enregistrerHote() {
+        try (Connection c = getConnexion();
+             PreparedStatement st = c.prepareStatement("DELETE FROM reseau_salon")) {
             st.executeUpdate();
             System.out.println("🧹 Salon réseau réinitialisé sur la BDD.");
         } catch (SQLException e) {
             e.printStackTrace();
         }
+        envoyerMessageDirect("PRESENCE_P1");
     }
 
-    private int getDernierIdActuel() {
-        try (Connection c = getConnexion(); PreparedStatement st = c.prepareStatement("SELECT MAX(id) FROM reseau_salon"); ResultSet rs = st.executeQuery()) {
+    // Inscription du client et définition de son ID unique ("P2", "P3", "P4")
+    public int inscrireClientEtObtenirNumero() {
+        int numAttribue = 2;
+        try (Connection c = getConnexion()) {
+
+            // Compter le nombre de joueurs enregistrés
+            PreparedStatement stCount = c.prepareStatement(
+                "SELECT COUNT(*) FROM reseau_salon WHERE message LIKE 'PRESENCE_P%'"
+            );
+            ResultSet rs = stCount.executeQuery();
             if (rs.next()) {
-                return rs.getInt(1);
+                numAttribue = rs.getInt(1) + 1;
             }
+
+            if (numAttribue > 4) numAttribue = 4;
+
+            // Mettre à jour l'identifiant propre à cette instance
+            this.monIdJoueur = "P" + numAttribue;
+
+            // Enregistrer la présence dans la BDD
+            PreparedStatement stIns = c.prepareStatement(
+                "INSERT INTO reseau_salon (emetteur, message) VALUES (?, ?)"
+            );
+            stIns.setString(1, this.monIdJoueur);
+            stIns.setString(2, "PRESENCE_P" + numAttribue);
+            stIns.executeUpdate();
+
+            System.out.println("✅ Joueur inscrit sous l'identifiant : " + this.monIdJoueur);
+
         } catch (SQLException e) {
-            e.printStackTrace();
+            System.err.println("❌ Erreur attribution numéro joueur : " + e.getMessage());
         }
-        return 0;
+        return numAttribue;
     }
 
-    // Envoyer un message dans le salon SQL
+    // Envoi de message sur la BDD avec l'ID du joueur émetteur
     public void envoyerMessage(String msg) {
-        new Thread(() -> {
-            try (Connection c = getConnexion(); PreparedStatement st = c.prepareStatement("INSERT INTO reseau_salon (emetteur, message) VALUES (?, ?)")) {
-                st.setString(1, role);
-                st.setString(2, msg);
-                st.executeUpdate();
-            } catch (SQLException e) {
-                System.err.println("❌ Erreur envoi réseau BDD : " + e.getMessage());
-            }
-        }).start();
+        new Thread(() -> envoyerMessageDirect(msg)).start();
     }
 
-    // Attente simulée du client (pour garder la comptabilité avec Selection.java)
-    public void attendreClient() {
-        System.out.println("✅ Prêt à recevoir le Joueur 2 via BDD.");
+    private void envoyerMessageDirect(String msg) {
+        try (Connection c = getConnexion();
+             PreparedStatement st = c.prepareStatement("INSERT INTO reseau_salon (emetteur, message) VALUES (?, ?)")) {
+            st.setString(1, monIdJoueur);
+            st.setString(2, msg);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            System.err.println("❌ Erreur envoi réseau BDD : " + e.getMessage());
+        }
     }
 
-    // Boucle d'écoute des nouveaux messages (exécutée en tâche de fond)
+    // Écoute continue et rejeu de l'historique
     public void demarrerEcoute(Consumer<String> gestionnaireMessage) {
         enEcoute = true;
         new Thread(() -> {
             while (enEcoute) {
                 try {
-                    Thread.sleep(150); // Vérification toutes les 150ms
+                    Thread.sleep(150);
 
-                    try (Connection c = getConnexion(); PreparedStatement st = c.prepareStatement("SELECT id, emetteur, message FROM reseau_salon WHERE id > ? ORDER BY id ASC")) {
+                    try (Connection c = getConnexion();
+                         PreparedStatement st = c.prepareStatement(
+                             "SELECT id, emetteur, message FROM reseau_salon WHERE id > ? ORDER BY id ASC"
+                         )) {
                         st.setInt(1, dernierIdLu);
                         ResultSet rs = st.executeQuery();
 
@@ -96,8 +122,8 @@ public class Reseau {
 
                             this.dernierIdLu = id;
 
-                            // Ne traiter que les messages envoyés par L'AUTRE joueur
-                            if (!role.equals(emetteur)) {
+                            // Ignorer uniquement les messages qu'on a soi-même émis
+                            if (!this.monIdJoueur.equals(emetteur)) {
                                 java.awt.EventQueue.invokeLater(() -> gestionnaireMessage.accept(message));
                             }
                         }
@@ -107,58 +133,6 @@ public class Reseau {
                 }
             }
         }).start();
-    }
-
-    public void enregistrerHote() {
-        viderSalon();
-        envoyerMessageDirect("PRESENCE_P1");
-    }
-
-// Le client s'inscrit et récupère automatiquement son numéro (2, 3 ou 4)
-    public int inscrireClientEtObtenirNumero() {
-        int numAttribue = 2; // Par défaut Joueur 2
-        try (Connection c = DriverManager.getConnection(URL, USER, PASSWORD)) {
-
-            // 1. Compter combien de joueurs sont déjà inscrits dans la table
-            PreparedStatement stCount = c.prepareStatement(
-                    "SELECT COUNT(*) FROM reseau_salon WHERE message LIKE 'PRESENCE_P%'"
-            );
-            ResultSet rs = stCount.executeQuery();
-            if (rs.next()) {
-                int nbJoueursPresents = rs.getInt(1);
-                numAttribue = nbJoueursPresents + 1; // Le nouveau est N+1
-            }
-
-            // Sécurité : ne pas dépasser 4 joueurs
-            if (numAttribue > 4) {
-                numAttribue = 4;
-            }
-
-            // 2. Enregistrer la présence du nouveau joueur dans la base
-            PreparedStatement stIns = c.prepareStatement(
-                    "INSERT INTO reseau_salon (emetteur, message) VALUES (?, ?)"
-            );
-            stIns.setString(1, "CLIENT");
-            stIns.setString(2, "PRESENCE_P" + numAttribue);
-            stIns.executeUpdate();
-
-            System.out.println("✅ Inscription réussie : vous êtes le Joueur " + numAttribue);
-
-        } catch (SQLException e) {
-            System.err.println("Erreur attribution numéro joueur : " + e.getMessage());
-        }
-        return numAttribue;
-    }
-
-// Envoi direct sans thread pour l'initialisation
-    private void envoyerMessageDirect(String msg) {
-        try (Connection c = DriverManager.getConnection(URL, USER, PASSWORD); PreparedStatement st = c.prepareStatement("INSERT INTO reseau_salon (emetteur, message) VALUES (?, ?)")) {
-            st.setString(1, role);
-            st.setString(2, msg);
-            st.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
     }
 
     public void fermer() {

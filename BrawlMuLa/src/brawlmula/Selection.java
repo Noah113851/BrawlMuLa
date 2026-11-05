@@ -23,6 +23,32 @@ public class Selection extends javax.swing.JFrame {
     private int monNumeroJoueur;
     private boolean isHost;
     private Reseau reseau;
+    private boolean partieLancee = false;
+
+    private synchronized void ouvrirFenetreDeJeu() {
+        if (partieLancee) {
+            return;
+        }
+        partieLancee = true;
+
+        // Ajustement du chemin de la carte
+        String cheminCarte = imagesCartes.get(choixCarte);
+        if (cheminCarte.contains("/cartes/")) {
+            cheminCarte = cheminCarte.replace("/cartes/", "/Maps/");
+        }
+
+        // Instanciation de la fenêtre de jeu à 4 joueurs
+        FenetreDeJeu jeu = new FenetreDeJeu(
+                personnages.get(choixJ1),
+                personnages.get(choixJ2),
+                personnages.get(choixJ3),
+                personnages.get(choixJ4),
+                cheminCarte
+        );
+
+        jeu.setVisible(true);
+        this.dispose();
+    }
 
     private void demarrerEcouteReseau() {
         if (reseau != null) {
@@ -33,36 +59,43 @@ public class Selection extends javax.swing.JFrame {
     private void traiterMessageReseau(String msg) {
         if (msg.startsWith("CHOIX_J1:")) {
             int idx = Integer.parseInt(msg.split(":")[1]);
-            choisirPersonnageJ1(idx); // Applique le choix distant sur le cadre J1
+            choisirPersonnageJ1(idx);
         } else if (msg.startsWith("CHOIX_J2:")) {
             int idx = Integer.parseInt(msg.split(":")[1]);
-            choisirPersonnageJ2(idx); // Applique le choix distant sur le cadre J2
+            choisirPersonnageJ2(idx);
         } else if (msg.startsWith("CHOIX_J3:")) {
             int idx = Integer.parseInt(msg.split(":")[1]);
-            choisirPersonnageJ3(idx); // Applique le choix distant sur le cadre J2
+            choisirPersonnageJ3(idx);
         } else if (msg.startsWith("CHOIX_J4:")) {
             int idx = Integer.parseInt(msg.split(":")[1]);
-            choisirPersonnageJ4(idx); // Applique le choix distant sur le cadre J2
+            choisirPersonnageJ4(idx);
         } else if (msg.startsWith("MAP:")) {
             int idxMap = Integer.parseInt(msg.split(":")[1]);
             choixCarte = idxMap;
             afficherCarteLocal(choixCarte);
-        } else if (msg.equals("START_GAME")) {
-            String cheminCarte = imagesCartes.get(choixCarte);
-            if (cheminCarte.contains("/cartes/")) {
-                cheminCarte = cheminCarte.replace("/cartes/", "/Maps/");
+        } else if (msg.startsWith("PRESENCE_P")) {
+            // Lorsqu'un nouveau joueur arrive, l'hôte ou les joueurs déjà présents 
+            // renvoient leur choix pour rafraîchir son écran
+            if (reseau != null) {
+                switch (monNumeroJoueur) {
+                    case 1:
+                        reseau.envoyerMessage("CHOIX_J1:" + choixJ1);
+                        break;
+                    case 2:
+                        reseau.envoyerMessage("CHOIX_J2:" + choixJ2);
+                        break;
+                    case 3:
+                        reseau.envoyerMessage("CHOIX_J3:" + choixJ3);
+                        break;
+                    case 4:
+                        reseau.envoyerMessage("CHOIX_J4:" + choixJ4);
+                        break;
+                }
             }
-
-            FenetreDeJeu jeu = new FenetreDeJeu(
-                    personnages.get(choixJ1),
-                    personnages.get(choixJ2),
-                    personnages.get(choixJ3),
-                    personnages.get(choixJ4),
-                    cheminCarte
-            );
-            jeu.setVisible(true);
-            this.dispose();
+        } else if (msg.equals("START_GAME")) {
+            ouvrirFenetreDeJeu();
         }
+
     }
     private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Selection.class.getName());
     // Index des 4 personnages (0: Carrot, 1: Nikku, 2: Tomato, 3: Potato)
@@ -325,8 +358,8 @@ public class Selection extends javax.swing.JFrame {
         public ParametresPartie(String j1, String j2, String j3, String j4, String carte, boolean isHost, Reseau reseau) {
             this.avatarJ1 = j1;
             this.avatarJ2 = j2;
-            this.avatarJ2 = j3;
-            this.avatarJ2 = j4;
+            this.avatarJ3 = j3; // Corrige l'attribution J3
+            this.avatarJ4 = j4; // Corrige l'attribution J4
             this.cheminCarte = carte;
             this.isHost = isHost;
             this.reseau = reseau;
@@ -390,24 +423,9 @@ public class Selection extends javax.swing.JFrame {
             }
         }
         if (reseau != null) {
-            if (isHost) {
-                // L'Hôte (J1) est déjà sur la page. On attend la connexion de J2 en arrière-plan.
-                new Thread(() -> {
-                    try {
-                        System.out.println("⏳ En attente de la connexion du Joueur 2...");
-                        reseau.attendreClient(); // Bloquant uniquement dans ce Thread
-                        System.out.println("✅ Joueur 2 connecté !");
-
-                        // Une fois J2 connecté, on démarre la réception des choix
-                        demarrerEcouteReseau();
-                    } catch (Exception e) {
-                        System.err.println("Erreur attente client : " + e.getMessage());
-                    }
-                }).start();
-            } else {
-                // Le Client (J2) est déjà connecté, il écoute directement
-                demarrerEcouteReseau();
-            }
+            demarrerEcouteReseau();
+            // Transmet immédiatement ton choix initial aux autres joueurs
+            choisirPersonnage(monNumeroJoueur - 1);
 
         }
 
@@ -711,20 +729,12 @@ public class Selection extends javax.swing.JFrame {
         Musiques_sons.stop();
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
 
-        String cheminCarte = imagesCartes.get(choixCarte);
-        if (cheminCarte.contains("/cartes/")) {
-            cheminCarte = cheminCarte.replace("/cartes/", "/Maps/");
+        if (reseau != null) {
+            reseau.envoyerMessage("START_GAME");
         }
-        FenetreDeJeu jeu = new FenetreDeJeu(
-                personnages.get(choixJ1),
-                personnages.get(choixJ2),
-                personnages.get(choixJ3),
-                personnages.get(choixJ4),
-                cheminCarte
-        );
 
-        jeu.setVisible(true);
-        this.dispose();
+        // 2. Lancement chez l'Hôte
+        ouvrirFenetreDeJeu();
     }//GEN-LAST:event_btnCombatActionPerformed
 
     private void btnMenuMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnMenuMouseEntered
