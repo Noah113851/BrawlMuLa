@@ -3,25 +3,22 @@ package brawlmula;
 import java.awt.Graphics2D;
 
 /**
- * Meme role que le Jeu.java d'origine : gere l'Avatar et son rendu. Pour
- * FenetreDeJeu, on lui ajoute simplement le Chateau et les plateformes.
+ * Jeu commun aux fenetres de test Chateau et Marche.
+ * Garde le meme Avatar, les memes commandes et la meme boucle a 40 ms.
  */
 public class Jeu {
 
     public Avatar avatar;
     private final PanneauCombat panneauCombat;
     private static final double HAUTEUR_AVATAR = 100; // comme Avatar.rendu()
+    private static final double LARGEUR_AVATAR = 100; // comme Avatar.rendu()
 
-    /**
-     * Compatibilite : FenetreDeJeu() continue d'ouvrir le Chateau.
-     */
+    /** Compatibilite : FenetreDeJeu() continue d'ouvrir le Chateau. */
     public Jeu() {
         this("/ressources/Maps/chateau.png");
     }
 
-    /**
-     * Une meme physique, mais un decor et des plateformes selon la carte.
-     */
+    /** Une meme physique, mais un decor et des plateformes selon la carte. */
     public Jeu(String cheminCarte) {
         panneauCombat = new PanneauCombat(cheminCarte);
         panneauCombat.setSize(ConfigurationCarte.LARGEUR, ConfigurationCarte.HAUTEUR);
@@ -32,21 +29,23 @@ public class Jeu {
         placerAvatarSurPlateformePrincipale();
     }
 
-    /**
-     * Place le personnage juste au-dessus du sol fixe de la carte choisie. Son
-     * code de deplacement et de collision reste celui qui fonctionne deja.
-     */
+    /** Apparition initiale sur le support principal. */
     private void placerAvatarSurPlateformePrincipale() {
-        double solLePlusHaut = Double.POSITIVE_INFINITY;
-        double avatarX = avatar.x; // 600 apres connecterPlateformes()
-        boolean marche = "MARCH".equals(
+        boolean marche = "MARCHE".equals(
                 panneauCombat.getConfiguration().getNom());
+        if (marche) {
+            Plateforme principale = chercherPlateformePrincipaleMarche();
+            avatar.x = principale.getX()
+                    + (principale.getLargeur() - LARGEUR_AVATAR) / 2.0;
+            avatar.y = principale.getY() - HAUTEUR_AVATAR;
+            return;
+        }
+        // Conserver l'apparition du Chateau et des autres cartes.
+        double solLePlusHaut = Double.POSITIVE_INFINITY;
+        double avatarX = avatar.x;
         for (Plateforme p : panneauCombat.getGestionnairePlateformes().getPlateformes()) {
-            boolean supportDepart = p.getType() == Plateforme.Type.SOLIDE
-                    || (marche && p.getType() == Plateforme.Type.TRAVERSABLE
-                            && p.getLargeur() >= 400);
-            if (supportDepart
-                    && avatarX + HAUTEUR_AVATAR > p.getX()
+            if (p.getType() == Plateforme.Type.SOLIDE
+                    && avatarX + LARGEUR_AVATAR > p.getX()
                     && avatarX < p.getX() + p.getLargeur()) {
                 solLePlusHaut = Math.min(solLePlusHaut, p.getY());
             }
@@ -56,11 +55,44 @@ public class Jeu {
         }
     }
 
+    /** La plus large plateforme SOLIDE de la carte du Marche. */
+    private Plateforme chercherPlateformePrincipaleMarche() {
+        Plateforme principale = null;
+        for (Plateforme p : panneauCombat.getGestionnairePlateformes().getPlateformes()) {
+            if (p.getType() == Plateforme.Type.SOLIDE
+                    && (principale == null || p.getLargeur() > principale.getLargeur())) {
+                principale = p;
+            }
+        }
+        if (principale == null) {
+            throw new IllegalStateException("Aucune plateforme principale au Marche.");
+        }
+        return principale;
+    }
+
     public void miseAJour() {
         // Un seul Timer pilote les plateformes et le personnage.
         // Le Timer interne du panneau ne demarre pas : il n'est pas ajoute a Swing.
         panneauCombat.getGestionnairePlateformes().miseAJour(0.040);
         avatar.miseAJour();
+
+        // Au MARCHE, aucun sol invisible sous le plateau flottant.
+        // Quand le personnage est entierement tombe hors ecran,
+        // le replacer au centre du plateau principal.
+        // Le Chateau conserve son comportement de reapparition actuel.
+        if ("MARCHE".equals(panneauCombat.getConfiguration().getNom())
+                && avatar.y > ConfigurationCarte.HAUTEUR) {
+            reapparaitreSurPlateformeDuMarche();
+        }
+    }
+
+    private void reapparaitreSurPlateformeDuMarche() {
+        Plateforme principale = chercherPlateformePrincipaleMarche();
+        // Remet a zero chute/support en conservant le meme Avatar.
+        avatar.connecterPlateformes(panneauCombat.getGestionnairePlateformes());
+        avatar.x = principale.getX()
+                + (principale.getLargeur() - LARGEUR_AVATAR) / 2.0;
+        avatar.y = principale.getY() - HAUTEUR_AVATAR;
     }
 
     public void rendu(Graphics2D contexte) {

@@ -140,9 +140,12 @@ public final class PanneauCombat extends JPanel {
 
     private void attribuerImagesMarche() {
         for (Plateforme p : carte.getPlateformes().getPlateformes()) {
-            if (p.getType() != Plateforme.Type.TRAVERSABLE) continue;
+            // Au Marche, la grande centrale est SOLIDE, mais elle doit
+            // aussi etre dessinee : le sol de la rue n'est qu'un decor.
+            if (p.getType() != Plateforme.Type.TRAVERSABLE
+                    && p.getLargeur() < 400) continue;
             if (p.getLargeur() >= 400) {
-                // Grande plateforme centrale (distincte des deux petites).
+                // Grande plateforme centrale (unique plateforme SOLIDE).
                 imagesPlateformes.put(p, spriteMarchePrincipale);
             } else if (p.getX() < ConfigurationCarte.LARGEUR / 2) {
                 imagesPlateformes.put(p, spriteMarcheGauche);
@@ -188,8 +191,13 @@ public final class PanneauCombat extends JPanel {
                     ConfigurationCarte.HAUTEUR, null);
 
             for (Plateforme p : carte.getPlateformes().getPlateformes()) {
-                // Le sol SOLIDE est deja visible dans le decor.
-                if (p.getType() != Plateforme.Type.TRAVERSABLE) continue;
+                // La grande plateforme SOLIDE du MARCHE est un PNG
+                // flottant, a dessiner comme les petites plateformes.
+                // Pour les autres cartes, ne pas changer l'affichage des sols.
+                boolean principaleMarche = "MARCHE".equals(carte.getNom())
+                        && p.getLargeur() >= 400;
+                if (p.getType() != Plateforme.Type.TRAVERSABLE
+                        && !principaleMarche) continue;
                 // Au Marche, la hitbox n'occupe que la surface d'appui.
                 // Le PNG est plus grand et depasse SOUS la ligne de collision.
                 // Le Chateau et les autres cartes gardent leur rendu actuel.
