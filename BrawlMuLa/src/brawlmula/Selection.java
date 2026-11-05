@@ -20,15 +20,15 @@ public class Selection extends javax.swing.JFrame {
     private boolean j2Selectionne = false;
     private boolean j3Selectionne = false;
     private boolean j4Selectionne = false;
-
+    private int monNumeroJoueur;
     private boolean isHost;
     private Reseau reseau;
 
     private void demarrerEcouteReseau() {
-    if (reseau != null) {
-        reseau.demarrerEcoute(this::traiterMessageReseau);
+        if (reseau != null) {
+            reseau.demarrerEcoute(this::traiterMessageReseau);
+        }
     }
-}
 
     private void traiterMessageReseau(String msg) {
         if (msg.startsWith("CHOIX_J1:")) {
@@ -37,7 +37,12 @@ public class Selection extends javax.swing.JFrame {
         } else if (msg.startsWith("CHOIX_J2:")) {
             int idx = Integer.parseInt(msg.split(":")[1]);
             choisirPersonnageJ2(idx); // Applique le choix distant sur le cadre J2
-
+        } else if (msg.startsWith("CHOIX_J3:")) {
+            int idx = Integer.parseInt(msg.split(":")[1]);
+            choisirPersonnageJ3(idx); // Applique le choix distant sur le cadre J2
+        } else if (msg.startsWith("CHOIX_J4:")) {
+            int idx = Integer.parseInt(msg.split(":")[1]);
+            choisirPersonnageJ4(idx); // Applique le choix distant sur le cadre J2
         } else if (msg.startsWith("MAP:")) {
             int idxMap = Integer.parseInt(msg.split(":")[1]);
             choixCarte = idxMap;
@@ -173,20 +178,32 @@ public class Selection extends javax.swing.JFrame {
     }
 
     private void choisirPersonnage(int index) {
-        if (isHost) {
-            // L'Hôte modifie UNIQUEMENT son propre emplacement (J1)
-            choisirPersonnageJ1(index);
-            if (reseau != null) {
-                reseau.envoyerMessage("CHOIX_J1:" + index);
-            }
-        } else {
-            // Le Client modifie UNIQUEMENT son propre emplacement (J2)
-            choisirPersonnageJ2(index);
-            if (reseau != null) {
-                reseau.envoyerMessage("CHOIX_J2:" + index);
-            }
+        switch (monNumeroJoueur) {
+            case 1:
+                choisirPersonnageJ1(index);
+                if (reseau != null) {
+                    reseau.envoyerMessage("CHOIX_J1:" + index);
+                }
+                break;
+            case 2:
+                choisirPersonnageJ2(index);
+                if (reseau != null) {
+                    reseau.envoyerMessage("CHOIX_J2:" + index);
+                }
+                break;
+            case 3:
+                choisirPersonnageJ3(index);
+                if (reseau != null) {
+                    reseau.envoyerMessage("CHOIX_J3:" + index);
+                }
+                break;
+            case 4:
+                choisirPersonnageJ4(index);
+                if (reseau != null) {
+                    reseau.envoyerMessage("CHOIX_J4:" + index);
+                }
+                break;
         }
-
     }
 
     private void choisirPersonnageJ1(int index) {
@@ -223,6 +240,44 @@ public class Selection extends javax.swing.JFrame {
                 lblAvatarJ2.setIcon(new javax.swing.ImageIcon(img));
                 lblAvatarJ2.revalidate();
                 lblAvatarJ2.repaint();
+            }
+        }
+    }
+
+    private void choisirPersonnageJ3(int index) {
+        if (index >= 0 && index < personnages.size()) {
+            choixJ3 = index;
+            j3Selectionne = true;
+
+            lblNomJ3.setText(personnages.get(index));
+
+            String chemin = imagesPersonnages.get(index);
+            java.net.URL imgURL = getClass().getResource(chemin);
+            if (imgURL != null) {
+                javax.swing.ImageIcon originalIcon = new javax.swing.ImageIcon(imgURL);
+                java.awt.Image img = originalIcon.getImage().getScaledInstance(240, 240, java.awt.Image.SCALE_SMOOTH);
+                lblAvatarJ3.setIcon(new javax.swing.ImageIcon(img));
+                lblAvatarJ3.revalidate();
+                lblAvatarJ3.repaint();
+            }
+        }
+    }
+
+    private void choisirPersonnageJ4(int index) {
+        if (index >= 0 && index < personnages.size()) {
+            choixJ4 = index;
+            j4Selectionne = true;
+
+            lblNomJ4.setText(personnages.get(index));
+
+            String chemin = imagesPersonnages.get(index);
+            java.net.URL imgURL = getClass().getResource(chemin);
+            if (imgURL != null) {
+                javax.swing.ImageIcon originalIcon = new javax.swing.ImageIcon(imgURL);
+                java.awt.Image img = originalIcon.getImage().getScaledInstance(240, 240, java.awt.Image.SCALE_SMOOTH);
+                lblAvatarJ4.setIcon(new javax.swing.ImageIcon(img));
+                lblAvatarJ4.revalidate();
+                lblAvatarJ4.repaint();
             }
         }
     }
@@ -310,13 +365,14 @@ public class Selection extends javax.swing.JFrame {
     /**
      * Creates new form Selection
      */
-    public Selection(boolean isHost, Reseau reseau) {
+    public Selection(int monNumeroJoueur, Reseau reseau) {
         initComponents();
 
         setSize(1280, 760);
         setLocationRelativeTo(null);
 
-        this.isHost = isHost;
+        this.monNumeroJoueur = monNumeroJoueur;
+        this.isHost = (monNumeroJoueur == 1); // Seul le Joueur 1 est Hôte
         this.reseau = reseau;
 
         chargerAvatarsDepuisBDD();
@@ -360,7 +416,7 @@ public class Selection extends javax.swing.JFrame {
     }
 
     public Selection() {
-        this(true, null);
+        this(1, null);
     }
 
     /**

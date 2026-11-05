@@ -109,6 +109,58 @@ public class Reseau {
         }).start();
     }
 
+    public void enregistrerHote() {
+        viderSalon();
+        envoyerMessageDirect("PRESENCE_P1");
+    }
+
+// Le client s'inscrit et récupère automatiquement son numéro (2, 3 ou 4)
+    public int inscrireClientEtObtenirNumero() {
+        int numAttribue = 2; // Par défaut Joueur 2
+        try (Connection c = DriverManager.getConnection(URL, USER, PASSWORD)) {
+
+            // 1. Compter combien de joueurs sont déjà inscrits dans la table
+            PreparedStatement stCount = c.prepareStatement(
+                    "SELECT COUNT(*) FROM reseau_salon WHERE message LIKE 'PRESENCE_P%'"
+            );
+            ResultSet rs = stCount.executeQuery();
+            if (rs.next()) {
+                int nbJoueursPresents = rs.getInt(1);
+                numAttribue = nbJoueursPresents + 1; // Le nouveau est N+1
+            }
+
+            // Sécurité : ne pas dépasser 4 joueurs
+            if (numAttribue > 4) {
+                numAttribue = 4;
+            }
+
+            // 2. Enregistrer la présence du nouveau joueur dans la base
+            PreparedStatement stIns = c.prepareStatement(
+                    "INSERT INTO reseau_salon (emetteur, message) VALUES (?, ?)"
+            );
+            stIns.setString(1, "CLIENT");
+            stIns.setString(2, "PRESENCE_P" + numAttribue);
+            stIns.executeUpdate();
+
+            System.out.println("✅ Inscription réussie : vous êtes le Joueur " + numAttribue);
+
+        } catch (SQLException e) {
+            System.err.println("Erreur attribution numéro joueur : " + e.getMessage());
+        }
+        return numAttribue;
+    }
+
+// Envoi direct sans thread pour l'initialisation
+    private void envoyerMessageDirect(String msg) {
+        try (Connection c = DriverManager.getConnection(URL, USER, PASSWORD); PreparedStatement st = c.prepareStatement("INSERT INTO reseau_salon (emetteur, message) VALUES (?, ?)")) {
+            st.setString(1, role);
+            st.setString(2, msg);
+            st.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
     public void fermer() {
         enEcoute = false;
     }
