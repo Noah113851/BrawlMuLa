@@ -626,7 +626,7 @@ public class Selection extends javax.swing.JFrame {
     private void carrotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_carrotActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
 
-        choixJ1 = 0;
+        //choixJ1 = 0;
 
         choisirPersonnage(0);
     }//GEN-LAST:event_carrotActionPerformed
@@ -634,14 +634,14 @@ public class Selection extends javax.swing.JFrame {
     private void TomatoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_TomatoActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
 
-        choixJ3 = 2;
+        //choixJ3 = 2;
         choisirPersonnage(2);
     }//GEN-LAST:event_TomatoActionPerformed
 
     private void PotatoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_PotatoActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
 
-        choixJ4 = 3;
+        //choixJ4 = 3;
 
         choisirPersonnage(3);
     }//GEN-LAST:event_PotatoActionPerformed
@@ -649,7 +649,7 @@ public class Selection extends javax.swing.JFrame {
     private void NikkuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_NikkuActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
 
-        choixJ2 = 1;
+        //choixJ2 = 1;
 
         choisirPersonnage(1);
     }//GEN-LAST:event_NikkuActionPerformed
