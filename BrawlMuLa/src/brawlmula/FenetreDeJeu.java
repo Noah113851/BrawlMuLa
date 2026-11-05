@@ -25,6 +25,8 @@ public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener 
     private final JLabel jLabel1;
     private final Jeu jeu;
     private final Timer timer;
+    private String nomJ1, nomJ2, nomJ3, nomJ4;
+    private String cheminCarte;
 
     /** Lancement historique de la fenetre de test Chateau. */
     public FenetreDeJeu() {
