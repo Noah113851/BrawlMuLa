@@ -105,13 +105,39 @@ public final class ConfigurationCarte {
                 Plateforme.Type.TRAVERSABLE));
     }
 
+    /**
+     * POTAGER : seulement TROIS petites plateformes, plus la grande centrale.
+     * Contrairement au Chateau et au Marche : AUCUN mouvement circulaire,
+     * et deux longues trajectoires diagonales en miroir.
+     *
+     * Les petites restent TRAVERSABLES avec S. La grande est SOLIDE,
+     * et il n'y a aucun sol invisible en bas de l'image.
+     * Les hitbox de surface et le dessin restent ceux de PanneauCombat.
+     *
+     * Ordre : diagonale gauche, ascenseur central, diagonale droite,
+     *         grande plateforme fixe.
+     */
     private void creerPotager() {
-        plateformes.ajouter(Plateforme.fixe(110, 610, 1060, 40, Plateforme.Type.SOLIDE));
-        plateformes.ajouter(Plateforme.fixe(525, 375, 230, 20, Plateforme.Type.TRAVERSABLE));
-        plateformes.ajouter(Plateforme.mobile(205, 475, 375, 475, 195, 20, 65,
-                                              Plateforme.Type.TRAVERSABLE));
-        plateformes.ajouter(Plateforme.mobile(890, 465, 890, 320, 195, 20, 65,
-                                              Plateforme.Type.TRAVERSABLE));
+        // GAUCHE : la plateforme monte en se rapprochant du centre,
+        // puis revient en bas a gauche (aller-retour diagonal).
+        plateformes.ajouter(Plateforme.mobile(
+                220, 365, 350, 285, 206, 14, 64,
+                Plateforme.Type.TRAVERSABLE));
+
+        // CENTRE : un petit ascenseur qui oscille verticalement.
+        plateformes.ajouter(Plateforme.mobile(
+                537, 210, 537, 278, 206, 14, 42,
+                Plateforme.Type.TRAVERSABLE));
+
+        // DROITE : diagonale symetrique, vers le haut et le centre.
+        plateformes.ajouter(Plateforme.mobile(
+                854, 365, 724, 285, 206, 14, 64,
+                Plateforme.Type.TRAVERSABLE));
+
+        // GRANDE CENTRALE : seul support SOLIDE du Potager.
+        // Memes dimensions et position que la version precedente.
+        plateformes.ajouter(Plateforme.fixe(
+                320, 515, 640, 18, Plateforme.Type.SOLIDE));
     }
 
     /**

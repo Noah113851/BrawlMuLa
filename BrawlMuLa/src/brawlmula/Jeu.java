@@ -31,10 +31,9 @@ public class Jeu {
 
     /** Apparition initiale sur le support principal. */
     private void placerAvatarSurPlateformePrincipale() {
-        boolean marche = "MARCHE".equals(
-                panneauCombat.getConfiguration().getNom());
-        if (marche) {
-            Plateforme principale = chercherPlateformePrincipaleMarche();
+        boolean carteFlottante = estCarteFlottante();
+        if (carteFlottante) {
+            Plateforme principale = chercherPlateformePrincipaleFlottante();
             avatar.x = principale.getX()
                     + (principale.getLargeur() - LARGEUR_AVATAR) / 2.0;
             avatar.y = principale.getY() - HAUTEUR_AVATAR;
@@ -55,8 +54,14 @@ public class Jeu {
         }
     }
 
-    /** La plus large plateforme SOLIDE de la carte du Marche. */
-    private Plateforme chercherPlateformePrincipaleMarche() {
+    /** Le Marche et le Potager n'ont pas de sol invisible sous le decor. */
+    private boolean estCarteFlottante() {
+        String nom = panneauCombat.getConfiguration().getNom();
+        return "MARCHE".equals(nom) || "POTAGER".equals(nom);
+    }
+
+    /** Plus grande plateforme SOLIDE du Marche ou du Potager. */
+    private Plateforme chercherPlateformePrincipaleFlottante() {
         Plateforme principale = null;
         for (Plateforme p : panneauCombat.getGestionnairePlateformes().getPlateformes()) {
             if (p.getType() == Plateforme.Type.SOLIDE
@@ -65,7 +70,7 @@ public class Jeu {
             }
         }
         if (principale == null) {
-            throw new IllegalStateException("Aucune plateforme principale au Marche.");
+            throw new IllegalStateException("Aucune plateforme principale solide sur cette carte.");
         }
         return principale;
     }
@@ -76,18 +81,17 @@ public class Jeu {
         panneauCombat.getGestionnairePlateformes().miseAJour(0.040);
         avatar.miseAJour();
 
-        // Au MARCHE, aucun sol invisible sous le plateau flottant.
+        // Au MARCHE et au POTAGER, aucun sol invisible sous le plateau flottant.
         // Quand le personnage est entierement tombe hors ecran,
         // le replacer au centre du plateau principal.
         // Le Chateau conserve son comportement de reapparition actuel.
-        if ("MARCHE".equals(panneauCombat.getConfiguration().getNom())
-                && avatar.y > ConfigurationCarte.HAUTEUR) {
-            reapparaitreSurPlateformeDuMarche();
+        if (estCarteFlottante() && avatar.y > ConfigurationCarte.HAUTEUR) {
+            reapparaitreSurPlateformePrincipale();
         }
     }
 
-    private void reapparaitreSurPlateformeDuMarche() {
-        Plateforme principale = chercherPlateformePrincipaleMarche();
+    private void reapparaitreSurPlateformePrincipale() {
+        Plateforme principale = chercherPlateformePrincipaleFlottante();
         // Remet a zero chute/support en conservant le meme Avatar.
         avatar.connecterPlateformes(panneauCombat.getGestionnairePlateformes());
         avatar.x = principale.getX()
