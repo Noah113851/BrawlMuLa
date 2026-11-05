@@ -54,10 +54,11 @@ public class Jeu {
         }
     }
 
-    /** Le Marche et le Potager n'ont pas de sol invisible sous le decor. */
+    /** Le Marche, le Potager et la Colonie ont une plateforme principale flottante. */
     private boolean estCarteFlottante() {
         String nom = panneauCombat.getConfiguration().getNom();
-        return "MARCHE".equals(nom) || "POTAGER".equals(nom);
+        return "MARCHE".equals(nom) || "POTAGER".equals(nom)
+                || "COLONIE".equals(nom);
     }
 
     /** Plus grande plateforme SOLIDE du Marche ou du Potager. */

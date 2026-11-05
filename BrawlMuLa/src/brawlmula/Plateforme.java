@@ -40,6 +40,19 @@ public final class Plateforme {
     private double ancienY;
     private double progression;
 
+    // Mouvement elliptique specifique a la Colonie (sans rotation du PNG).
+    private boolean elliptique = false;
+    private double ellipseCentreX, ellipseCentreY;
+    private double ellipseRayonX, ellipseRayonY;
+    private double ellipseVitesseAngulaire, ellipseAngle;
+
+    // Plateforme temporaire : visible 10 s, absente 10 s, puis recommence.
+    // Les plateformes historiques sont toujours actives.
+    private boolean intermittente;
+    private boolean active = true;
+    private double dureeEtatSecondes;
+    private double tempsCycleSecondes;
+
     private Plateforme(double departX, double departY, double arriveeX,
                       double arriveeY, double largeur, double hauteur,
                       double vitesse, Type type) {
@@ -141,6 +154,66 @@ public final class Plateforme {
                 sensHoraire ? 1 : -1);
     }
 
+    /**
+     * Cree une plateforme suivant une ORBITE ELLIPTIQUE.
+     * La vitesse angulaire est donnee en rad/s et peut etre negative.
+     * Le rectangle reste horizontal ; ses anciennes et nouvelles
+     * positions sont fournies au moteur de collision normalement.
+     */
+    public static Plateforme elliptique(
+            double centreX, double centreY,
+            double rayonX, double rayonY,
+            double largeur, double hauteur,
+            double vitesseAngulaire, double angleInitial,
+            Type type) {
+
+        if (!Double.isFinite(centreX) || !Double.isFinite(centreY)
+                || !Double.isFinite(rayonX) || rayonX <= 0
+                || !Double.isFinite(rayonY) || rayonY <= 0
+                || !Double.isFinite(vitesseAngulaire) || vitesseAngulaire == 0
+                || !Double.isFinite(angleInitial)) {
+            throw new IllegalArgumentException("Orbite elliptique invalide.");
+        }
+
+        double xInitial = centreX + rayonX * Math.cos(angleInitial);
+        double yInitial = centreY + rayonY * Math.sin(angleInitial);
+
+        // Le constructeur fixe permet d'initialiser l'objet sans toucher
+        // aux constructeurs historiques des mouvements lineaires/circulaires.
+        Plateforme p = Plateforme.fixe(
+                xInitial, yInitial, largeur, hauteur, type);
+        p.elliptique = true;
+        p.ellipseCentreX = centreX;
+        p.ellipseCentreY = centreY;
+        p.ellipseRayonX = rayonX;
+        p.ellipseRayonY = rayonY;
+        p.ellipseVitesseAngulaire = vitesseAngulaire;
+        p.ellipseAngle = angleInitial;
+        return p;
+    }
+
+    /**
+     * Cree une plateforme TRAVERSABLE qui apparait/disparait periodiquement.
+     * Au depart elle est visible pendant dureeEtatSecondes, puis invisible
+     * pendant la meme duree, et ainsi de suite. Elle reste immobile.
+     */
+    public static Plateforme intermittente(double x, double y,
+            double largeur, double hauteur, double dureeEtatSecondes, Type type) {
+        if (!Double.isFinite(dureeEtatSecondes) || dureeEtatSecondes <= 0) {
+            throw new IllegalArgumentException("Duree d'affichage invalide.");
+        }
+        if (type != Type.TRAVERSABLE) {
+            throw new IllegalArgumentException(
+                    "Les plateformes temporaires doivent etre TRAVERSABLES.");
+        }
+        Plateforme p = Plateforme.fixe(x, y, largeur, hauteur, type);
+        p.intermittente = true;
+        p.dureeEtatSecondes = dureeEtatSecondes;
+        p.tempsCycleSecondes = 0;
+        p.active = true;
+        return p;
+    }
+
     /** Avance la plateforme de dt secondes. Aucun mouvement de personnage ici. */
     public void miseAJour(double dt) {
         if (!Double.isFinite(dt) || dt < 0) {
@@ -148,7 +221,28 @@ public final class Plateforme {
         }
         ancienX = x;
         ancienY = y;
-        if (vitesse == 0 || dt == 0) {
+
+        if (intermittente && dt > 0) {
+            double cycle = 2.0 * dureeEtatSecondes;
+            tempsCycleSecondes = (tempsCycleSecondes + dt) % cycle;
+            // Neutraliser les arrondis numeriques au changement d'etat.
+            if (tempsCycleSecondes >= cycle - 1e-8) tempsCycleSecondes = 0;
+            if (Math.abs(tempsCycleSecondes - dureeEtatSecondes) < 1e-8)
+                tempsCycleSecondes = dureeEtatSecondes;
+            active = tempsCycleSecondes < dureeEtatSecondes;
+        }
+
+        if (dt == 0) {
+            return;
+        }
+        if (elliptique) {
+            ellipseAngle = (ellipseAngle + ellipseVitesseAngulaire * dt)
+                    % (2.0 * Math.PI);
+            x = ellipseCentreX + ellipseRayonX * Math.cos(ellipseAngle);
+            y = ellipseCentreY + ellipseRayonY * Math.sin(ellipseAngle);
+            return;
+        }
+        if (vitesse == 0) {
             return;
         }
         if (cercle) {
@@ -169,7 +263,10 @@ public final class Plateforme {
     }
 
     public Type getType() { return type; }
-    public boolean estMobile() { return vitesse > 0; }
+    public boolean estMobile() { return vitesse > 0 || elliptique; }
+    public boolean estElliptique() { return elliptique; }
+    public boolean estActive() { return active; }
+    public boolean estIntermittente() { return intermittente; }
     public boolean estCirculaire() { return cercle; }
     public double getX() { return x; }
     public double getY() { return y; }

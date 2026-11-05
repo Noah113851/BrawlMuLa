@@ -71,6 +71,7 @@ public final class GestionnairePlateforme {
         // 1. Axe horizontal : seules les plateformes solides ont des murs.
         // Utilise l'ancienne et la nouvelle position des plateformes mobiles.
         for (Plateforme p : plateformes) {
+            if (!p.estActive()) continue;
             if (p.getType() != Plateforme.Type.SOLIDE
                     || !chevauche(yAvant, hauteur, p.getY(), p.getHauteur())) {
                 continue;
@@ -97,6 +98,7 @@ public final class GestionnairePlateforme {
         // 2. Axe vertical : toutes les plateformes ont un dessus.
         // Une traversable n'a ni plafond ni collision laterale.
         for (Plateforme p : plateformes) {
+            if (!p.estActive()) continue;
             if (!chevauche(x, largeur, p.getX(), p.getLargeur())) {
                 continue;
             }
@@ -110,10 +112,8 @@ public final class GestionnairePlateforme {
 
             // La hitbox traverse le haut de la plateforme, y compris si celle-ci
             // monte vers elle. Selectionne la surface la plus haute atteinte.
-            // Une plateforme TRAVERSABLE ne bloque que si les pieds
-            // DESCENDENT (ou restent immobiles) dans le repere de l'ecran.
-            // Ainsi un saut vers le haut n'est jamais intercepte, meme si
-            // la plateforme mobile est elle aussi en train de monter.
+            // Une plateforme TRAVERSABLE ne bloque pas un saut montant.
+            // C'est le comportement deja valide au Chateau et au Marche.
             boolean descendOuImmobile = piedSouhaite >= piedAvant - EPS;
             boolean collisionParDessus = piedAvant <= ancienDessus + EPS
                     && piedSouhaite >= nouveauDessus - EPS;
@@ -157,6 +157,7 @@ public final class GestionnairePlateforme {
     public void dessinerHitboxes(Graphics2D g) {
         Color ancienneCouleur = g.getColor();
         for (Plateforme p : plateformes) {
+            if (!p.estActive()) continue;
             g.setColor(p.getType() == Plateforme.Type.SOLIDE
                     ? new Color(240, 75, 75, 90) : new Color(65, 195, 255, 90));
             Rectangle2D zone = p.getHitbox();

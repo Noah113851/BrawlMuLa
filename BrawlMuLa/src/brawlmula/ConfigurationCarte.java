@@ -59,13 +59,42 @@ public final class ConfigurationCarte {
     // Pour une mobile : x/y de depart, x/y d'arrivee, largeur, hauteur,
     //                    vitesse en pixels/seconde, type.
 
+    /**
+     * COLONIE : cinq PETITES plateformes qui se suivent en orbite
+     * elliptique, plus une grande plateforme centrale fixe.
+     * Cette configuration est unique aux quatre cartes.
+     *
+     * L'ellipse decrit les positions des COINS SUPERIEURS GAUCHES
+     * des hitbox : le dessin PNG est centre sur celles-ci.
+     */
     private void creerColonie() {
-        plateformes.ajouter(Plateforme.fixe(100, 625, 1080, 36, Plateforme.Type.SOLIDE));
-        plateformes.ajouter(Plateforme.fixe(235, 470, 220, 20, Plateforme.Type.TRAVERSABLE));
-        plateformes.ajouter(Plateforme.mobile(815, 420, 960, 420, 185, 20, 80,
-                                              Plateforme.Type.TRAVERSABLE));
-        plateformes.ajouter(Plateforme.mobile(560, 365, 560, 260, 170, 20, 55,
-                                              Plateforme.Type.TRAVERSABLE));
+        final double centreX = 548;
+        final double centreY = 274;
+        final double rayonX = 340;
+        final double rayonY = 110;
+        final double vitesseAngulaire = 0.42; // radians par seconde
+
+        // Cinq plateformes differentes avec un ecart constant de 72 degres.
+        for (int i = 0; i < 5; i++) {
+            plateformes.ajouter(Plateforme.elliptique(
+                    centreX, centreY, rayonX, rayonY,
+                    182, 14, vitesseAngulaire,
+                    i * (2.0 * Math.PI / 5.0),
+                    Plateforme.Type.TRAVERSABLE));
+        }
+
+        // Seul support SOLIDE : pas de collision avec le sol du decor.
+        // Le personnage tombe dans le vide et reapparait sur ce plateau.
+        plateformes.ajouter(Plateforme.fixe(
+                298, 535, 684, 18, Plateforme.Type.SOLIDE));
+
+        // DEUX PLATEFORMES TEMPORAIRES, en bas aux extremites :
+        // 10 secondes visibles / 10 secondes absentes, synchronisees.
+        // Elles sont TRAVERSABLES et n'ont pas de collision invisibles.
+        plateformes.ajouter(Plateforme.intermittente(
+                72, 651, 182, 14, 5.0, Plateforme.Type.TRAVERSABLE));
+        plateformes.ajouter(Plateforme.intermittente(
+                1026, 651, 182, 14, 5.0, Plateforme.Type.TRAVERSABLE));
     }
 
     /**

@@ -25,7 +25,7 @@ public class Avatar {
     private double vy;
     private boolean auSol;
     private static final double SOL = 420;
-    private static final double GRAVITE = 20;
+    private static final double GRAVITE = 15;
     private static final double VITESSE_SAUT = 70;
     private static final double LARGEUR_AVATAR = 100;
     private static final double HAUTEUR_AVATAR = 100;
@@ -97,6 +97,17 @@ public class Avatar {
     }
 
     public void miseAJour() {
+        // Si une plateforme temporaire disparait sous les pieds,
+        // abandonner son support AVANT la resolution des collisions.
+        // Sinon la correction des plateformes mobiles peut maintenir
+        // artificiellement l'avatar en l'air sur le support invisible.
+        if (support != null && !support.estActive()) {
+            support = null;
+            auSol = false;
+            vy = Math.max(0, vy);
+            plateformeEnCoursDeTraverse = null;
+        }
+
         double ancienX = x;
         double ancienY = y;
 
@@ -194,7 +205,7 @@ public class Avatar {
             vy = 0;
             support = resultat.getSupport();
             plateformeEnCoursDeTraverse = null;
-        } else if (supportPrecedent != null &&
+        } else if (supportPrecedent != null && supportPrecedent.estActive() &&
                 x < supportPrecedent.getX() + supportPrecedent.getLargeur() &&
                 x + LARGEUR_AVATAR > supportPrecedent.getX()) {
             // Une plateforme verticale qui monte peut ne pas etre detectee par
