@@ -9,6 +9,8 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.function.Consumer;
 
 public class Reseau {
@@ -17,8 +19,8 @@ public class Reseau {
     private static final String USER = "etudiant";
     private static final String PASSWORD = "YTDTvj9TR3CDYCmP";
 
-    private String monIdJoueur; // "P1", "P2", "P3" ou "P4"
-    private int dernierIdLu = 0; // Commence à 0 pour relire tous les choix existants
+    private String monIdJoueur; // "P1", "P2", "P3", "P4"
+    private int dernierIdLu = 0;
     private boolean enEcoute = false;
 
     // Constructeur Hôte (Joueur 1)
@@ -29,7 +31,7 @@ public class Reseau {
 
     // Constructeur Client (Joueurs 2, 3, 4)
     public Reseau(String ip, int port) {
-        this.monIdJoueur = "P2"; // Valeur temporaire avant attribution dans inscrireClientEtObtenirNumero
+        this.monIdJoueur = "P2";
         this.dernierIdLu = 0;
     }
 
@@ -37,7 +39,7 @@ public class Reseau {
         return DriverManager.getConnection(URL, USER, PASSWORD);
     }
 
-    // L'hôte réinitialise la table au lancement de la session
+    // Réinitialise le salon SQL au démarrage de l'Hôte
     public void enregistrerHote() {
         try (Connection c = getConnexion();
              PreparedStatement st = c.prepareStatement("DELETE FROM reseau_salon")) {
@@ -49,12 +51,10 @@ public class Reseau {
         envoyerMessageDirect("PRESENCE_P1");
     }
 
-    // Inscription du client et définition de son ID unique ("P2", "P3", "P4")
+    // Attribue automatiquement le numéro de slot (2, 3 ou 4) au client
     public int inscrireClientEtObtenirNumero() {
         int numAttribue = 2;
         try (Connection c = getConnexion()) {
-
-            // Compter le nombre de joueurs enregistrés
             PreparedStatement stCount = c.prepareStatement(
                 "SELECT COUNT(*) FROM reseau_salon WHERE message LIKE 'PRESENCE_P%'"
             );
@@ -62,13 +62,10 @@ public class Reseau {
             if (rs.next()) {
                 numAttribue = rs.getInt(1) + 1;
             }
-
             if (numAttribue > 4) numAttribue = 4;
 
-            // Mettre à jour l'identifiant propre à cette instance
             this.monIdJoueur = "P" + numAttribue;
 
-            // Enregistrer la présence dans la BDD
             PreparedStatement stIns = c.prepareStatement(
                 "INSERT INTO reseau_salon (emetteur, message) VALUES (?, ?)"
             );
@@ -84,7 +81,6 @@ public class Reseau {
         return numAttribue;
     }
 
-    // Envoi de message sur la BDD avec l'ID du joueur émetteur
     public void envoyerMessage(String msg) {
         new Thread(() -> envoyerMessageDirect(msg)).start();
     }
@@ -100,14 +96,13 @@ public class Reseau {
         }
     }
 
-    // Écoute continue et rejeu de l'historique
+    // Écoute des événements du salon réseau
     public void demarrerEcoute(Consumer<String> gestionnaireMessage) {
         enEcoute = true;
         new Thread(() -> {
             while (enEcoute) {
                 try {
                     Thread.sleep(150);
-
                     try (Connection c = getConnexion();
                          PreparedStatement st = c.prepareStatement(
                              "SELECT id, emetteur, message FROM reseau_salon WHERE id > ? ORDER BY id ASC"
@@ -122,7 +117,6 @@ public class Reseau {
 
                             this.dernierIdLu = id;
 
-                            // Ignorer uniquement les messages qu'on a soi-même émis
                             if (!this.monIdJoueur.equals(emetteur)) {
                                 java.awt.EventQueue.invokeLater(() -> gestionnaireMessage.accept(message));
                             }
@@ -135,7 +129,79 @@ public class Reseau {
         }).start();
     }
 
+    // Met à jour les coordonnées (x, y) de la table Joueur (ChoixJ1..ChoixJ4)
+    public void envoyerMaPosition(int monNumeroJoueur, int x, int y) {
+        new Thread(() -> {
+            String pseudo = "ChoixJ" + monNumeroJoueur;
+            try (Connection c = getConnexion();
+                 PreparedStatement st = c.prepareStatement(
+                     "UPDATE Joueur SET x = ?, y = ? WHERE pseudo = ?"
+                 )) {
+                st.setInt(1, x);
+                st.setInt(2, y);
+                st.setString(3, pseudo);
+                st.executeUpdate();
+            } catch (SQLException e) {
+                System.err.println("❌ Erreur synchro position : " + e.getMessage());
+            }
+        }).start();
+    }
+
+    // Réinitialise les positions initiales sur la carte
+    public void reinitialiserPositionsBDD() {
+        try (Connection c = getConnexion()) {
+            PreparedStatement st = c.prepareStatement(
+                "UPDATE Joueur SET x = ?, y = ? WHERE pseudo = ?"
+            );
+            int[][] positions = {{250, 450}, {950, 450}, {450, 450}, {750, 450}};
+            for (int i = 1; i <= 4; i++) {
+                st.setInt(1, positions[i - 1][0]);
+                st.setInt(2, positions[i - 1][1]);
+                st.setString(3, "ChoixJ" + i);
+                st.executeUpdate();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Récupère l'état des 4 combattants dans la BDD
+    public List<JoueurData> lireTousLesJoueurs() {
+        List<JoueurData> liste = new ArrayList<>();
+        try (Connection c = getConnexion();
+             PreparedStatement st = c.prepareStatement("SELECT pseudo, x, y, emplacement, idavatar FROM Joueur");
+             ResultSet rs = st.executeQuery()) {
+            while (rs.next()) {
+                liste.add(new JoueurData(
+                    rs.getString("pseudo"),
+                    rs.getInt("x"),
+                    rs.getInt("y"),
+                    rs.getInt("emplacement"),
+                    rs.getInt("idavatar")
+                ));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return liste;
+    }
+
     public void fermer() {
         enEcoute = false;
+    }
+
+    public static class JoueurData {
+        public String pseudo;
+        public int x, y;
+        public int emplacement;
+        public int idavatar;
+
+        public JoueurData(String pseudo, int x, int y, int emplacement, int idavatar) {
+            this.pseudo = pseudo;
+            this.x = x;
+            this.y = y;
+            this.emplacement = emplacement;
+            this.idavatar = idavatar;
+        }
     }
 }

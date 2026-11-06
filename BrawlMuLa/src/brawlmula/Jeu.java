@@ -1,10 +1,11 @@
 package brawlmula;
 
 import java.awt.Graphics2D;
+import java.util.List;
 
 /**
- * Jeu commun aux fenetres de test Chateau et Marche.
- * Garde le meme Avatar, les memes commandes et la meme boucle a 40 ms.
+ * Jeu commun aux fenetres de test Chateau et Marche. Garde le meme Avatar, les
+ * memes commandes et la meme boucle a 40 ms.
  */
 public class Jeu {
 
@@ -13,12 +14,20 @@ public class Jeu {
     private static final double HAUTEUR_AVATAR = 100; // comme Avatar.rendu()
     private static final double LARGEUR_AVATAR = 100; // comme Avatar.rendu()
 
-    /** Compatibilite : FenetreDeJeu() continue d'ouvrir le Chateau. */
+    // --- Éléments réseau ajoutés ---
+    private Reseau reseau;
+    private int monNumeroJoueur = 1;
+
+    /**
+     * Compatibilite : FenetreDeJeu() continue d'ouvrir le Chateau.
+     */
     public Jeu() {
         this("/ressources/Maps/chateau.png");
     }
 
-    /** Une meme physique, mais un decor et des plateformes selon la carte. */
+    /**
+     * Une meme physique, mais un decor et des plateformes selon la carte.
+     */
     public Jeu(String cheminCarte) {
         panneauCombat = new PanneauCombat(cheminCarte);
         panneauCombat.setSize(ConfigurationCarte.LARGEUR, ConfigurationCarte.HAUTEUR);
@@ -29,7 +38,18 @@ public class Jeu {
         placerAvatarSurPlateformePrincipale();
     }
 
-    /** Apparition initiale sur le support principal. */
+    /**
+     * Constructeur pour le multijoueur (conserve le constructeur ci-dessus sans le casser).
+     */
+    public Jeu(String j1, String j2, String j3, String j4, String cheminCarte, Reseau reseau, int monNumeroJoueur) {
+        this(cheminCarte);
+        this.reseau = reseau;
+        this.monNumeroJoueur = monNumeroJoueur;
+    }
+
+    /**
+     * Apparition initiale sur le support principal.
+     */
     private void placerAvatarSurPlateformePrincipale() {
         boolean carteFlottante = estCarteFlottante();
         if (carteFlottante) {
@@ -54,14 +74,19 @@ public class Jeu {
         }
     }
 
-    /** Le Marche, le Potager et la Colonie ont une plateforme principale flottante. */
+    /**
+     * Le Marche, le Potager et la Colonie ont une plateforme principale
+     * flottante.
+     */
     private boolean estCarteFlottante() {
         String nom = panneauCombat.getConfiguration().getNom();
         return "MARCHE".equals(nom) || "POTAGER".equals(nom)
                 || "COLONIE".equals(nom);
     }
 
-    /** Plus grande plateforme SOLIDE du Marche ou du Potager. */
+    /**
+     * Plus grande plateforme SOLIDE du Marche ou du Potager.
+     */
     private Plateforme chercherPlateformePrincipaleFlottante() {
         Plateforme principale = null;
         for (Plateforme p : panneauCombat.getGestionnairePlateformes().getPlateformes()) {
@@ -88,6 +113,21 @@ public class Jeu {
         // Le Chateau conserve son comportement de reapparition actuel.
         if (estCarteFlottante() && avatar.y > ConfigurationCarte.HAUTEUR) {
             reapparaitreSurPlateformePrincipale();
+        }
+
+        // --- Synchronisation Réseau BDD ---
+        if (reseau != null) {
+            // 1. Envoi de la position de l'avatar local (x, y) vers la table Joueur
+            reseau.envoyerMaPosition(monNumeroJoueur, (int) avatar.x, (int) avatar.y);
+
+            // 2. Lecture des coordonnées des 4 combattants depuis la BDD
+            List<Reseau.JoueurData> etatsBDD = reseau.lireTousLesJoueurs();
+            for (Reseau.JoueurData data : etatsBDD) {
+                if (!data.pseudo.equals("ChoixJ" + monNumeroJoueur)) {
+                    // Les coordonnées x, y des autres joueurs sont prêtes à être transmises 
+                    // à l'affichage si PanneauCombat possède un conteneur pour eux.
+                }
+            }
         }
     }
 
