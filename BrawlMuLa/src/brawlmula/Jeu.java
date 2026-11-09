@@ -4,44 +4,23 @@ import java.awt.Graphics2D;
 import java.util.List;
 
 /**
-<<<<<<< Updated upstream
- * Jeu commun aux fenetres de test Chateau et Marche. Garde le meme Avatar, les
- * memes commandes et la meme boucle a 40 ms.
-=======
  * Moteur du jeu : carte, personnage, collisions et synchronisation reseau.
->>>>>>> Stashed changes
  */
 public class Jeu {
 
     public Avatar avatar;
     private final PanneauCombat panneauCombat;
-    private static final double HAUTEUR_AVATAR = 100; // comme Avatar.rendu()
-    private static final double LARGEUR_AVATAR = 100; // comme Avatar.rendu()
+    private static final double HAUTEUR_AVATAR = 100;
+    private static final double LARGEUR_AVATAR = 100;
 
-<<<<<<< Updated upstream
-    // --- Éléments réseau ajoutés ---
-    private Reseau reseau;
-    private int monNumeroJoueur = 1;
-
-    /**
-     * Compatibilite : FenetreDeJeu() continue d'ouvrir le Chateau.
-     */
-=======
     // Conserve la compatibilite avec le multijoueur existant.
     private Reseau reseau;
     private int monNumeroJoueur = 1;
 
->>>>>>> Stashed changes
     public Jeu() {
         this("/ressources/Maps/chateau.png");
     }
 
-<<<<<<< Updated upstream
-    /**
-     * Une meme physique, mais un decor et des plateformes selon la carte.
-     */
-=======
->>>>>>> Stashed changes
     public Jeu(String cheminCarte) {
         panneauCombat = new PanneauCombat(cheminCarte);
         panneauCombat.setSize(ConfigurationCarte.LARGEUR, ConfigurationCarte.HAUTEUR);
@@ -52,43 +31,23 @@ public class Jeu {
         placerAvatarSurPlateformePrincipale();
     }
 
-<<<<<<< Updated upstream
-    /**
-     * Constructeur pour le multijoueur (conserve le constructeur ci-dessus sans le casser).
-     */
-    public Jeu(String j1, String j2, String j3, String j4, String cheminCarte, Reseau reseau, int monNumeroJoueur) {
-=======
     public Jeu(String j1, String j2, String j3, String j4,
                String cheminCarte, Reseau reseau, int monNumeroJoueur) {
->>>>>>> Stashed changes
         this(cheminCarte);
         this.reseau = reseau;
         this.monNumeroJoueur = monNumeroJoueur;
     }
 
-<<<<<<< Updated upstream
-    /**
-     * Apparition initiale sur le support principal.
-     */
-    private void placerAvatarSurPlateformePrincipale() {
-        boolean carteFlottante = estCarteFlottante();
-        if (carteFlottante) {
-=======
     private void placerAvatarSurPlateformePrincipale() {
         if (estCarteFlottante()) {
->>>>>>> Stashed changes
             Plateforme principale = chercherPlateformePrincipaleFlottante();
             avatar.x = principale.getX()
                     + (principale.getLargeur() - LARGEUR_AVATAR) / 2.0;
             avatar.y = principale.getY() - HAUTEUR_AVATAR;
             return;
         }
-<<<<<<< Updated upstream
-        // Conserver l'apparition du Chateau et des autres cartes.
-=======
 
         // Chateau : sol principal deja represente dans le decor.
->>>>>>> Stashed changes
         double solLePlusHaut = Double.POSITIVE_INFINITY;
         double avatarX = avatar.x;
         for (Plateforme p : panneauCombat.getGestionnairePlateformes().getPlateformes()) {
@@ -103,24 +62,13 @@ public class Jeu {
         }
     }
 
-    /**
-     * Le Marche, le Potager et la Colonie ont une plateforme principale
-     * flottante.
-     */
     private boolean estCarteFlottante() {
         String nom = panneauCombat.getConfiguration().getNom();
-<<<<<<< Updated upstream
-        return "MARCHE".equals(nom) || "POTAGER".equals(nom)
-=======
         return "MARCHE".equals(nom)
                 || "POTAGER".equals(nom)
->>>>>>> Stashed changes
                 || "COLONIE".equals(nom);
     }
 
-    /**
-     * Plus grande plateforme SOLIDE du Marche ou du Potager.
-     */
     private Plateforme chercherPlateformePrincipaleFlottante() {
         Plateforme principale = null;
         for (Plateforme p : panneauCombat.getGestionnairePlateformes().getPlateformes()) {
@@ -137,40 +85,15 @@ public class Jeu {
     }
 
     public void miseAJour() {
-<<<<<<< Updated upstream
-        // Un seul Timer pilote les plateformes et le personnage.
-        // Le Timer interne du panneau ne demarre pas : il n'est pas ajoute a Swing.
-        panneauCombat.getGestionnairePlateformes().miseAJour(0.040);
-        avatar.miseAJour();
-
-        // Au MARCHE et au POTAGER, aucun sol invisible sous le plateau flottant.
-        // Quand le personnage est entierement tombe hors ecran,
-        // le replacer au centre du plateau principal.
-        // Le Chateau conserve son comportement de reapparition actuel.
-=======
         // Un seul Timer pilote le monde et le personnage (40 ms par tick).
         panneauCombat.getGestionnairePlateformes().miseAJour(0.040);
         avatar.miseAJour();
 
         // Marche, Potager et Colonie : reapparition sur le grand plateau.
->>>>>>> Stashed changes
         if (estCarteFlottante() && avatar.y > ConfigurationCarte.HAUTEUR) {
             reapparaitreSurPlateformePrincipale();
         }
 
-<<<<<<< Updated upstream
-        // --- Synchronisation Réseau BDD ---
-        if (reseau != null) {
-            // 1. Envoi de la position de l'avatar local (x, y) vers la table Joueur
-            reseau.envoyerMaPosition(monNumeroJoueur, (int) avatar.x, (int) avatar.y);
-
-            // 2. Lecture des coordonnées des 4 combattants depuis la BDD
-            List<Reseau.JoueurData> etatsBDD = reseau.lireTousLesJoueurs();
-            for (Reseau.JoueurData data : etatsBDD) {
-                if (!data.pseudo.equals("ChoixJ" + monNumeroJoueur)) {
-                    // Les coordonnées x, y des autres joueurs sont prêtes à être transmises 
-                    // à l'affichage si PanneauCombat possède un conteneur pour eux.
-=======
         // Synchronisation reseau deja presente dans le projet.
         if (reseau != null) {
             reseau.envoyerMaPosition(
@@ -181,7 +104,6 @@ public class Jeu {
                 if (!data.pseudo.equals("ChoixJ" + monNumeroJoueur)) {
                     // Les positions distantes pourront servir a l'affichage
                     // des autres joueurs lors de l'integration multijoueur.
->>>>>>> Stashed changes
                 }
             }
         }
@@ -189,10 +111,6 @@ public class Jeu {
 
     private void reapparaitreSurPlateformePrincipale() {
         Plateforme principale = chercherPlateformePrincipaleFlottante();
-<<<<<<< Updated upstream
-        // Remet a zero chute/support en conservant le meme Avatar.
-=======
->>>>>>> Stashed changes
         avatar.connecterPlateformes(panneauCombat.getGestionnairePlateformes());
         avatar.x = principale.getX()
                 + (principale.getLargeur() - LARGEUR_AVATAR) / 2.0;
@@ -207,8 +125,6 @@ public class Jeu {
     public PanneauCombat getPanneauCombat() {
         return panneauCombat;
     }
-<<<<<<< Updated upstream
-=======
 
     // Compatibilite avec les appels des touches depuis les autres fenetres.
     public void gererToucheAppuyee(int codeTouche) {
@@ -222,5 +138,4 @@ public class Jeu {
             avatar.gererToucheRelachee(codeTouche);
         }
     }
->>>>>>> Stashed changes
 }
