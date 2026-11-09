@@ -45,7 +45,9 @@ public final class FenetreIntroCarte extends JFrame {
     private boolean terminee = false;
 
     /**
-     * Test simple : apres l'intro, ouvre la carte demandee normalement.
+     * Run File (test d'une carte) : intro, VS avec 4 personnages d'exemple,
+     * puis combat. En partie reseau, Selection passe son propre callback
+     * et l'ecran VS utilise les VRAIS joueurs presents.
      */
     public FenetreIntroCarte(String cheminCarte, String nomCarte) {
         this(cheminCarte, nomCarte,
@@ -56,8 +58,8 @@ public final class FenetreIntroCarte extends JFrame {
     }
 
     /**
-     * Permettra plus tard de lancer le vrai match multijoueur depuis Selection.
-     * La fonction apresIntroduction ne sera executee qu'une seule fois.
+     * Callback utilise par SequenceAvantCombat pour presenter le VS
+     * avant le match multijoueur. Execute une seule fois.
      */
     public FenetreIntroCarte(String cheminCarte, String nomCarte,
                             Runnable apresIntroduction) {
