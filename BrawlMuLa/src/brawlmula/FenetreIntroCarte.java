@@ -120,6 +120,7 @@ public final class FenetreIntroCarte extends JFrame {
         private final String nom;
         private final boolean introductionMarche;
         private final boolean introductionPotager;
+        private final boolean introductionColonie;
         private final Timer animation;
         private long debutNs;
 
@@ -132,6 +133,7 @@ public final class FenetreIntroCarte extends JFrame {
                     .toLowerCase(Locale.ROOT);
             this.introductionMarche = cheminNormalise.endsWith("/marche.png");
             this.introductionPotager = cheminNormalise.endsWith("/potager.png");
+            this.introductionColonie = cheminNormalise.endsWith("/colonie.png");
             this.decor = chargerDecor(cheminCarte);
             setPreferredSize(new Dimension(LARGEUR, HAUTEUR));
             setBackground(Color.BLACK);
@@ -216,7 +218,21 @@ public final class FenetreIntroCarte extends JFrame {
                 double zoom;
                 double fractionX;
                 double fractionY;
-                if (introductionPotager) {
+                if (introductionColonie) {
+                    // COLONIE : activation d'une camera de surveillance
+                    // holographique. Gros plan a droite, recalage du signal,
+                    // puis stabilisation sur l'arene complete.
+                    // Contrairement aux autres cartes : petite vibration de
+                    // camera en debut de connexion, puis verrouillage net.
+                    double verrouillage = douceur((t - 0.12) / 0.54);
+                    double stabilise = douceur((t - 0.22) / 0.47);
+                    zoom = 1.48 - 0.48 * verrouillage;
+                    fractionX = 0.83 - 0.33 * stabilise;
+                    fractionY = 0.59 - 0.09 * stabilise;
+                    double parasite = 1.0 - douceur((t - 0.03) / 0.38);
+                    fractionX += 0.011 * Math.sin(t * 200.0) * parasite;
+                    fractionY += 0.008 * Math.sin(t * 135.0) * parasite;
+                } else if (introductionPotager) {
                     // Plan serre sur le haut du jardin, puis la camera
                     // descend verticalement en ouvrant le champ.
                     // Le mouvement se termine avant le titre.
@@ -251,9 +267,17 @@ public final class FenetreIntroCarte extends JFrame {
                 if (introductionPotager) {
                     dessinerFeuillesPotager(g, w, h, t);
                 }
+                // Transmissions holographiques exclusives a la Colonie.
+                if (introductionColonie) {
+                    dessinerScanColonie(g, w, h, t);
+                }
 
                 // 2) Legere zone sombre en bas pour la lisibilite du titre.
-                if (introductionPotager) {
+                if (introductionColonie) {
+                    g.setPaint(new GradientPaint(
+                            0, h * 0.38f, new Color(3, 32, 42, 0),
+                            0, h, new Color(2, 23, 36, 205)));
+                } else if (introductionPotager) {
                     g.setPaint(new GradientPaint(
                             0, h * 0.46f, new Color(13, 30, 12, 0),
                             0, h, new Color(8, 24, 13, 185)));
@@ -307,6 +331,74 @@ public final class FenetreIntroCarte extends JFrame {
             } finally {
                 g.dispose();
             }
+        }
+    }
+
+    /**
+     * Signal holographique de la Colonie : balayage cyan, trame numerique,
+     * coins de ciblage et brieves interferences en debut de sequence.
+     * Purement graphique : aucun PNG, aucune collision ni effet sur le jeu.
+     * Les effets s'effacent avant l'affichage complet du titre COLONIE.
+     */
+    private static void dessinerScanColonie(Graphics2D g,
+                                            int w, int h, double t) {
+        double entree = douceur(t / 0.13);
+        double sortie = 1.0 - douceur((t - 0.66) / 0.18);
+        float opacite = (float) limiter(0.68 * entree * sortie);
+        if (opacite <= 0.0f) {
+            return;
+        }
+
+        Graphics2D fx = (Graphics2D) g.create();
+        try {
+            fx.setComposite(AlphaComposite.getInstance(
+                    AlphaComposite.SRC_OVER, opacite));
+
+            // Trame horizontale legere, comme une projection numerique.
+            fx.setColor(new Color(65, 225, 247, 34));
+            for (int y = 0; y < h; y += 9) {
+                fx.drawLine(0, y, w, y);
+            }
+
+            // Balayage vertical lumineux : il traverse le cadre en 2 s.
+            double avancee = douceur((t - 0.02) / 0.52);
+            int scanY = (int) Math.round(-30 + (h + 60) * avancee);
+            fx.setColor(new Color(49, 235, 251, 40));
+            fx.fillRect(0, scanY - 17, w, 35);
+            fx.setColor(new Color(121, 255, 248, 188));
+            fx.fillRect(0, scanY, w, 3);
+
+            // Cadre de projection : quatre coins, sans cacher le decor.
+            int marge = Math.max(30, w / 19);
+            int haut = Math.max(45, h / 9);
+            int bas = h - haut;
+            int longueur = Math.max(28, w / 17);
+            fx.setColor(new Color(111, 239, 252, 205));
+            fx.fillRect(marge, haut, longueur, 3);
+            fx.fillRect(marge, haut, 3, longueur);
+            fx.fillRect(w - marge - longueur, haut, longueur, 3);
+            fx.fillRect(w - marge - 3, haut, 3, longueur);
+            fx.fillRect(marge, bas - 2, longueur, 3);
+            fx.fillRect(marge, bas - longueur, 3, longueur);
+            fx.fillRect(w - marge - longueur, bas - 2, longueur, 3);
+            fx.fillRect(w - marge - 3, bas - longueur, 3, longueur);
+
+            // Interferences breves avant la stabilisation de l'image.
+            double parasite = 1.0 - douceur((t - 0.08) / 0.23);
+            if (parasite > 0.0) {
+                int lignes = 9;
+                for (int i = 0; i < lignes; i++) {
+                    int yy = (int) Math.round(h * ((i * 0.173 + t * 4.1) % 1.0));
+                    int xx = (int) Math.round(w * ((i * 0.211 + t * 0.8) % 0.70));
+                    int longueurBande = 40 + (i * 43) % 160;
+                    int alpha = (int) Math.round(105 * parasite);
+                    fx.setColor(new Color(112, 250, 243, alpha));
+                    fx.fillRect(xx, yy, Math.min(longueurBande, w - xx),
+                            i % 3 == 0 ? 4 : 2);
+                }
+            }
+        } finally {
+            fx.dispose();
         }
     }
 
