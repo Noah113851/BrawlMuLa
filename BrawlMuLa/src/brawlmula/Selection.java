@@ -8,24 +8,23 @@ import java.awt.Color;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 
 public class Selection extends javax.swing.JFrame {
 
-    private boolean j1Selectionne = false;
-    private boolean j2Selectionne = false;
-    private boolean j3Selectionne = false;
-    private boolean j4Selectionne = false;
+    private static final String[] PERSONNAGES_PAR_DEFAUT = {"Carrot", "Nikku", "Tomato", "Potato"};
 
-    private int monNumeroJoueur;
-    private boolean isHost;
-    private Reseau reseau;
+    private final int monNumeroJoueur;
+    private final boolean isHost;
+    private final Reseau reseau;
+    private final JLabel[] nomsJoueurs;
+    private final JLabel[] portraitsJoueurs;
     private boolean partieLancee = false;
 
-    private int choixJ1 = 0;
-    private int choixJ2 = 1;
-    private int choixJ3 = 2;
-    private int choixJ4 = 3;
+    private final int[] choixJoueurs = {-1, -1, -1, -1};
     private int choixCarte = 0;
+    private int choixCarteReseau = 0;
 
     private List<String> personnages = new ArrayList<>();
     private List<String> cartes = new ArrayList<>();
@@ -40,22 +39,22 @@ public class Selection extends javax.swing.JFrame {
         this.monNumeroJoueur = monNumeroJoueur;
         this.isHost = (monNumeroJoueur == 1);
         this.reseau = reseau;
+        nomsJoueurs = new JLabel[]{lblNomJ1, lblNomJ2, lblNomJ3, lblNomJ4};
+        portraitsJoueurs = new JLabel[]{lblAvatarJ1, lblAvatarJ2, lblAvatarJ3, lblAvatarJ4};
 
         chargerAvatarsDepuisBDD();
         chargerCartesDepuisBDD();
 
-        if (!cartes.isEmpty()) {
-            afficherCarteLocal(choixCarte);
-            if (!isHost) {
-                boutton_droite.setEnabled(false);
-                boutton_gauche.setEnabled(false);
-                btnCombat.setEnabled(false);
-            }
+        afficherCarteLocal(choixCarte);
+        if (!isHost) {
+            boutton_droite.setEnabled(false);
+            boutton_gauche.setEnabled(false);
+            btnCombat.setEnabled(false);
         }
 
         if (reseau != null) {
-            demarrerEcouteReseau();
-            choisirPersonnage(monNumeroJoueur - 1);
+            reseau.demarrerEcoute(this::traiterMessageReseau);
+            choisirPersonnage(PERSONNAGES_PAR_DEFAUT[monNumeroJoueur - 1]);
         }
 
         Musiques_sons.playLoop("/ressources/Musiques-sons/Welcome-Music-Brawlmula-Soundtrack.wav");
@@ -65,59 +64,64 @@ public class Selection extends javax.swing.JFrame {
         this(1, null);
     }
 
-    private void demarrerEcouteReseau() {
-        if (reseau != null) {
-            reseau.demarrerEcoute(this::traiterMessageReseau);
-        }
-    }
-
     private void traiterMessageReseau(String msg) {
-        if (msg.startsWith("CHOIX_J1:")) {
-            choisirPersonnageJ1(Integer.parseInt(msg.split(":")[1]));
-        } else if (msg.startsWith("CHOIX_J2:")) {
-            choisirPersonnageJ2(Integer.parseInt(msg.split(":")[1]));
-        } else if (msg.startsWith("CHOIX_J3:")) {
-            choisirPersonnageJ3(Integer.parseInt(msg.split(":")[1]));
-        } else if (msg.startsWith("CHOIX_J4:")) {
-            choisirPersonnageJ4(Integer.parseInt(msg.split(":")[1]));
-        } else if (msg.startsWith("MAP:")) {
-            choixCarte = Integer.parseInt(msg.split(":")[1]);
-            afficherCarteLocal(choixCarte);
-        } else if (msg.startsWith("PRESENCE_P")) {
-            if (reseau != null) {
-                switch (monNumeroJoueur) {
-                    case 1: reseau.envoyerMessage("CHOIX_J1:" + choixJ1); break;
-                    case 2: reseau.envoyerMessage("CHOIX_J2:" + choixJ2); break;
-                    case 3: reseau.envoyerMessage("CHOIX_J3:" + choixJ3); break;
-                    case 4: reseau.envoyerMessage("CHOIX_J4:" + choixJ4); break;
+        if (Reseau.DEBUT_COMBAT.equals(msg)) {
+            ouvrirFenetreDeJeu();
+            return;
+        }
+        int separateur = msg.indexOf(':');
+        if (separateur < 0) {
+            return;
+        }
+        try {
+            int index = Integer.parseInt(msg.substring(separateur + 1));
+            if (msg.startsWith("CHOIX_J") && separateur == 8) {
+                int joueur = msg.charAt(7) - '1';
+                if (joueur >= 0 && joueur < choixJoueurs.length && index >= 0 && index < personnages.size()) {
+                    // Tous les postes utilisent les choix lus avant START_GAME, y compris les leurs.
+                    choixJoueurs[joueur] = index;
+                    afficherPersonnage(joueur, index);
+                }
+            } else if (msg.startsWith("MAP:") && index >= 0 && index < cartes.size()) {
+                choixCarteReseau = index;
+                if (!isHost) {
+                    afficherCarteLocal(index);
                 }
             }
-        } else if (msg.equals("START_GAME")) {
-            ouvrirFenetreDeJeu();
+        } catch (NumberFormatException e) {
+            System.err.println("Index de sélection invalide dans le salon.");
         }
     }
 
-    private synchronized void ouvrirFenetreDeJeu() {
-        if (partieLancee) return;
+    private void ouvrirFenetreDeJeu() {
+        if (partieLancee) {
+            return;
+        }
         partieLancee = true;
 
-        String j1 = personnages.isEmpty() ? "Carrot" : personnages.get(choixJ1);
-        String j2 = personnages.isEmpty() ? "Nikku" : personnages.get(choixJ2);
-        String j3 = personnages.isEmpty() ? "Tomato" : personnages.get(choixJ3);
-        String j4 = personnages.isEmpty() ? "Potato" : personnages.get(choixJ4);
-
-        String cheminCarte = imagesCartes.isEmpty() ? "/ressources/Maps/chateau.png" : imagesCartes.get(choixCarte);
+        int carte = reseau == null ? choixCarte : choixCarteReseau;
+        String cheminCarte = imagesCartes.isEmpty() ? "/ressources/Maps/chateau.png" : imagesCartes.get(carte);
         if (cheminCarte.contains("/cartes/")) {
             cheminCarte = cheminCarte.replace("/cartes/", "/Maps/");
         }
 
-        if (isHost && reseau != null) {
-            reseau.reinitialiserPositionsBDD();
-        }
-
-        FenetreDeJeu jeu = new FenetreDeJeu(j1, j2, j3, j4, cheminCarte, reseau, monNumeroJoueur);
+        FenetreDeJeu jeu = new FenetreDeJeu(nomPersonnage(0), nomPersonnage(1),
+                nomPersonnage(2), nomPersonnage(3), cheminCarte, reseau, monNumeroJoueur);
         jeu.setVisible(true);
         this.dispose();
+    }
+
+    private String nomPersonnage(int joueur) {
+        int index = choixJoueurs[joueur];
+        return index < 0 ? PERSONNAGES_PAR_DEFAUT[joueur] : personnages.get(index);
+    }
+
+    @Override
+    public void dispose() {
+        if (reseau != null && !partieLancee) {
+            reseau.fermer();
+        }
+        super.dispose();
     }
 
     private void chargerCartesDepuisBDD() {
@@ -125,7 +129,7 @@ public class Selection extends javax.swing.JFrame {
         imagesCartes.clear();
         String url = "jdbc:mariadb://nemrod.ens2m.fr:3306/2026-2027_s1_vs2_tp2_brawlmula";
         try (Connection c = DriverManager.getConnection(url, "etudiant", "YTDTvj9TR3CDYCmP");
-             PreparedStatement r = c.prepareStatement("SELECT nom, image FROM Maps");
+             PreparedStatement r = c.prepareStatement("SELECT nom, image FROM Maps ORDER BY nom, image");
              ResultSet rs = r.executeQuery()) {
             while (rs.next()) {
                 cartes.add(rs.getString("nom"));
@@ -143,7 +147,7 @@ public class Selection extends javax.swing.JFrame {
         imagesPersonnages.clear();
         String url = "jdbc:mariadb://nemrod.ens2m.fr:3306/2026-2027_s1_vs2_tp2_brawlmula";
         try (Connection c = DriverManager.getConnection(url, "etudiant", "YTDTvj9TR3CDYCmP");
-             PreparedStatement r = c.prepareStatement("SELECT nom, avatars_image FROM Avatars");
+             PreparedStatement r = c.prepareStatement("SELECT nom, avatars_image FROM Avatars ORDER BY nom, avatars_image");
              ResultSet rs = r.executeQuery()) {
             while (rs.next()) {
                 personnages.add(rs.getString("nom"));
@@ -171,57 +175,24 @@ public class Selection extends javax.swing.JFrame {
         }
     }
 
-    private void choisirPersonnage(int index) {
-        switch (monNumeroJoueur) {
-            case 1:
-                choisirPersonnageJ1(index);
-                if (reseau != null) reseau.envoyerMessage("CHOIX_J1:" + index);
-                break;
-            case 2:
-                choisirPersonnageJ2(index);
-                if (reseau != null) reseau.envoyerMessage("CHOIX_J2:" + index);
-                break;
-            case 3:
-                choisirPersonnageJ3(index);
-                if (reseau != null) reseau.envoyerMessage("CHOIX_J3:" + index);
-                break;
-            case 4:
-                choisirPersonnageJ4(index);
-                if (reseau != null) reseau.envoyerMessage("CHOIX_J4:" + index);
-                break;
+    private void choisirPersonnage(String nom) {
+        for (int index = 0; index < personnages.size(); index++) {
+            if (nom.equalsIgnoreCase(personnages.get(index).trim())) {
+                int joueur = monNumeroJoueur - 1;
+                if (reseau == null) {
+                    choixJoueurs[joueur] = index;
+                    afficherPersonnage(joueur, index);
+                } else {
+                    reseau.envoyerMessage("CHOIX_J" + monNumeroJoueur + ":" + index);
+                }
+                return;
+            }
         }
     }
 
-    private void choisirPersonnageJ1(int index) {
-        if (index >= 0 && index < personnages.size()) {
-            choixJ1 = index;
-            lblNomJ1.setText(personnages.get(index));
-            afficherAvatarLabel(lblAvatarJ1, imagesPersonnages.get(index));
-        }
-    }
-
-    private void choisirPersonnageJ2(int index) {
-        if (index >= 0 && index < personnages.size()) {
-            choixJ2 = index;
-            lblNomJ2.setText(personnages.get(index));
-            afficherAvatarLabel(lblAvatarJ2, imagesPersonnages.get(index));
-        }
-    }
-
-    private void choisirPersonnageJ3(int index) {
-        if (index >= 0 && index < personnages.size()) {
-            choixJ3 = index;
-            lblNomJ3.setText(personnages.get(index));
-            afficherAvatarLabel(lblAvatarJ3, imagesPersonnages.get(index));
-        }
-    }
-
-    private void choisirPersonnageJ4(int index) {
-        if (index >= 0 && index < personnages.size()) {
-            choixJ4 = index;
-            lblNomJ4.setText(personnages.get(index));
-            afficherAvatarLabel(lblAvatarJ4, imagesPersonnages.get(index));
-        }
+    private void afficherPersonnage(int joueur, int index) {
+        nomsJoueurs[joueur].setText(personnages.get(index));
+        afficherAvatarLabel(portraitsJoueurs[joueur], imagesPersonnages.get(index));
     }
 
     private void afficherAvatarLabel(javax.swing.JLabel label, String chemin) {
@@ -423,30 +394,22 @@ public class Selection extends javax.swing.JFrame {
 
     private void carrotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_carrotActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
-
-        //choixJ1 = 0;
-        choisirPersonnage(0);
+        choisirPersonnage("Carrot");
     }//GEN-LAST:event_carrotActionPerformed
 
     private void TomatoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_TomatoActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
-
-        //choixJ3 = 2;
-        choisirPersonnage(2);
+        choisirPersonnage("Tomato");
     }//GEN-LAST:event_TomatoActionPerformed
 
     private void PotatoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_PotatoActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
-
-        //choixJ4 = 3;
-        choisirPersonnage(3);
+        choisirPersonnage("Potato");
     }//GEN-LAST:event_PotatoActionPerformed
 
     private void NikkuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_NikkuActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
-
-        //choixJ2 = 1;
-        choisirPersonnage(1);
+        choisirPersonnage("Nikku");
     }//GEN-LAST:event_NikkuActionPerformed
 
     private void carrotMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_carrotMouseEntered
@@ -524,12 +487,15 @@ public class Selection extends javax.swing.JFrame {
         Musiques_sons.stop();
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
 
-        if (reseau != null) {
-            reseau.envoyerMessage("START_GAME");
+        if (reseau == null) {
+            ouvrirFenetreDeJeu();
+        } else {
+            btnCombat.setEnabled(false);
+            reseau.lancerCombat(erreur -> {
+                btnCombat.setEnabled(true);
+                JOptionPane.showMessageDialog(this, erreur, "Erreur réseau", JOptionPane.ERROR_MESSAGE);
+            });
         }
-
-        // 2. Lancement chez l'Hôte
-        ouvrirFenetreDeJeu();
     }//GEN-LAST:event_btnCombatActionPerformed
 
     private void btnMenuMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnMenuMouseEntered

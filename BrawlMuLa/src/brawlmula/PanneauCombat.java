@@ -1,4 +1,3 @@
-
 package brawlmula;
 
 import java.awt.Color;
@@ -20,7 +19,7 @@ import javax.swing.JPanel;
 import javax.swing.Timer;
 
 /**
- * Affichage des decors et des plateformes.
+ * Affichage des decors, des plateformes et des combattants.
  * La physique est geree par GestionnairePlateforme.
  */
 public final class PanneauCombat extends JPanel {
@@ -74,6 +73,8 @@ public final class PanneauCombat extends JPanel {
 
     private final ConfigurationCarte carte;
     private final BufferedImage decor;
+    private final Avatar[] avatars;
+    private final boolean[] avatarsVisibles;
 
     private BufferedImage spriteChateauHaut;
     private BufferedImage spriteChateauMilieu;
@@ -99,7 +100,12 @@ public final class PanneauCombat extends JPanel {
     // ===== CONSTRUCTEUR =====
 
     public PanneauCombat(String cheminCarte) {
+        this(cheminCarte, new Avatar[0], new boolean[0]);
+    }
 
+    PanneauCombat(String cheminCarte, Avatar[] avatars, boolean[] avatarsVisibles) {
+        this.avatars = avatars;
+        this.avatarsVisibles = avatarsVisibles;
         carte = ConfigurationCarte.depuisChemin(cheminCarte);
         decor = lireImageObligatoire(carte.getCheminDecor());
 
@@ -460,6 +466,12 @@ public final class PanneauCombat extends JPanel {
                             zone.y,
                             zone.width,
                             zone.height);
+                }
+            }
+
+            for (int index = 0; index < avatars.length; index++) {
+                if (avatarsVisibles[index]) {
+                    avatars[index].rendu(g);
                 }
             }
 

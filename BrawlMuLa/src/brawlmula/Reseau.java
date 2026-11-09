@@ -4,6 +4,7 @@
  */
 package brawlmula;
 
+import java.awt.EventQueue;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
@@ -11,6 +12,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 
 public class Reseau {
@@ -19,189 +23,289 @@ public class Reseau {
     private static final String USER = "etudiant";
     private static final String PASSWORD = "YTDTvj9TR3CDYCmP";
 
-    private String monIdJoueur; // "P1", "P2", "P3", "P4"
-    private int dernierIdLu = 0;
-    private boolean enEcoute = false;
+    static final String DEBUT_COMBAT = "START_GAME";
+    private static final int POSITION_INACTIVE = Avatar.LIMITE_CHUTE + 1;
+    private static final int INTERVALLE_COMBAT_MS = 40;
+    private static final String LIGNES_JOUEURS =
+            "emplacement BETWEEN 1 AND 4 AND pseudo = CONCAT('ChoixJ', emplacement)";
+    private static final String COMBAT_ACTIF =
+            "EXISTS (SELECT 1 FROM reseau_salon WHERE id = ? AND message = 'START_GAME')";
+
+    private final ExecutorService messagesSortants = Executors.newSingleThreadExecutor(tache -> {
+        Thread thread = new Thread(tache, "brawlmula-envoi-salon");
+        thread.setDaemon(true);
+        return thread;
+    });
+    private String monIdJoueur;
+    private int idSalon;
+    private volatile int idCombat;
+    private volatile boolean ferme;
+    private Thread ecouteSalon;
+    private Thread synchronisationCombat;
+    private volatile Position maPosition;
+    private volatile List<JoueurData> positionsJoueurs = List.of();
 
     // Constructeur Hôte (Joueur 1)
     public Reseau(int port) {
         this.monIdJoueur = "P1";
-        this.dernierIdLu = 0;
     }
 
     // Constructeur Client (Joueurs 2, 3, 4)
     public Reseau(String ip, int port) {
         this.monIdJoueur = "P2";
-        this.dernierIdLu = 0;
     }
 
     private Connection getConnexion() throws SQLException {
-        return DriverManager.getConnection(URL, USER, PASSWORD);
+        Properties options = new Properties();
+        options.setProperty("user", USER);
+        options.setProperty("password", PASSWORD);
+        options.setProperty("connectTimeout", "2000");
+        options.setProperty("socketTimeout", "2000");
+        return DriverManager.getConnection(URL, options);
     }
 
-    // Réinitialise le salon SQL au démarrage de l'Hôte
-    public void enregistrerHote() {
+    public void enregistrerHote() throws SQLException {
         try (Connection c = getConnexion();
              PreparedStatement st = c.prepareStatement("DELETE FROM reseau_salon")) {
-            st.executeUpdate();
-            System.out.println("🧹 Salon réseau réinitialisé sur la BDD.");
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        envoyerMessageDirect("PRESENCE_P1");
-    }
-
-    // Attribue automatiquement le numéro de slot (2, 3 ou 4) au client
-    public int inscrireClientEtObtenirNumero() {
-        int numAttribue = 2;
-        try (Connection c = getConnexion()) {
-            PreparedStatement stCount = c.prepareStatement(
-                "SELECT COUNT(*) FROM reseau_salon WHERE message LIKE 'PRESENCE_P%'"
-            );
-            ResultSet rs = stCount.executeQuery();
-            if (rs.next()) {
-                numAttribue = rs.getInt(1) + 1;
+            c.setAutoCommit(false);
+            try {
+                st.executeUpdate();
+                insererMessage(c, "PRESENCE_P1");
+                idSalon = verrouillerSalon(c);
+                c.commit();
+            } catch (SQLException e) {
+                c.rollback();
+                throw e;
             }
-            if (numAttribue > 4) numAttribue = 4;
-
-            this.monIdJoueur = "P" + numAttribue;
-
-            PreparedStatement stIns = c.prepareStatement(
-                "INSERT INTO reseau_salon (emetteur, message) VALUES (?, ?)"
-            );
-            stIns.setString(1, this.monIdJoueur);
-            stIns.setString(2, "PRESENCE_P" + numAttribue);
-            stIns.executeUpdate();
-
-            System.out.println("✅ Joueur inscrit sous l'identifiant : " + this.monIdJoueur);
-
-        } catch (SQLException e) {
-            System.err.println("❌ Erreur attribution numéro joueur : " + e.getMessage());
         }
-        return numAttribue;
     }
 
-    public void envoyerMessage(String msg) {
-        new Thread(() -> envoyerMessageDirect(msg)).start();
+    public int inscrireClientEtObtenirNumero() throws SQLException {
+        try (Connection c = getConnexion()) {
+            c.setAutoCommit(false);
+            try {
+                idSalon = verrouillerSalon(c);
+                verifierSalonOuvert(c);
+                try (PreparedStatement st = c.prepareStatement(
+                        "SELECT COUNT(*) FROM reseau_salon WHERE message LIKE 'PRESENCE_P%'");
+                     ResultSet rs = st.executeQuery()) {
+                    rs.next();
+                    int numero = rs.getInt(1) + 1;
+                    if (numero > 4) {
+                        throw new SQLException("Le salon est complet.");
+                    }
+                    monIdJoueur = "P" + numero;
+                    insererMessage(c, "PRESENCE_" + monIdJoueur);
+                    c.commit();
+                    return numero;
+                }
+            } catch (SQLException e) {
+                c.rollback();
+                throw e;
+            }
+        }
     }
 
-    private void envoyerMessageDirect(String msg) {
-        try (Connection c = getConnexion();
-             PreparedStatement st = c.prepareStatement("INSERT INTO reseau_salon (emetteur, message) VALUES (?, ?)")) {
+    // Sérialise les inscriptions, les choix et le départ sur la ligne de l'hôte.
+    private int verrouillerSalon(Connection c) throws SQLException {
+        try (PreparedStatement st = c.prepareStatement(
+                "SELECT id FROM reseau_salon WHERE emetteur = 'P1' AND message = 'PRESENCE_P1' FOR UPDATE");
+             ResultSet rs = st.executeQuery()) {
+            if (!rs.next()) {
+                throw new SQLException("Aucun salon disponible.");
+            }
+            return rs.getInt("id");
+        }
+    }
+
+    private void verifierSalonOuvert(Connection c) throws SQLException {
+        try (PreparedStatement st = c.prepareStatement(
+                "SELECT id FROM reseau_salon WHERE message = 'START_GAME'");
+             ResultSet rs = st.executeQuery()) {
+            if (rs.next()) {
+                throw new SQLException("Le combat a déjà commencé.");
+            }
+        }
+    }
+
+    private void insererMessage(Connection c, String msg) throws SQLException {
+        try (PreparedStatement st = c.prepareStatement(
+                "INSERT INTO reseau_salon (emetteur, message) VALUES (?, ?)")) {
             st.setString(1, monIdJoueur);
             st.setString(2, msg);
             st.executeUpdate();
-        } catch (SQLException e) {
-            System.err.println("❌ Erreur envoi réseau BDD : " + e.getMessage());
         }
     }
 
-    // Écoute des événements du salon réseau
+    public void envoyerMessage(String msg) {
+        messagesSortants.execute(() -> {
+            try {
+                publierMessage(msg);
+            } catch (SQLException e) {
+                System.err.println("Erreur envoi réseau BDD : " + e.getMessage());
+            }
+        });
+    }
+
+    public void lancerCombat(Consumer<String> signalerErreur) {
+        messagesSortants.execute(() -> {
+            try {
+                publierMessage(DEBUT_COMBAT);
+            } catch (SQLException e) {
+                EventQueue.invokeLater(() -> {
+                    if (!ferme) {
+                        signalerErreur.accept(e.getMessage());
+                    }
+                });
+            }
+        });
+    }
+
+    private void publierMessage(String msg) throws SQLException {
+        try (Connection c = getConnexion()) {
+            c.setAutoCommit(false);
+            try {
+                if (verrouillerSalon(c) != idSalon) {
+                    throw new SQLException("Ce salon a été fermé.");
+                }
+                verifierSalonOuvert(c);
+                if (DEBUT_COMBAT.equals(msg)) {
+                    if (!"P1".equals(monIdJoueur)) {
+                        throw new SQLException("Seul l’hôte peut lancer le combat.");
+                    }
+                    // Les slots restent invisibles jusqu'à leur première position réelle.
+                    try (PreparedStatement st = c.prepareStatement(
+                            "UPDATE Joueur SET x = 0, y = ? WHERE " + LIGNES_JOUEURS)) {
+                        st.setInt(1, POSITION_INACTIVE);
+                        st.executeUpdate();
+                    }
+                }
+                insererMessage(c, msg);
+                c.commit();
+            } catch (SQLException e) {
+                c.rollback();
+                throw e;
+            }
+        }
+    }
+
     public void demarrerEcoute(Consumer<String> gestionnaireMessage) {
-        enEcoute = true;
-        new Thread(() -> {
-            while (enEcoute) {
-                try {
-                    Thread.sleep(150);
-                    try (Connection c = getConnexion();
-                         PreparedStatement st = c.prepareStatement(
-                             "SELECT id, emetteur, message FROM reseau_salon WHERE id > ? ORDER BY id ASC"
-                         )) {
-                        st.setInt(1, dernierIdLu);
-                        ResultSet rs = st.executeQuery();
+        ecouteSalon = new Thread(() -> ecouterSalon(gestionnaireMessage), "brawlmula-ecoute-salon");
+        ecouteSalon.setDaemon(true);
+        ecouteSalon.start();
+    }
 
-                        while (rs.next()) {
-                            int id = rs.getInt("id");
-                            String emetteur = rs.getString("emetteur");
+    private void ecouterSalon(Consumer<String> gestionnaireMessage) {
+        int dernierIdLu = idSalon;
+        try {
+            while (!ferme) {
+                try (Connection c = getConnexion();
+                     PreparedStatement st = c.prepareStatement(
+                             "SELECT id, message FROM reseau_salon WHERE id > ? "
+                             + "AND EXISTS (SELECT 1 FROM reseau_salon WHERE id = ?) ORDER BY id")) {
+                    st.setInt(1, dernierIdLu);
+                    st.setInt(2, idSalon);
+                    try (ResultSet rs = st.executeQuery()) {
+                        while (rs.next() && !ferme) {
+                            dernierIdLu = rs.getInt("id");
                             String message = rs.getString("message");
-
-                            this.dernierIdLu = id;
-
-                            if (!this.monIdJoueur.equals(emetteur)) {
-                                java.awt.EventQueue.invokeLater(() -> gestionnaireMessage.accept(message));
+                            if (DEBUT_COMBAT.equals(message)) {
+                                idCombat = dernierIdLu;
+                            }
+                            EventQueue.invokeLater(() -> {
+                                if (!ferme) {
+                                    gestionnaireMessage.accept(message);
+                                }
+                            });
+                            if (idCombat != 0) {
+                                return;
                             }
                         }
                     }
-                } catch (Exception e) {
-                    System.err.println("Erreur écoute réseau BDD : " + e.getMessage());
+                } catch (SQLException e) {
+                    if (!ferme) {
+                        System.err.println("Erreur écoute réseau BDD : " + e.getMessage());
+                    }
+                }
+                Thread.sleep(150);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    public void demarrerSynchronisation(int emplacement, int x, int y) {
+        envoyerMaPosition(x, y);
+        synchronisationCombat = new Thread(() -> synchroniserPositions(emplacement), "brawlmula-positions");
+        synchronisationCombat.setDaemon(true);
+        synchronisationCombat.start();
+    }
+
+    private void synchroniserPositions(int emplacement) {
+        try {
+            while (!ferme) {
+                try (Connection c = getConnexion();
+                     PreparedStatement envoyer = c.prepareStatement(
+                             "UPDATE Joueur SET x = ?, y = ? WHERE emplacement = ? AND "
+                             + LIGNES_JOUEURS + " AND " + COMBAT_ACTIF);
+                     PreparedStatement lire = c.prepareStatement(
+                             "SELECT emplacement, x, y FROM Joueur WHERE y <> ? AND "
+                             + LIGNES_JOUEURS + " AND " + COMBAT_ACTIF)) {
+                    envoyer.setInt(3, emplacement);
+                    envoyer.setInt(4, idCombat);
+                    lire.setInt(1, POSITION_INACTIVE);
+                    lire.setInt(2, idCombat);
+                    Position dernierePositionEnvoyee = null;
+                    while (!ferme) {
+                        Position position = maPosition;
+                        if (!position.equals(dernierePositionEnvoyee)) {
+                            envoyer.setInt(1, position.x());
+                            envoyer.setInt(2, position.y());
+                            envoyer.executeUpdate();
+                            dernierePositionEnvoyee = position;
+                        }
+                        List<JoueurData> joueurs = new ArrayList<>(4);
+                        try (ResultSet rs = lire.executeQuery()) {
+                            while (rs.next()) {
+                                joueurs.add(new JoueurData(rs.getInt("emplacement"),
+                                        rs.getInt("x"), rs.getInt("y")));
+                            }
+                        }
+                        positionsJoueurs = List.copyOf(joueurs);
+                        Thread.sleep(INTERVALLE_COMBAT_MS);
+                    }
+                } catch (SQLException e) {
+                    if (!ferme) {
+                        System.err.println("Erreur synchro positions : " + e.getMessage());
+                        Thread.sleep(500);
+                    }
                 }
             }
-        }).start();
-    }
-
-    // Met à jour les coordonnées (x, y) de la table Joueur (ChoixJ1..ChoixJ4)
-    public void envoyerMaPosition(int monNumeroJoueur, int x, int y) {
-        new Thread(() -> {
-            String pseudo = "ChoixJ" + monNumeroJoueur;
-            try (Connection c = getConnexion();
-                 PreparedStatement st = c.prepareStatement(
-                     "UPDATE Joueur SET x = ?, y = ? WHERE pseudo = ?"
-                 )) {
-                st.setInt(1, x);
-                st.setInt(2, y);
-                st.setString(3, pseudo);
-                st.executeUpdate();
-            } catch (SQLException e) {
-                System.err.println("❌ Erreur synchro position : " + e.getMessage());
-            }
-        }).start();
-    }
-
-    // Réinitialise les positions initiales sur la carte
-    public void reinitialiserPositionsBDD() {
-        try (Connection c = getConnexion()) {
-            PreparedStatement st = c.prepareStatement(
-                "UPDATE Joueur SET x = ?, y = ? WHERE pseudo = ?"
-            );
-            int[][] positions = {{250, 450}, {950, 450}, {450, 450}, {750, 450}};
-            for (int i = 1; i <= 4; i++) {
-                st.setInt(1, positions[i - 1][0]);
-                st.setInt(2, positions[i - 1][1]);
-                st.setString(3, "ChoixJ" + i);
-                st.executeUpdate();
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         }
     }
 
-    // Récupère l'état des 4 combattants dans la BDD
+    public void envoyerMaPosition(int x, int y) {
+        maPosition = new Position(x, y);
+    }
+
     public List<JoueurData> lireTousLesJoueurs() {
-        List<JoueurData> liste = new ArrayList<>();
-        try (Connection c = getConnexion();
-             PreparedStatement st = c.prepareStatement("SELECT pseudo, x, y, emplacement, idavatar FROM Joueur");
-             ResultSet rs = st.executeQuery()) {
-            while (rs.next()) {
-                liste.add(new JoueurData(
-                    rs.getString("pseudo"),
-                    rs.getInt("x"),
-                    rs.getInt("y"),
-                    rs.getInt("emplacement"),
-                    rs.getInt("idavatar")
-                ));
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return liste;
+        return positionsJoueurs;
     }
 
     public void fermer() {
-        enEcoute = false;
-    }
-
-    public static class JoueurData {
-        public String pseudo;
-        public int x, y;
-        public int emplacement;
-        public int idavatar;
-
-        public JoueurData(String pseudo, int x, int y, int emplacement, int idavatar) {
-            this.pseudo = pseudo;
-            this.x = x;
-            this.y = y;
-            this.emplacement = emplacement;
-            this.idavatar = idavatar;
+        ferme = true;
+        messagesSortants.shutdownNow();
+        if (ecouteSalon != null) {
+            ecouteSalon.interrupt();
+        }
+        if (synchronisationCombat != null) {
+            synchronisationCombat.interrupt();
         }
     }
+
+    private record Position(int x, int y) { }
+
+    public record JoueurData(int emplacement, int x, int y) { }
 }

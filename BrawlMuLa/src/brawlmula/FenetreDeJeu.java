@@ -15,8 +15,7 @@ import javax.swing.Timer;
 /**
  * Fenetre de test + fenetre de combat lancee depuis Selection. Conserve
  * exactement la boucle Jeu.miseAJour()/Jeu.rendu(), le framebuffer, les touches
- * Q/D/ESPACE/S et la cadence de 40 ms. Le choix de la carte est transmis UNE
- * SEULE FOIS a Jeu(String).
+ * Q/D/ESPACE/S et la cadence de 40 ms.
  */
 public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener {
 
@@ -25,8 +24,6 @@ public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener 
     private final JLabel jLabel1;
     private final Jeu jeu;
     private final Timer timer;
-    private String nomJ1, nomJ2, nomJ3, nomJ4;
-    private String cheminCarte;
 
     /**
      * Lancement historique de la fenetre de test Chateau.
@@ -87,37 +84,21 @@ public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener 
 
     @Override
     public void keyPressed(KeyEvent evt) {
-        if (evt.getKeyCode() == KeyEvent.VK_D) {
-            jeu.avatar.setDroite(true);
-        }
-        if (evt.getKeyCode() == KeyEvent.VK_Q) {
-            jeu.avatar.setGauche(true);
-        }
-        if (evt.getKeyCode() == KeyEvent.VK_SPACE) {
-            jeu.avatar.saute();
-        }
-        if (evt.getKeyCode() == KeyEvent.VK_S) {
-            jeu.avatar.setBas(true);
-        }
+        jeu.gererToucheAppuyee(evt.getKeyCode());
     }
 
     @Override
     public void keyReleased(KeyEvent evt) {
-        if (evt.getKeyCode() == KeyEvent.VK_D) {
-            jeu.avatar.setDroite(false);
-        }
-        if (evt.getKeyCode() == KeyEvent.VK_Q) {
-            jeu.avatar.setGauche(false);
-        }
-        if (evt.getKeyCode() == KeyEvent.VK_S) {
-            jeu.avatar.setBas(false);
-        }
+        jeu.gererToucheRelachee(evt.getKeyCode());
     }
 
     @Override
     public void dispose() {
         if (timer != null) {
             timer.stop();
+        }
+        if (jeu != null) {
+            jeu.fermer();
         }
         if (contexte != null) {
             contexte.dispose();
