@@ -119,6 +119,7 @@ public final class FenetreIntroCarte extends JFrame {
         private final BufferedImage decor;
         private final String nom;
         private final boolean introductionMarche;
+        private final boolean introductionPotager;
         private final Timer animation;
         private long debutNs;
 
@@ -127,8 +128,10 @@ public final class FenetreIntroCarte extends JFrame {
                 throw new IllegalArgumentException("Nom de carte manquant");
             }
             this.nom = nomCarte.toUpperCase(Locale.FRENCH);
-            this.introductionMarche = cheminCarte.replace('\\', '/')
-                    .toLowerCase(Locale.ROOT).endsWith("/marche.png");
+            String cheminNormalise = cheminCarte.replace('\\', '/')
+                    .toLowerCase(Locale.ROOT);
+            this.introductionMarche = cheminNormalise.endsWith("/marche.png");
+            this.introductionPotager = cheminNormalise.endsWith("/potager.png");
             this.decor = chargerDecor(cheminCarte);
             setPreferredSize(new Dimension(LARGEUR, HAUTEUR));
             setBackground(Color.BLACK);
@@ -201,10 +204,11 @@ public final class FenetreIntroCarte extends JFrame {
                                 / (double) DUREE_NS);
                 double mouvement = douceur(t / 0.91);
 
-                // 1) Camera : chaque carte a sa propre trajectoire.
-                // Le Chateau reste EXACTEMENT comme dans la version validee.
-                // Le Marche part d'un plan serre en bas a gauche, puis la
-                // camera glisse en diagonale vers le centre en dezoomant.
+                // 1) Camera : chaque carte a une trajectoire distincte.
+                // CHATEAU : parcours diagonal haut-droite vers le centre.
+                // MARCHE : diagonale bas-gauche vers le centre.
+                // POTAGER : travelling VERTICAL haut -> bas, suivi d'un
+                // large dezoom qui revele les grandes plateformes centrales.
                 // Le ratio ORIGINAL du decor est toujours respecte.
                 double echelleCouverture = Math.max(
                         w / (double) decor.getWidth(),
@@ -212,11 +216,22 @@ public final class FenetreIntroCarte extends JFrame {
                 double zoom;
                 double fractionX;
                 double fractionY;
-                if (introductionMarche) {
+                if (introductionPotager) {
+                    // Plan serre sur le haut du jardin, puis la camera
+                    // descend verticalement en ouvrant le champ.
+                    // Le mouvement se termine avant le titre.
+                    double descente = douceur((t - 0.04) / 0.66);
+                    double dezoom = douceur(t / 0.84);
+                    zoom = 1.57 - 0.57 * dezoom;
+                    fractionX = 0.50;
+                    fractionY = 0.12 + 0.38 * descente;
+                } else if (introductionMarche) {
+                    // Trajectoire du Marche : STRICTEMENT inchangee.
                     zoom = 1.36 - 0.36 * mouvement;
                     fractionX = 0.20 + 0.30 * mouvement;
                     fractionY = 0.73 - 0.23 * mouvement;
                 } else {
+                    // Trajectoire du Chateau : STRICTEMENT inchangee.
                     zoom = 1.30 - 0.30 * mouvement;
                     fractionX = 0.69 - 0.19 * mouvement;
                     fractionY = 0.34 + 0.16 * mouvement;
@@ -231,10 +246,22 @@ public final class FenetreIntroCarte extends JFrame {
                         (int) Math.ceil(largeurImage),
                         (int) Math.ceil(hauteurImage), null);
 
+                // Quelques feuilles lumineuses en pixel art UNIQUEMENT
+                // sur le Potager. Aucune ressource image necessaire.
+                if (introductionPotager) {
+                    dessinerFeuillesPotager(g, w, h, t);
+                }
+
                 // 2) Legere zone sombre en bas pour la lisibilite du titre.
-                g.setPaint(new GradientPaint(
-                        0, h * 0.46f, new Color(6, 10, 25, 0),
-                        0, h, new Color(5, 9, 20, 200)));
+                if (introductionPotager) {
+                    g.setPaint(new GradientPaint(
+                            0, h * 0.46f, new Color(13, 30, 12, 0),
+                            0, h, new Color(8, 24, 13, 185)));
+                } else {
+                    g.setPaint(new GradientPaint(
+                            0, h * 0.46f, new Color(6, 10, 25, 0),
+                            0, h, new Color(5, 9, 20, 200)));
+                }
                 g.fillRect(0, 0, w, h);
 
                 // 3) Bandeaux cinematographiques.
@@ -280,6 +307,41 @@ public final class FenetreIntroCarte extends JFrame {
             } finally {
                 g.dispose();
             }
+        }
+    }
+
+    /**
+     * Petites feuilles stylisees qui flottent lentement dans la lumiere.
+     * Effet visuel propre au Potager (sans sprite ni collision).
+     */
+    private static void dessinerFeuillesPotager(Graphics2D g,
+                                               int w, int h, double t) {
+        float opacite = (float) (0.55 * douceur((t - 0.09) / 0.16)
+                * (1.0 - douceur((t - 0.79) / 0.12)));
+        if (opacite <= 0.0f) {
+            return;
+        }
+        Graphics2D feuilles = (Graphics2D) g.create();
+        try {
+            feuilles.setComposite(AlphaComposite.getInstance(
+                    AlphaComposite.SRC_OVER, opacite));
+            for (int i = 0; i < 14; i++) {
+                double departX = (0.12 + (i * 0.071) % 0.75) * w;
+                double departY = (0.16 + (i * 0.047) % 0.52) * h;
+                double mouvementX = 15.0 * Math.sin(i * 1.7 + t * 6.0);
+                double mouvementY = t * (65.0 + (i % 5) * 17.0);
+                int x = (int) Math.round(departX + mouvementX);
+                int y = (int) Math.round(departY + mouvementY);
+                int taille = 5 + (i % 3) * 2;
+                feuilles.setColor(i % 3 == 0
+                        ? new Color(237, 243, 151)
+                        : new Color(174, 231, 117));
+                feuilles.fillPolygon(
+                        new int[]{x, x + taille, x + 2 * taille, x + taille},
+                        new int[]{y, y - taille / 2, y, y + taille / 2}, 4);
+            }
+        } finally {
+            feuilles.dispose();
         }
     }
 
