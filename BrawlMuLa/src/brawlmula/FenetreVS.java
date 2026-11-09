@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.text.Normalizer;
 import java.util.Locale;
+import java.util.Arrays;
 import javax.imageio.ImageIO;
 import javax.swing.AbstractAction;
 import javax.swing.JComponent;
@@ -29,7 +30,7 @@ import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
 /**
- * Ecran VS 2D pour les quatre personnages selectionnes.
+ * Ecran VS 2D adapte aux parties de 2, 3 ou 4 joueurs.
  * Design adapte a chaque carte. Les choix viennent de Selection.
  * L'ecran ne lance pas la physique du jeu : celle-ci demarre apres le VS.
  */
@@ -45,14 +46,26 @@ public final class FenetreVS extends JFrame {
     private long debutNs;
     private boolean terminee;
 
+    /** Compatibilite : les appels historiques affichent toujours 4 joueurs. */
     public FenetreVS(String cheminCarte, String j1, String j2,
                      String j3, String j4, Runnable apresVS) {
+        this(cheminCarte,
+                new String[]{j1, j2, j3, j4},
+                new int[]{1, 2, 3, 4}, apresVS);
+    }
+
+    /**
+     * Nouveau constructeur : seuls les joueurs presents sont affiches.
+     * numerosJoueurs : numeros reels de 1 a 4 (ex : {1, 3}).
+     * personnages : dans le meme ordre que les numeros.
+     */
+    public FenetreVS(String cheminCarte, String[] personnages,
+                     int[] numerosJoueurs, Runnable apresVS) {
         if (apresVS == null) {
             throw new IllegalArgumentException("Action de fin du VS manquante.");
         }
         this.apresVS = apresVS;
-        this.panneau = new PanneauVS(cheminCarte,
-                new String[]{j1, j2, j3, j4});
+        this.panneau = new PanneauVS(cheminCarte, personnages, numerosJoueurs);
         this.chronometre = new Timer(16, e -> {
             if (debutNs == 0L) return;
             if (System.nanoTime() - debutNs >= DUREE_NS) {
@@ -119,16 +132,30 @@ public final class FenetreVS extends JFrame {
         private final String carte;
         private final BufferedImage decor;
         private final String[] noms;
-        private final BufferedImage[] portraits = new BufferedImage[4];
+        private final BufferedImage[] portraits;
+        private final int[] numerosJoueurs;
         private final Color principal;
         private final Color secondaire;
         private final Color lumiere;
         long debutNs;
 
-        PanneauVS(String cheminCarte, String[] choix) {
-            if (cheminCarte == null || choix == null || choix.length != 4) {
-                throw new IllegalArgumentException("Carte ou selection de joueurs invalide.");
+        PanneauVS(String cheminCarte, String[] choix, int[] numerosJoueurs) {
+            if (cheminCarte == null || choix == null || numerosJoueurs == null
+                    || choix.length != numerosJoueurs.length
+                    || choix.length < 2 || choix.length > 4) {
+                throw new IllegalArgumentException(
+                        "L'ecran VS attend 2, 3 ou 4 joueurs presents.");
             }
+            boolean[] numerosUtilises = new boolean[5];
+            for (int numero : numerosJoueurs) {
+                if (numero < 1 || numero > 4 || numerosUtilises[numero]) {
+                    throw new IllegalArgumentException(
+                            "Numeros de joueur invalides ou en double.");
+                }
+                numerosUtilises[numero] = true;
+            }
+            this.numerosJoueurs = numerosJoueurs.clone();
+            this.portraits = new BufferedImage[choix.length];
             String chemin = cheminCarte.replace('\\', '/').toLowerCase(Locale.ROOT);
             if (chemin.endsWith("chateau.png")) {
                 carte = "CHATEAU";
@@ -245,8 +272,8 @@ public final class FenetreVS extends JFrame {
             decorerCarte(g, t);
             dessinerBandeau(g, t);
 
-            int[] positions = {38, 294, 748, 1004};
-            for (int i = 0; i < 4; i++) {
+            int[] positions = positionsCartes(noms.length);
+            for (int i = 0; i < noms.length; i++) {
                 double entree = doux((t - (0.035 + i * 0.038)) / 0.28);
                 int glissement = (int) Math.round((1.0 - entree)
                         * (i < 2 ? -260 : 260));
@@ -257,7 +284,14 @@ public final class FenetreVS extends JFrame {
                 dessinerCarteJoueur(carteG, i, t);
                 carteG.dispose();
             }
-            dessinerVS(g, t);
+            if (noms.length == 3) {
+                // Deux mini-VS entre les trois portraits : aucun visage masque.
+                dessinerVS(g, t, 425, 411, 0.69, 0.0);
+                dessinerVS(g, t, 855, 411, 0.69, 1.0);
+            } else {
+                // Pour 2 ou 4 joueurs, un seul VS au milieu de l'ecran.
+                dessinerVS(g, t, 640, 409, 1.0, 0.0);
+            }
             dessinerBas(g, t);
 
             // Leger fondu noir lorsque le moteur de jeu prend le relais.
@@ -268,6 +302,16 @@ public final class FenetreVS extends JFrame {
                 g.setColor(Color.BLACK);
                 g.fillRect(0, 0, LARGEUR, HAUTEUR);
                 g.setComposite(AlphaComposite.SrcOver);
+            }
+        }
+
+        /** Coordonnees des cartes : aucun emplacement fictif n'est cree. */
+        private static int[] positionsCartes(int nombre) {
+            switch (nombre) {
+                case 2: return new int[]{231, 811};
+                case 3: return new int[]{91, 521, 951};
+                case 4: return new int[]{38, 294, 748, 1004};
+                default: throw new IllegalArgumentException("Nombre de joueurs invalide");
             }
         }
 
@@ -309,7 +353,7 @@ public final class FenetreVS extends JFrame {
             dessinerTextePixel(g, titre, x, 54, pixel, lumiere);
             g.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 16));
             g.setColor(alpha(lumiere, 220));
-            String ligne = "4 JOUEURS  •  1 ARENE";
+            String ligne = noms.length + " JOUEURS  •  1 ARENE";
             int largeurLigne = g.getFontMetrics().stringWidth(ligne);
             g.drawString(ligne, (LARGEUR - largeurLigne) / 2, 165);
         }
@@ -352,7 +396,7 @@ public final class FenetreVS extends JFrame {
             g.drawRoundRect(etiquetteX, etiquetteY,
                     etiquetteW, etiquetteH, 10, 10);
 
-            String etiquette = "J" + (i + 1);
+            String etiquette = "J" + numerosJoueurs[i];
             int largeurEtiquette = etiquette.length() * 6 * tailleEtiquette
                     - tailleEtiquette;
             // La methode dessinerTextePixel trace les glyphes de y + 2*taille
@@ -419,26 +463,56 @@ public final class FenetreVS extends JFrame {
                     RenderingHints.VALUE_INTERPOLATION_BILINEAR);
         }
 
-        private void dessinerVS(Graphics2D g, double t) {
-            double apparition = doux((t - 0.20) / 0.22);
+        /**
+         * VS legerement vivant : respiration, reflets et arc lumineux tournant.
+         * Deux emblemes reduits pour une partie a trois joueurs.
+         */
+        private void dessinerVS(Graphics2D g, double t,
+                                int centreX, int centreY,
+                                double echelle, double phase) {
+            double apparition = doux((t - 0.20 - 0.03 * phase) / 0.22);
             if (apparition <= 0) return;
             Graphics2D v = (Graphics2D) g.create();
-            v.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER,
-                    (float) apparition));
-            double taille = 1 + 0.14 * (1 - doux((t - 0.20) / 0.20));
-            v.translate(640, 409);
-            v.scale(taille, taille);
-            v.setColor(alpha(secondaire, 28));
-            v.fillOval(-103, -103, 206, 206);
-            v.setStroke(new BasicStroke(5));
-            v.setColor(alpha(secondaire, 160));
-            v.drawOval(-95, -95, 190, 190);
-            v.setColor(alpha(lumiere, 110));
-            v.drawOval(-84, -84, 168, 168);
-            dessinerTextePixel(v, "VS", -73 + 5, -69 + 5, 13,
-                    new Color(3, 8, 17));
-            dessinerTextePixel(v, "VS", -73, -69, 13, lumiere);
-            v.dispose();
+            try {
+                v.setComposite(AlphaComposite.getInstance(
+                        AlphaComposite.SRC_OVER, (float) apparition));
+                double rebondInitial = 0.12 * (1.0 - doux((t - 0.20) / 0.20));
+                double respiration = 0.021 * Math.sin(t * Math.PI * 6.0 + phase);
+                double taille = echelle * (1.0 + rebondInitial + respiration);
+                v.translate(centreX, centreY);
+                v.scale(taille, taille);
+
+                double lueur = 0.5 + 0.5 * Math.sin(t * Math.PI * 5.0 + phase);
+                v.setColor(alpha(secondaire, (int) (26 + lueur * 24)));
+                v.fillOval(-105, -105, 210, 210);
+                v.setStroke(new BasicStroke(5f));
+                v.setColor(alpha(secondaire, (int) (130 + lueur * 50)));
+                v.drawOval(-95, -95, 190, 190);
+                v.setStroke(new BasicStroke(2.0f));
+                v.setColor(alpha(lumiere, 90));
+                v.drawOval(-84, -84, 168, 168);
+
+                // Un bref trait lumineux tourne doucement autour de l'anneau.
+                int angle = (int) Math.round(72.0 - t * 220.0 + 38.0 * phase);
+                v.setColor(alpha(lumiere, (int) (110 + 65 * lueur)));
+                v.setStroke(new BasicStroke(6f, BasicStroke.CAP_ROUND,
+                        BasicStroke.JOIN_ROUND));
+                v.drawArc(-95, -95, 190, 190, angle, 26);
+                v.setStroke(new BasicStroke(1f));
+
+                // Petit eclat orbitant, sans masquer le lettrage.
+                double a = Math.toRadians(angle + 13);
+                int etoileX = (int) Math.round(95 * Math.cos(a));
+                int etoileY = (int) Math.round(-95 * Math.sin(a));
+                v.setColor(alpha(lumiere, (int) (115 + 75 * lueur)));
+                v.fillOval(etoileX - 4, etoileY - 4, 8, 8);
+
+                dessinerTextePixel(v, "VS", -73 + 5, -69 + 5, 13,
+                        new Color(3, 8, 17));
+                dessinerTextePixel(v, "VS", -73, -69, 13, lumiere);
+            } finally {
+                v.dispose();
+            }
         }
 
         private void dessinerBas(Graphics2D g, double t) {
@@ -629,13 +703,28 @@ public final class FenetreVS extends JFrame {
         }
     }
 
-    /** Run File : apercu du VS du Chateau, sans Selection ni reseau. */
+    /**
+     * Test autonome : Run File => 4 joueurs sur Chateau.
+     * Arguments optionnels : "2 marche", "3 colonie", "4 potager".
+     */
     public static void main(String[] args) {
-        final String carte = args.length > 0 && args[0].startsWith("/")
-                ? args[0] : "/ressources/Maps/chateau.png";
-        SwingUtilities.invokeLater(() ->
-                new FenetreVS(carte, "Carrot", "Nikku", "Tomato", "Potato",
-                    () -> new FenetreDeJeu(carte).setVisible(true))
-                    .setVisible(true));
+        int nombre = 4;
+        if (args.length > 0 && args[0].matches("[234]")) {
+            nombre = Integer.parseInt(args[0]);
+        }
+        String carte = args.length > 1
+                ? "/ressources/Maps/" + args[1].toLowerCase(Locale.ROOT) + ".png"
+                : "/ressources/Maps/chateau.png";
+        final String chemin = carte;
+        final int nombreFinal = nombre;
+        SwingUtilities.invokeLater(() -> {
+            String[] choix = Arrays.copyOf(
+                    new String[]{"Carrot", "Nikku", "Tomato", "Potato"},
+                    nombreFinal);
+            int[] numeros = Arrays.copyOf(new int[]{1, 2, 3, 4}, nombreFinal);
+            new FenetreVS(chemin, choix, numeros,
+                    () -> new FenetreDeJeu(chemin).setVisible(true))
+                    .setVisible(true);
+        });
     }
 }
