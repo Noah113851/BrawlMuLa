@@ -12,8 +12,8 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 
 /**
- * Avatar d'origine avec branchement facultatif aux plateformes.
- * Garde les memes touches, vitesses, saut, gravite, rendu et constructeur.
+ * Avatar d'origine avec branchement facultatif aux plateformes. Garde les memes
+ * touches, vitesses, saut, gravite, rendu et constructeur.
  */
 public class Avatar {
 
@@ -57,9 +57,17 @@ public class Avatar {
         this.bas = false;
     }
 
+    public Avatar(String nomPersonnage) {
+        this(); // Appelle le constructeur par défaut
+        // Charger le sprite spécifique au nom (ex: "Carrot", "Nikku", "Tomato", "Potato")
+        if (nomPersonnage != null && !nomPersonnage.isEmpty()) {
+            chargerSpritePersonnage(nomPersonnage);
+        }
+    }
+
     /**
-     * A appeler UNE fois depuis Jeu : le personnage partage exactement
-     * les memes plateformes que celles dessinees par PanneauCombat.
+     * A appeler UNE fois depuis Jeu : le personnage partage exactement les
+     * memes plateformes que celles dessinees par PanneauCombat.
      */
     public void connecterPlateformes(GestionnairePlateforme gestionnaire) {
         if (gestionnaire == null) {
@@ -129,8 +137,12 @@ public class Avatar {
 
         // Sur Chateau, le repere est 1280 px et non 960.
         double largeurMonde = gestionnaire == null ? 960 : ConfigurationCarte.LARGEUR;
-        if (x > largeurMonde - LARGEUR_AVATAR) x = largeurMonde - LARGEUR_AVATAR;
-        if (x < 0) x = 0;
+        if (x > largeurMonde - LARGEUR_AVATAR) {
+            x = largeurMonde - LARGEUR_AVATAR;
+        }
+        if (x < 0) {
+            x = 0;
+        }
 
         // Appuyer sur S lorsque les pieds reposent sur une petite plateforme :
         // on la quitte sans la rendre solide pendant notre descente.
@@ -145,7 +157,9 @@ public class Avatar {
 
         // Chute rapide d'origine.
         if (this.bas && !this.auSol) {
-            if (vy < 0) vy = 0;
+            if (vy < 0) {
+                vy = 0;
+            }
             vy += 3;
         }
 
@@ -160,7 +174,9 @@ public class Avatar {
                     this.auSol = true;
                 }
             }
-            if (this.bas && !this.auSol) vy += 2;
+            if (this.bas && !this.auSol) {
+                vy += 2;
+            }
             return;
         }
 
@@ -179,7 +195,9 @@ public class Avatar {
         } else {
             ySouhaite = y + vy;
             vy += GRAVITE;
-            if (bas) vy += 2;
+            if (bas) {
+                vy += 2;
+            }
         }
 
         // Apres le debut de la traversee, on reactivera les collisions
@@ -187,8 +205,8 @@ public class Avatar {
         // de la plateforme quittee (meme si S a deja ete relachee).
         // La comparaison est faite AVANT la collision pour ne pas se recoller.
         if (plateformeEnCoursDeTraverse != null
-                && ancienY + HAUTEUR_AVATAR >
-                   plateformeEnCoursDeTraverse.getY() + MARGE_TRAVERSEE) {
+                && ancienY + HAUTEUR_AVATAR
+                > plateformeEnCoursDeTraverse.getY() + MARGE_TRAVERSEE) {
             plateformeEnCoursDeTraverse = null;
         }
         boolean ignorerTraversables = plateformeEnCoursDeTraverse != null;
@@ -205,9 +223,9 @@ public class Avatar {
             vy = 0;
             support = resultat.getSupport();
             plateformeEnCoursDeTraverse = null;
-        } else if (supportPrecedent != null && supportPrecedent.estActive() &&
-                x < supportPrecedent.getX() + supportPrecedent.getLargeur() &&
-                x + LARGEUR_AVATAR > supportPrecedent.getX()) {
+        } else if (supportPrecedent != null && supportPrecedent.estActive()
+                && x < supportPrecedent.getX() + supportPrecedent.getLargeur()
+                && x + LARGEUR_AVATAR > supportPrecedent.getX()) {
             // Une plateforme verticale qui monte peut ne pas etre detectee par
             // le balayage ; dans ce cas conserver son appui jusqu'a la quitter.
             y = supportPrecedent.getY() - HAUTEUR_AVATAR;
@@ -216,7 +234,9 @@ public class Avatar {
             support = supportPrecedent;
             plateformeEnCoursDeTraverse = null;
         } else {
-            if (resultat.touchePlafond() && vy < 0) vy = 0;
+            if (resultat.touchePlafond() && vy < 0) {
+                vy = 0;
+            }
             auSol = false;
             support = null;
         }
