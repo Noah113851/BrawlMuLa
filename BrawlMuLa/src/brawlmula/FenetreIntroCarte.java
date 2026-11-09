@@ -2,6 +2,10 @@ package brawlmula;
 
 import java.awt.AlphaComposite;
 import java.awt.Color;
+import java.awt.BasicStroke;
+import java.awt.geom.Path2D;
+import java.awt.geom.Area;
+import java.awt.geom.Rectangle2D;
 import java.awt.Dimension;
 import java.awt.GradientPaint;
 import java.awt.Graphics;
@@ -27,7 +31,7 @@ import javax.swing.Timer;
 
 /**
  * Introduction cinematographique 2D d'une carte BrawlMuLa.
- * Premiere version : test autonome sur la carte Chateau.
+ * 4 presentations distinctes : medievale, festive, vegetale, holographique.
  * Aucune modification de Jeu, Avatar ou Selection n'est necessaire.
  */
 public final class FenetreIntroCarte extends JFrame {
@@ -233,24 +237,31 @@ public final class FenetreIntroCarte extends JFrame {
                     fractionX += 0.011 * Math.sin(t * 200.0) * parasite;
                     fractionY += 0.008 * Math.sin(t * 135.0) * parasite;
                 } else if (introductionPotager) {
-                    // Plan serre sur le haut du jardin, puis la camera
-                    // descend verticalement en ouvrant le champ.
-                    // Le mouvement se termine avant le titre.
-                    double descente = douceur((t - 0.04) / 0.66);
-                    double dezoom = douceur(t / 0.84);
-                    zoom = 1.57 - 0.57 * dezoom;
-                    fractionX = 0.50;
-                    fractionY = 0.12 + 0.38 * descente;
+                    // POTAGER : travelling ascendant depuis le sol,
+                    // comme une jeune pousse qui s'eleve vers la lumiere.
+                    // Le champ s'ouvre doucement lors de la croissance.
+                    double poussee = douceur((t - 0.04) / 0.73);
+                    zoom = 1.57 - 0.57 * douceur(t / 0.83);
+                    fractionX = 0.46 + 0.04 * poussee;
+                    fractionY = 0.86 - 0.36 * poussee;
                 } else if (introductionMarche) {
-                    // Trajectoire du Marche : STRICTEMENT inchangee.
-                    zoom = 1.36 - 0.36 * mouvement;
-                    fractionX = 0.20 + 0.30 * mouvement;
-                    fractionY = 0.73 - 0.23 * mouvement;
+                    // MARCHE : travelling lateral rapide de gauche a droite,
+                    // puis une tres legere correction de camera a l'arret.
+                    double passage = douceur((t - 0.01) / 0.67);
+                    double retour = douceur((t - 0.69) / 0.18);
+                    zoom = 1.44 - 0.44 * douceur(t / 0.84);
+                    fractionX = 0.12 + 0.52 * passage - 0.14 * retour;
+                    fractionY = 0.71 - 0.22 * passage + 0.01 * retour;
                 } else {
-                    // Trajectoire du Chateau : STRICTEMENT inchangee.
-                    zoom = 1.30 - 0.30 * mouvement;
-                    fractionX = 0.69 - 0.19 * mouvement;
-                    fractionY = 0.34 + 0.16 * mouvement;
+                    // CHATEAU : le decor est CENTRE des la premiere image.
+                    // D'abord la herse se leve, ensuite la camera avance
+                    // legerement DANS l'arene, sans aucun travelling lateral.
+                    // Elle retrouve le cadrage normal avant le combat.
+                    double avance = douceur((t - 0.34) / 0.29);
+                    double stabilisation = douceur((t - 0.70) / 0.17);
+                    zoom = 1.0 + 0.16 * (avance - stabilisation);
+                    fractionX = 0.5;
+                    fractionY = 0.5;
                 }
                 double largeurImage = decor.getWidth() * echelleCouverture * zoom;
                 double hauteurImage = decor.getHeight() * echelleCouverture * zoom;
@@ -262,14 +273,18 @@ public final class FenetreIntroCarte extends JFrame {
                         (int) Math.ceil(largeurImage),
                         (int) Math.ceil(hauteurImage), null);
 
-                // Quelques feuilles lumineuses en pixel art UNIQUEMENT
-                // sur le Potager. Aucune ressource image necessaire.
-                if (introductionPotager) {
-                    dessinerFeuillesPotager(g, w, h, t);
-                }
-                // Transmissions holographiques exclusives a la Colonie.
+                // Effets propres a chaque univers, dessines par Graphics2D.
+                // Aucun PNG supplementaire ni bibliotheque externe.
                 if (introductionColonie) {
+                    // Colonie conservee a l'identique (version validee).
                     dessinerScanColonie(g, w, h, t);
+                } else if (introductionPotager) {
+                    dessinerLumierePotager(g, w, h, t);
+                    dessinerFeuillesPotager(g, w, h, t);
+                } else if (introductionMarche) {
+                    dessinerAmbianceMarche(g, w, h, t);
+                } else {
+                    dessinerAmbianceChateau(g, w, h, t);
                 }
 
                 // 2) Legere zone sombre en bas pour la lisibilite du titre.
@@ -281,10 +296,14 @@ public final class FenetreIntroCarte extends JFrame {
                     g.setPaint(new GradientPaint(
                             0, h * 0.46f, new Color(13, 30, 12, 0),
                             0, h, new Color(8, 24, 13, 185)));
+                } else if (introductionMarche) {
+                    g.setPaint(new GradientPaint(
+                            0, h * 0.39f, new Color(58, 30, 12, 0),
+                            0, h, new Color(34, 18, 13, 188)));
                 } else {
                     g.setPaint(new GradientPaint(
-                            0, h * 0.46f, new Color(6, 10, 25, 0),
-                            0, h, new Color(5, 9, 20, 200)));
+                            0, h * 0.40f, new Color(12, 10, 27, 0),
+                            0, h, new Color(14, 10, 25, 211)));
                 }
                 g.fillRect(0, 0, w, h);
 
@@ -294,28 +313,80 @@ public final class FenetreIntroCarte extends JFrame {
                 g.fillRect(0, 0, w, bande);
                 g.fillRect(0, h - bande, w, bande);
 
+                // Premier plan : ornements propres aux trois cartes.
+                // Pas d'ajout sur la Colonie, pour garder l'intro validee.
+                if (!introductionColonie) {
+                    if (introductionPotager) {
+                        dessinerLianesPotager(g, w, h, t);
+                    } else if (introductionMarche) {
+                        dessinerGuirlandesMarche(g, w, h, t);
+                    } else {
+                        dessinerCadreChateau(g, w, h, t);
+                    }
+                }
+
                 // 4) Titre seul : lettres pixelisees, sans texte au-dessus.
-                double apparition = douceur((t - 0.31) / 0.15);
+                // Le Chateau attend que la herse soit bien levee
+                // avant de montrer son titre.
+                boolean chateau = !introductionMarche
+                        && !introductionPotager && !introductionColonie;
+                double apparition = douceur((t - (chateau ? 0.51 : 0.31)) / 0.15);
                 double disparition = 1.0 - douceur((t - 0.86) / 0.09);
                 float opacite = (float) limiter(apparition * disparition);
                 if (opacite > 0.0f) {
-                    g.setComposite(AlphaComposite.getInstance(
-                            AlphaComposite.SRC_OVER, opacite));
-                    int gauche = (int) Math.round(w * 0.075);
-                    // Pixel de 9 px : rendu 100 % carre, sans lissage.
-                    int taillePixel = Math.min(9, Math.max(2,
-                            (w - 2 * gauche) / Math.max(1, nom.length() * 6)));
-                    int hautTitre = (int) Math.round(h * 0.685
-                            + 21 * (1.0 - apparition));
-
-                    // Ombre decalee, comme un titre de jeu en pixel art.
-                    g.setColor(new Color(9, 13, 28, 235));
-                    dessinerTextePixel(g, nom, gauche + 5, hautTitre + 6,
-                            taillePixel);
-                    g.setColor(new Color(255, 246, 219));
-                    dessinerTextePixel(g, nom, gauche, hautTitre,
-                            taillePixel);
-                    g.setComposite(AlphaComposite.SrcOver);
+                    Graphics2D titre = (Graphics2D) g.create();
+                    try {
+                        titre.setComposite(AlphaComposite.getInstance(
+                                AlphaComposite.SRC_OVER, opacite));
+                        int gauche = (int) Math.round(w * 0.075);
+                        int taillePixel = Math.min(9, Math.max(2,
+                                (w - 2 * gauche) / Math.max(1, nom.length() * 6)));
+                        if (chateau) {
+                            // Titre centre pour accompagner la camera.
+                            gauche = (w - (nom.length() * 6 - 1) * taillePixel) / 2;
+                        }
+                        int hautTitre = (int) Math.round(h * 0.685
+                                + 21 * (1.0 - apparition));
+                        if (!introductionColonie) {
+                            // Chaque inscription possede son support et
+                            // sa direction d'arrivee cinematique.
+                            if (introductionMarche) {
+                                gauche += (int) Math.round(
+                                        -34 * (1.0 - apparition));
+                                dessinerEnseigneMarche(titre, gauche,
+                                        hautTitre, nom.length(), taillePixel, t);
+                            } else if (introductionPotager) {
+                                hautTitre += (int) Math.round(
+                                        18 * (1.0 - apparition));
+                                dessinerPlaquePotager(titre, gauche,
+                                        hautTitre, nom.length(), taillePixel, t);
+                            } else {
+                                hautTitre += (int) Math.round(
+                                        -23 * (1.0 - apparition));
+                                dessinerBlasonChateau(titre, gauche,
+                                        hautTitre, nom.length(), taillePixel, t);
+                            }
+                        }
+                        // La Colonie conserve ses couleurs de titre exactes.
+                        titre.setColor(introductionPotager
+                                ? new Color(8, 22, 17, 245)
+                                : introductionMarche
+                                ? new Color(66, 31, 11, 245)
+                                : new Color(9, 13, 28, 235));
+                        dessinerTextePixel(titre, nom, gauche + 5,
+                                hautTitre + 6, taillePixel);
+                        titre.setColor(introductionPotager
+                                ? new Color(232, 255, 196)
+                                : introductionMarche
+                                ? new Color(255, 244, 209)
+                                : introductionColonie
+                                ? new Color(255, 246, 219)
+                                : new Color(255, 220, 157));
+                        dessinerTextePixel(titre, nom, gauche, hautTitre,
+                                taillePixel);
+                    } finally {
+                        titre.dispose();
+                    }
                 }
 
                 // 5) Fondu noir au depart et a l'arrivee.
@@ -332,6 +403,520 @@ public final class FenetreIntroCarte extends JFrame {
                 g.dispose();
             }
         }
+    }
+
+    // ======================================================================
+    // CHATEAU — herse en fer qui se souleve, arche medievale et poussiere.
+    // ======================================================================
+    private static void dessinerAmbianceChateau(Graphics2D g,
+                                                int w, int h, double t) {
+        Graphics2D fx = (Graphics2D) g.create();
+        try {
+            double entree = douceur(t / 0.18);
+            double sortie = 1.0 - douceur((t - 0.78) / 0.12);
+            float intensite = (float) limiter(entree * sortie);
+            fx.setComposite(AlphaComposite.getInstance(
+                    AlphaComposite.SRC_OVER, intensite));
+
+            // Faisceaux de lune : diagonales qui revelent la pierre.
+            for (int i = 0; i < 5; i++) {
+                double pulsation = 9.0 * Math.sin(t * 8.0 + i * 1.7);
+                int sommet = (int) (w * (0.60 + i * 0.085));
+                int base = (int) (w * (0.22 + i * 0.13) + pulsation);
+                fx.setColor(new Color(248, 216, 158, 18 + i * 2));
+                fx.fillPolygon(new int[]{sommet, sommet + 55,
+                        base + 150, base - 50},
+                        new int[]{0, 0, h, h}, 4);
+            }
+
+            // Poussieres lumineuses flottantes en leger decalage de camera.
+            for (int i = 0; i < 32; i++) {
+                double u = fract(0.157 + i * 0.6180339887);
+                double v = fract(0.281 + i * 0.4142135623);
+                int x = (int) (w * u + 14 * Math.sin(7 * t + i));
+                int y = (int) (h * v - t * (35 + (i % 4) * 16));
+                y = (y + h) % h;
+                int rayon = 2 + i % 3;
+                fx.setColor(new Color(255, 213, 140, 22));
+                fx.fillOval(x - rayon * 3, y - rayon * 3,
+                        rayon * 6, rayon * 6);
+                fx.setColor(new Color(255, 230, 175, 144));
+                fx.fillRect(x, y, rayon, rayon);
+            }
+        } finally {
+            fx.dispose();
+        }
+
+        // La herse se souleve AVANT le zoom centre sur la carte.
+        dessinerHerseChateau(g, w, h, t);
+    }
+
+    /**
+     * Ouverture de la herse medievale : arche en pierres et grille en fer.
+     * La grille coulisse VERTICALEMENT (aucune rotation/pont-levis).
+     * Le passage est masque jusqu'a l'ouverture, puis le cadre disparait
+     * doucement pour laisser la map entiere visible et bien centree.
+     * Tout est dessine avec Graphics2D, sans nouvelle image ni police.
+     */
+    private static void dessinerHerseChateau(Graphics2D g,
+                                             int w, int h, double t) {
+        double ouverture = douceur((t - 0.025) / 0.355);
+        float opacite = (float) (1.0 - douceur((t - 0.39) / 0.115));
+        if (opacite <= 0.0f) {
+            return;
+        }
+
+        Graphics2D fx = (Graphics2D) g.create();
+        try {
+            fx.setComposite(AlphaComposite.getInstance(
+                    AlphaComposite.SRC_OVER, opacite));
+            fx.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
+
+            double gauche = w * 0.137;
+            double droite = w * 0.863;
+            double centre = w / 2.0;
+            double sommet = h * 0.082;
+            double epaules = h * 0.28;
+
+            // Arche en ogive : contour du passage derriere la grille.
+            Path2D.Double passage = new Path2D.Double();
+            passage.moveTo(gauche, h + 20);
+            passage.lineTo(gauche, epaules);
+            passage.curveTo(gauche, h * 0.165,
+                    centre - w * 0.11, sommet + h * 0.025,
+                    centre, sommet);
+            passage.curveTo(centre + w * 0.11, sommet + h * 0.025,
+                    droite, h * 0.165, droite, epaules);
+            passage.lineTo(droite, h + 20);
+            passage.closePath();
+
+            // Mur de pierre : seule la zone HORS de l'arche est opaque.
+            Area pierre = new Area(new Rectangle2D.Double(0, 0, w, h));
+            pierre.subtract(new Area(passage));
+            fx.setPaint(new GradientPaint(0, 0,
+                    new Color(61, 66, 83), 0, h,
+                    new Color(24, 29, 47)));
+            fx.fill(pierre);
+
+            // Joints de maçonnerie, au-dessus et autour de la porte.
+            Graphics2D joint = (Graphics2D) fx.create();
+            try {
+                joint.setClip(pierre);
+                joint.setStroke(new BasicStroke(2.0f));
+                for (int rang = 0; rang < 17; rang++) {
+                    int yy = (int) (rang * h / 15.0);
+                    joint.setColor(new Color(10, 16, 28, 125));
+                    joint.drawLine(0, yy, w, yy);
+                    double decalage = rang % 2 == 0 ? 0 : 76;
+                    for (double xx = -50 + decalage; xx < w + 60; xx += 152) {
+                        int xj = (int) xx;
+                        int ySuivant = (int) ((rang + 1) * h / 15.0);
+                        joint.drawLine(xj, yy, xj, ySuivant);
+                        joint.setColor(new Color(158, 158, 167, 25));
+                        joint.drawLine(xj + 3, yy + 3, xj + 3, ySuivant - 3);
+                        joint.setColor(new Color(10, 16, 28, 125));
+                    }
+                }
+                joint.setColor(new Color(192, 182, 169, 38));
+                for (int i = 0; i < 45; i++) {
+                    int xx = (i * 173 + 53) % w;
+                    int yy = (i * 109 + 47) % h;
+                    joint.fillRect(xx, yy, 14 + i % 4 * 5, 2);
+                }
+            } finally {
+                joint.dispose();
+            }
+
+            // Liserés de l'ogive : ombre profonde puis pierre éclairée.
+            fx.setColor(new Color(8, 12, 24, 220));
+            fx.setStroke(new BasicStroke(27f, BasicStroke.CAP_ROUND,
+                    BasicStroke.JOIN_ROUND));
+            fx.draw(passage);
+            fx.setColor(new Color(136, 139, 146, 227));
+            fx.setStroke(new BasicStroke(16f, BasicStroke.CAP_ROUND,
+                    BasicStroke.JOIN_ROUND));
+            fx.draw(passage);
+            fx.setColor(new Color(213, 193, 154, 108));
+            fx.setStroke(new BasicStroke(3f));
+            fx.draw(passage);
+
+            // Pierre de clef au sommet du portail.
+            Path2D.Double clef = new Path2D.Double();
+            clef.moveTo(centre - 29, sommet - 10);
+            clef.lineTo(centre + 29, sommet - 10);
+            clef.lineTo(centre + 20, sommet + 37);
+            clef.lineTo(centre, sommet + 53);
+            clef.lineTo(centre - 20, sommet + 37);
+            clef.closePath();
+            fx.setColor(new Color(157, 148, 144));
+            fx.fill(clef);
+            fx.setColor(new Color(47, 48, 61));
+            fx.setStroke(new BasicStroke(3f));
+            fx.draw(clef);
+            fx.setColor(new Color(218, 192, 128, 155));
+            fx.fillOval((int) centre - 5, (int) sommet + 14, 10, 10);
+
+            // La carte s'assombrit a travers la grille FERMEE.
+            // Elle gagne sa luminosite a mesure que la grille se leve.
+            Graphics2D interieur = (Graphics2D) fx.create();
+            try {
+                interieur.setClip(passage);
+                interieur.setColor(new Color(6, 8, 18,
+                        (int) Math.round(155 * (1.0 - ouverture))));
+                interieur.fillRect(0, 0, w, h);
+
+                // La herse se souleve dans la maçonnerie.
+                double levee = ouverture * (h + 260);
+                double basHerse = h + 82 - levee;
+                double hautHerse = sommet - 38 - levee;
+
+                // Lignes verticales en fer, rehaussées d'un reflet acier.
+                int index = 0;
+                for (double xx = gauche + 29; xx < droite - 12; xx += 55) {
+                    int xBarre = (int) Math.round(xx);
+                    int hautBarre = (int) Math.round(hautHerse);
+                    int basBarre = (int) Math.round(basHerse);
+
+                    interieur.setPaint(new GradientPaint(xBarre - 10, 0,
+                            new Color(22, 26, 38), xBarre + 10, 0,
+                            new Color(98, 102, 118)));
+                    interieur.fillRect(xBarre - 11, hautBarre, 22,
+                            Math.max(0, basBarre - hautBarre));
+                    interieur.setColor(new Color(180, 179, 174, 115));
+                    interieur.fillRect(xBarre - 7, hautBarre + 3, 3,
+                            Math.max(0, basBarre - hautBarre - 9));
+                    interieur.setColor(new Color(14, 19, 30));
+                    interieur.fillPolygon(
+                            new int[]{xBarre - 11, xBarre + 11, xBarre},
+                            new int[]{basBarre - 2, basBarre - 2,
+                                    basBarre + 20 + (index % 2) * 6}, 3);
+                    index++;
+                }
+
+                // Traverses épaisses avec des rivets aux intersections.
+                for (int rail = 0; rail < 5; rail++) {
+                    int yRail = (int) Math.round(sommet + 65
+                            + rail * 150 - levee);
+                    int xRail = (int) Math.round(gauche + 13);
+                    int largeurRail = (int) Math.round(droite - gauche - 26);
+                    interieur.setColor(new Color(12, 17, 27));
+                    interieur.fillRoundRect(xRail, yRail - 13,
+                            largeurRail, 31, 10, 10);
+                    interieur.setColor(new Color(86, 93, 105));
+                    interieur.fillRoundRect(xRail + 2, yRail - 8,
+                            largeurRail - 4, 14, 8, 8);
+                    interieur.setColor(new Color(186, 174, 147));
+                    for (double xx = gauche + 29; xx < droite - 12; xx += 55) {
+                        interieur.fillOval((int) xx - 4, yRail - 4, 8, 8);
+                    }
+                }
+
+                // Sceau central stylisé au milieu de la herse.
+                int sceauY = (int) Math.round(h * 0.52 - levee);
+                interieur.setColor(new Color(24, 28, 43));
+                interieur.fillOval(w / 2 - 27, sceauY - 27, 54, 54);
+                interieur.setColor(new Color(194, 153, 88));
+                interieur.setStroke(new BasicStroke(4f));
+                interieur.drawOval(w / 2 - 24, sceauY - 24, 48, 48);
+                interieur.drawLine(w / 2 - 12, sceauY,
+                        w / 2 + 12, sceauY);
+                interieur.drawLine(w / 2, sceauY - 12,
+                        w / 2, sceauY + 12);
+            } finally {
+                interieur.dispose();
+            }
+
+            // Petites torches lumineuses sur les murs latéraux.
+            for (int cote = 0; cote < 2; cote++) {
+                int tx = (int) (w * (cote == 0 ? 0.073 : 0.927));
+                int ty = (int) (h * 0.36);
+                fx.setColor(new Color(20, 18, 25));
+                fx.fillRoundRect(tx - 9, ty - 7, 18, 44, 8, 8);
+                fx.setPaint(new GradientPaint(tx, ty - 42,
+                        new Color(255, 214, 105, 125), tx, ty + 19,
+                        new Color(255, 157, 65, 0)));
+                fx.fillOval(tx - 36, ty - 52, 72, 91);
+                fx.setColor(new Color(249, 195, 91));
+                fx.fillOval(tx - 5, ty - 23, 10, 24);
+                fx.setColor(new Color(255, 240, 164));
+                fx.fillOval(tx - 2, ty - 18, 5, 15);
+            }
+        } finally {
+            fx.dispose();
+        }
+    }
+
+    private static void dessinerCadreChateau(Graphics2D g,
+                                             int w, int h, double t) {
+        float alpha = (float) (0.79 * douceur((t - 0.20) / 0.20)
+                * (1.0 - douceur((t - 0.83) / 0.10)));
+        if (alpha <= 0) return;
+        Graphics2D fx = (Graphics2D) g.create();
+        try {
+            fx.setComposite(AlphaComposite.getInstance(
+                    AlphaComposite.SRC_OVER, alpha));
+            int m = 47, l = 74, y1 = 70, y2 = h - 72;
+            fx.setColor(new Color(244, 207, 137, 205));
+            fx.setStroke(new java.awt.BasicStroke(3f));
+            for (int x : new int[]{m, w - m}) {
+                int sens = (x == m) ? 1 : -1;
+                fx.drawLine(x, y1, x + sens * l, y1);
+                fx.drawLine(x, y1, x, y1 + l);
+                fx.drawLine(x, y2, x + sens * l, y2);
+                fx.drawLine(x, y2, x, y2 - l);
+                fx.fillPolygon(new int[]{x, x + sens * 9, x, x - sens * 9},
+                        new int[]{y1 - 12, y1, y1 + 12, y1}, 4);
+            }
+            fx.setColor(new Color(241, 220, 169, 130));
+            fx.drawLine(w / 2 - 62, 72, w / 2 + 62, 72);
+            fx.fillPolygon(new int[]{w / 2, w / 2 + 11,
+                    w / 2, w / 2 - 11},
+                    new int[]{61, 72, 83, 72}, 4);
+        } finally {
+            fx.dispose();
+        }
+    }
+
+    private static void dessinerBlasonChateau(Graphics2D g, int x, int y,
+                                               int len, int pixel, double t) {
+        int largeur = len * 6 * pixel + 48;
+        int haut = y - 17, hauteur = 111;
+        // Support en pierre sombre, bordure d'or et chevrons.
+        g.setColor(new Color(16, 15, 30, 198));
+        g.fillRoundRect(x - 24, haut, largeur, hauteur, 15, 15);
+        g.setColor(new Color(232, 180, 91, 230));
+        g.setStroke(new java.awt.BasicStroke(3f));
+        g.drawRoundRect(x - 24, haut, largeur, hauteur, 15, 15);
+        g.setColor(new Color(248, 223, 155, 155));
+        g.drawLine(x - 10, haut + 8, x + largeur - 38, haut + 8);
+        g.drawLine(x - 10, haut + hauteur - 9,
+                x + largeur - 38, haut + hauteur - 9);
+        for (int signe : new int[]{-1,1}) {
+            int dx = signe == -1 ? x - 17 : x + largeur - 30;
+            g.setColor(new Color(255, 222, 155, 215));
+            g.fillPolygon(new int[]{dx, dx+5, dx, dx-5},
+                    new int[]{haut+hauteur/2-9, haut+hauteur/2,
+                        haut+hauteur/2+9, haut+hauteur/2}, 4);
+        }
+    }
+
+    // ======================================================================
+    // MARCHE — atmosphere chaleureuse, guirlandes et enseigne en bois.
+    // ======================================================================
+    private static void dessinerAmbianceMarche(Graphics2D g,
+                                               int w, int h, double t) {
+        float alpha = (float) (0.78 * douceur(t / 0.20)
+                * (1.0 - douceur((t - 0.83) / 0.11)));
+        if (alpha <= 0) return;
+        Graphics2D fx = (Graphics2D) g.create();
+        try {
+            fx.setComposite(AlphaComposite.getInstance(
+                    AlphaComposite.SRC_OVER, alpha));
+
+            // Soleil chaud et faisceaux sous les auvents du village.
+            fx.setPaint(new GradientPaint(w, h * 0.05f,
+                    new Color(255, 229, 137, 76),
+                    w / 3f, h * 0.70f, new Color(255, 192, 102, 0)));
+            fx.fillRect(0, 0, w, h);
+            for (int i = 0; i < 4; i++) {
+                int origine = w - 160 + i * 37;
+                fx.setColor(new Color(255, 245, 183, 19));
+                fx.fillPolygon(new int[]{origine, origine + 30,
+                        (int)(w * (0.17 + i * .11)) + 155,
+                        (int)(w * (0.17 + i * .11)) - 70},
+                        new int[]{0, 0, h, h}, 4);
+            }
+
+            // Confettis et petits morceaux de papier de fete.
+            Color[] papiers = {
+                new Color(255, 221, 122),
+                new Color(218, 92, 65),
+                new Color(109, 178, 141),
+                new Color(245, 241, 217)
+            };
+            for (int i = 0; i < 29; i++) {
+                int xx = (int) (w * fract(i * 0.75487766 + .13)
+                        + (t * 105 + 14 * Math.sin(8*t + i)));
+                xx = ((xx % (w+35)) + (w+35)) % (w+35);
+                int yy = (int) (h * fract(i * 0.56984029 + .27)
+                        + t * (25 + i%6 * 11));
+                yy %= (h + 30);
+                fx.setColor(papiers[i % papiers.length]);
+                fx.fillRect(xx, yy, 4 + i % 3 * 2, 2 + i % 2 * 3);
+            }
+        } finally {
+            fx.dispose();
+        }
+    }
+
+    private static void dessinerGuirlandesMarche(Graphics2D g,
+                                                 int w, int h, double t) {
+        float alpha = (float) (0.87 * douceur((t - 0.10) / 0.16)
+                * (1.0 - douceur((t - 0.82) / 0.12)));
+        if (alpha <= 0) return;
+        Graphics2D fx = (Graphics2D) g.create();
+        try {
+            fx.setComposite(AlphaComposite.getInstance(
+                    AlphaComposite.SRC_OVER, alpha));
+            fx.setStroke(new java.awt.BasicStroke(2.3f));
+            Color[] fanions = {new Color(224, 97, 76),
+                    new Color(245, 199, 84),
+                    new Color(100, 179, 155),
+                    new Color(243, 231, 198)};
+            for (int fil = 0; fil < 2; fil++) {
+                int precedentX = 0;
+                int precedentY = 0;
+                for (int i = 0; i <= 18; i++) {
+                    int x = (int) Math.round(35 + i * (w - 70) / 18.0);
+                    int y = (int) Math.round((55 + fil * 92)
+                            + 34 * Math.sin(i * Math.PI / 18.0)
+                            + 3 * Math.sin(7 * t + i * .55 + fil));
+                    if (i > 0) {
+                        fx.setColor(new Color(91, 63, 48, 200));
+                        fx.drawLine(precedentX, precedentY, x, y);
+                    }
+                    if (i > 0 && i < 18) {
+                        fx.setColor(fanions[(i + fil) % fanions.length]);
+                        int vent = (int) (4 * Math.sin(12*t + i*.7));
+                        fx.fillPolygon(new int[]{x-14,x+13,x+vent},
+                                new int[]{y+2,y+2,y+33+(i%3)*4},3);
+                    }
+                    precedentX=x;
+                    precedentY=y;
+                }
+            }
+        } finally {
+            fx.dispose();
+        }
+    }
+
+    private static void dessinerEnseigneMarche(Graphics2D g, int x, int y,
+                                                int len, int pixel, double t) {
+        int largeur = len*6*pixel + 56;
+        int haut = y - 17;
+        // Bois, petites planches, vis et cordes comme une vraie enseigne.
+        g.setColor(new Color(76, 43, 25, 223));
+        g.fillRoundRect(x - 28, haut, largeur, 112, 14, 14);
+        g.setColor(new Color(207, 144, 77, 229));
+        g.setStroke(new java.awt.BasicStroke(3.5f));
+        g.drawRoundRect(x - 28, haut, largeur, 112, 14, 14);
+        g.setColor(new Color(151, 90, 46, 159));
+        for (int yy=haut+19; yy<haut+108; yy+=25) {
+            g.fillRect(x-22, yy, largeur-12, 3);
+        }
+        g.setColor(new Color(244, 211, 145, 203));
+        for (int dx : new int[]{-15, largeur-41}) {
+            g.fillOval(x + dx, haut + 8, 6, 6);
+            g.fillOval(x + dx, haut + 96, 6, 6);
+        }
+    }
+
+    // ======================================================================
+    // POTAGER — soleil, lianes qui poussent et pollen en suspension.
+    // ======================================================================
+    private static void dessinerLumierePotager(Graphics2D g,
+                                               int w, int h, double t) {
+        float alpha = (float) (0.82 * douceur((t-0.08)/0.19)
+                * (1.0 - douceur((t-0.85)/0.10)));
+        if (alpha<=0) return;
+        Graphics2D fx=(Graphics2D)g.create();
+        try {
+            fx.setComposite(AlphaComposite.getInstance(
+                    AlphaComposite.SRC_OVER, alpha));
+            for (int i=0; i<5; i++) {
+                int sx=(int)(w*(.39+i*.063));
+                int ex=(int)(w*(.10+i*.22));
+                fx.setColor(new Color(255,249,173,18+i*2));
+                fx.fillPolygon(new int[]{sx,sx+44,ex+87,ex-95},
+                        new int[]{0,0,h,h},4);
+            }
+            // Pollen en contre-jour qui monte en flottant.
+            for(int i=0;i<33;i++){
+                double u=fract(.18+i*.6180339887);
+                double v=fract(.44+i*.754877666);
+                int x=(int)(u*w+19*Math.sin(t*9+i*.9));
+                int y=(int)(v*h - t*(60+i%6*13));
+                y=((y%h)+h)%h;
+                int taille=2+i%3;
+                fx.setColor(new Color(252,255,166,46));
+                fx.fillOval(x-7,y-7,taille+14,taille+14);
+                fx.setColor(new Color(238,255,170,211));
+                fx.fillOval(x,y,taille,taille);
+            }
+        } finally {fx.dispose();}
+    }
+
+    private static void dessinerLianesPotager(Graphics2D g,
+                                             int w, int h, double t) {
+        float alpha=(float)(0.84*douceur((t-.11)/.22)
+                *(1.0-douceur((t-.83)/.12)));
+        if(alpha<=0)return;
+        Graphics2D fx=(Graphics2D)g.create();
+        try{
+            fx.setComposite(AlphaComposite.getInstance(
+                    AlphaComposite.SRC_OVER,alpha));
+            double croissance=douceur((t-.09)/.56);
+            for(int cote=0;cote<2;cote++){
+                int sens=(cote==0?1:-1);
+                fx.setColor(new Color(25,87,37,239));
+                fx.setStroke(new java.awt.BasicStroke(5f,
+                        java.awt.BasicStroke.CAP_ROUND,
+                        java.awt.BasicStroke.JOIN_ROUND));
+                double px=cote==0?0:w;
+                double py=h;
+                int etapes=(int)Math.round(35*croissance);
+                for(int i=1;i<=etapes;i++){
+                    double u=i/35.0;
+                    double x=(cote==0?0:w) + sens*(90*u+22*Math.sin(u*10));
+                    double y=h-(h*.72)*u;
+                    fx.drawLine((int)px,(int)py,(int)x,(int)y);
+                    px=x;py=y;
+                }
+                for(int i=3;i<=etapes;i+=4){
+                    double u=i/35.0;
+                    int x=(int)((cote==0?0:w)+sens*(90*u+22*Math.sin(u*10)));
+                    int y=(int)(h-(h*.72)*u);
+                    int direction= (i%8==3?1:-1);
+                    fx.setColor(i%8==3
+                            ?new Color(111,191,84,238)
+                            :new Color(168,216,102,228));
+                    fx.fillOval(x+sens*direction*4,y-7,
+                            12+((i%3)*4),8+((i%2)*3));
+                    fx.setColor(new Color(25,87,37,239));
+                }
+            }
+        } finally{fx.dispose();}
+    }
+
+    private static void dessinerPlaquePotager(Graphics2D g,int x,int y,
+                                               int len,int pixel,double t){
+        int largeur=len*6*pixel+54;
+        int haut=y-17;
+        g.setColor(new Color(24,63,30,204));
+        g.fillRoundRect(x-27,haut,largeur,112,28,28);
+        g.setColor(new Color(145,205,109,228));
+        g.setStroke(new java.awt.BasicStroke(3.5f));
+        g.drawRoundRect(x-27,haut,largeur,112,28,28);
+        g.setColor(new Color(214,237,143,119));
+        g.drawRoundRect(x-19,haut+6,largeur-16,100,22,22);
+        for(int i=0;i<5;i++){
+            int feuilleX=x-19+i*18;
+            int feuilleY=haut-(i%2)*8;
+            g.setColor(i%2==0?new Color(125,199,96):new Color(195,218,105));
+            g.fillOval(feuilleX,feuilleY-5,18,10);
+        }
+        for(int i=0;i<4;i++){
+            int feuilleX=x+largeur-52-i*17;
+            int feuilleY=haut+105+(i%2)*6;
+            g.setColor(i%2==0?new Color(155,213,110):new Color(98,164,75));
+            g.fillOval(feuilleX,feuilleY,18,10);
+        }
+    }
+
+    /** Partie fractionnaire positive, sans hasard ni etat mutable. */
+    private static double fract(double x) {
+        return x - Math.floor(x);
     }
 
     /**
