@@ -33,6 +33,7 @@ public class Selection extends javax.swing.JFrame {
 
     public Selection(int monNumeroJoueur, Reseau reseau) {
         initComponents();
+        BrawlMuLa.appliquerPoliceFairfax(getContentPane());
         setSize(1280, 760);
         setLocationRelativeTo(null);
 
@@ -145,7 +146,7 @@ public class Selection extends javax.swing.JFrame {
     partieLancee = true;
 
     // Arrêter la musique de sélection sur tous les PC
-    //Musiques_sons.stop();
+    Musiques_sons.stop();
 
     // Afficher l'introduction
     introduction.setVisible(true);

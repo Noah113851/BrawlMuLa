@@ -19,7 +19,7 @@ public class MainMenu extends javax.swing.JFrame {
      */
     public MainMenu() {
         initComponents();
-
+        BrawlMuLa.appliquerPoliceFairfax(getContentPane());
         setSize(1280, 760);
         setLocationRelativeTo(null);
 

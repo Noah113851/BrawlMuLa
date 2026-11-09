@@ -14,8 +14,8 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 
 /**
- * Personnage : touches, affichage, gravite, sauts et collisions.
- * Compatible avec les plateformes intermittentes de la Colonie.
+ * Personnage : touches, affichage, gravite, sauts et collisions. Compatible
+ * avec les plateformes intermittentes de la Colonie.
  */
 public class Avatar {
 
@@ -30,9 +30,17 @@ public class Avatar {
     private static final double SOL = 420;
     private static final double GRAVITE = 15;
     private static final double VITESSE_SAUT = 70;
-    static final int LARGEUR_AVATAR = 150;
-    static final int HAUTEUR_AVATAR = 150;
+    static final int LARGEUR_AVATAR = 125;
+    static final int HAUTEUR_AVATAR = 125;
     static final int LIMITE_CHUTE = ConfigurationCarte.HAUTEUR + 150;
+    private static final int LARGEUR_HITBOX = 90;
+    private static final int HAUTEUR_HITBOX = 110;
+
+    private static final int DECALAGE_HITBOX_X
+            = (LARGEUR_AVATAR - LARGEUR_HITBOX) / 2;
+
+    private static final int DECALAGE_HITBOX_Y
+            = HAUTEUR_AVATAR - HAUTEUR_HITBOX;
 
     private GestionnairePlateforme gestionnaire;
     private Plateforme support;
@@ -49,8 +57,10 @@ public class Avatar {
         String nom = nomPersonnage == null ? "carrot"
                 : nomPersonnage.trim().toLowerCase(Locale.ROOT);
         String personnage = switch (nom) {
-            case "nikku", "tomato", "potato" -> nom;
-            default -> "carrot";
+            case "nikku", "tomato", "potato" ->
+                nom;
+            default ->
+                "carrot";
         };
         BufferedImage image = SPRITES.computeIfAbsent(personnage, Avatar::chargerSpritePersonnage);
         sprite = image == null && !"carrot".equals(personnage)
@@ -64,31 +74,114 @@ public class Avatar {
         this.bas = false;
     }
 
-    /** Redimensionne le sprite une fois au chargement pour la boucle de rendu. */
+    /**
+     * Redimensionne le sprite une fois au chargement pour la boucle de rendu.
+     */
     private static BufferedImage chargerSpritePersonnage(String personnage) {
-        String chemin = "/ressources/avatars/" + personnage + "_fight.png";
+
+        String chemin = "/ressources/avatars/"
+                + personnage + "_fight.png";
+
         URL url = Avatar.class.getResource(chemin);
+
         if (url == null) {
-            System.err.println("[BrawlMuLa] Sprite introuvable : " + chemin);
+            System.err.println(
+                    "[BrawlMuLa] Sprite introuvable : " + chemin);
             return null;
         }
+
         try {
             BufferedImage image = ImageIO.read(url);
+
             if (image == null) {
                 throw new IOException("Format d'image invalide");
             }
-            BufferedImage sprite = new BufferedImage(LARGEUR_AVATAR, HAUTEUR_AVATAR, BufferedImage.TYPE_INT_ARGB);
+
+            // Garder la taille actuelle des personnages
+            BufferedImage sprite = new BufferedImage(
+                    LARGEUR_AVATAR,
+                    HAUTEUR_AVATAR,
+                    BufferedImage.TYPE_INT_ARGB
+            );
+
             Graphics2D g = sprite.createGraphics();
+
             try {
-                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-                g.drawImage(image, 0, 0, LARGEUR_AVATAR, HAUTEUR_AVATAR, null);
+                g.setRenderingHint(
+                        RenderingHints.KEY_INTERPOLATION,
+                        RenderingHints.VALUE_INTERPOLATION_BILINEAR
+                );
+
+                g.drawImage(
+                        image,
+                        0,
+                        0,
+                        LARGEUR_AVATAR,
+                        HAUTEUR_AVATAR,
+                        null
+                );
+
             } finally {
                 g.dispose();
             }
-            return sprite;
+
+            // Chercher le dernier pixel visible du personnage
+            int dernierPixelVisible = -1;
+
+            for (int y = 0; y < HAUTEUR_AVATAR; y++) {
+                for (int x = 0; x < LARGEUR_AVATAR; x++) {
+
+                    int pixel = sprite.getRGB(x, y);
+                    int alpha = (pixel >>> 24) & 0xFF;
+
+                    if (alpha > 20) {
+                        dernierPixelVisible = y;
+                    }
+                }
+            }
+
+            // Calculer la marge transparente sous les pieds
+            int decalageY = 0;
+
+            if (dernierPixelVisible >= 0) {
+                decalageY = HAUTEUR_AVATAR
+                        - 1 - dernierPixelVisible;
+            }
+
+            // Repositionner le personnage vers le bas
+            BufferedImage spriteAligne = new BufferedImage(
+                    LARGEUR_AVATAR,
+                    HAUTEUR_AVATAR,
+                    BufferedImage.TYPE_INT_ARGB
+            );
+
+            Graphics2D g2 = spriteAligne.createGraphics();
+
+            try {
+                g2.drawImage(
+                        sprite,
+                        0,
+                        decalageY,
+                        null
+                );
+            } finally {
+                g2.dispose();
+            }
+
+            System.out.println(
+                    "[BrawlMuLa] Alignement de "
+                    + personnage
+                    + " : " + decalageY + " pixels"
+            );
+
+            return spriteAligne;
+
         } catch (IOException e) {
-            Logger.getLogger(Avatar.class.getName()).log(Level.SEVERE,
-                    "Impossible de charger le sprite : " + chemin, e);
+            Logger.getLogger(Avatar.class.getName()).log(
+                    Level.SEVERE,
+                    "Impossible de charger le sprite : " + chemin,
+                    e
+            );
             return null;
         }
     }
@@ -263,19 +356,27 @@ public class Avatar {
         boolean ignorerTraversables = plateformeEnCoursDeTraverse != null;
 
         ResultatColision resultat = gestionnaire.resoudre(
-                ancienX, ancienY, x, ySouhaite,
-                LARGEUR_AVATAR, HAUTEUR_AVATAR, ignorerTraversables);
+                ancienX + DECALAGE_HITBOX_X,
+                ancienY + DECALAGE_HITBOX_Y,
+                x + DECALAGE_HITBOX_X,
+                ySouhaite + DECALAGE_HITBOX_Y,
+                LARGEUR_HITBOX,
+                HAUTEUR_HITBOX,
+                ignorerTraversables
+        );
 
-        x = resultat.getX();
-        y = resultat.getY();
+        x = resultat.getX() - DECALAGE_HITBOX_X;
+        y = resultat.getY() - DECALAGE_HITBOX_Y;
         if (resultat.estAuSol()) {
             auSol = true;
             vy = 0;
             support = resultat.getSupport();
             plateformeEnCoursDeTraverse = null;
         } else if (supportPrecedent != null && supportPrecedent.estActive()
-                && x < supportPrecedent.getX() + supportPrecedent.getLargeur()
-                && x + LARGEUR_AVATAR > supportPrecedent.getX()) {
+                && x + DECALAGE_HITBOX_X
+                < supportPrecedent.getX() + supportPrecedent.getLargeur()
+                && x + DECALAGE_HITBOX_X + LARGEUR_HITBOX
+                > supportPrecedent.getX()) {
             // Conserver l'appui sur un ascenseur qui monte.
             y = supportPrecedent.getY() - HAUTEUR_AVATAR;
             vy = 0;

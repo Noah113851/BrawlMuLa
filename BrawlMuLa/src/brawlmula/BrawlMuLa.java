@@ -2,43 +2,25 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
  */
+
 package brawlmula;
 
+import java.awt.Component;
+import java.awt.Container;
 import java.awt.Font;
-import java.awt.FontFormatException;
 import java.awt.GraphicsEnvironment;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.InputStream;
-import java.util.Locale;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 public class BrawlMuLa {
 
+    private static Font policeFairfax;
+    private static boolean chargementEffectue = false;
+
     public static void main(String[] args) {
-        try {
-            chargerPoliceFairfax();
-        } catch (IOException | FontFormatException e) {
-            e.printStackTrace();
 
-            SwingUtilities.invokeLater(() ->
-                JOptionPane.showMessageDialog(
-                    null,
-                    "Impossible de charger la police Fairfax.\n\n"
-                    + e.getMessage()
-                    + "\n\nVérifie la présence du fichier dans\n"
-                    + "src/ressources/polices/Fairfax.zip\n"
-                    + "puis effectue « Clean and Build ».",
-                    "Chargement de Fairfax",
-                    JOptionPane.ERROR_MESSAGE
-                )
-            );
-
-            return;
-        }
+        // Charger Fairfax avant de créer les fenêtres
+        chargerPoliceFairfax();
 
         SwingUtilities.invokeLater(() -> {
             MainMenu menu = new MainMenu();
@@ -46,53 +28,78 @@ public class BrawlMuLa {
         });
     }
 
-    private static void chargerPoliceFairfax()
-            throws IOException, FontFormatException {
+    public static synchronized void chargerPoliceFairfax() {
 
-        InputStream fichier = BrawlMuLa.class.getResourceAsStream(
-                "/ressources/polices/Fairfax.zip"
-        );
-
-        if (fichier == null) {
-            throw new IOException(
-                    "L’archive Fairfax.zip est absente des ressources du jeu."
-            );
+        if (chargementEffectue) {
+            return;
         }
 
-        GraphicsEnvironment environnement =
-                GraphicsEnvironment.getLocalGraphicsEnvironment();
+        chargementEffectue = true;
 
-        boolean fairfaxChargee = false;
+        String chemin = "/ressources/polices/Fairfax.ttf";
 
-        try (ZipInputStream archive = new ZipInputStream(fichier)) {
-            ZipEntry entree;
+        try (InputStream fichier =
+                BrawlMuLa.class.getResourceAsStream(chemin)) {
 
-            while ((entree = archive.getNextEntry()) != null) {
-                String nom = entree.getName().toLowerCase(Locale.ROOT);
-
-                if (entree.isDirectory() || !nom.endsWith(".ttf")) {
-                    continue;
-                }
-
-                byte[] donnees = archive.readAllBytes();
-
-                Font police = Font.createFont(
-                        Font.TRUETYPE_FONT,
-                        new ByteArrayInputStream(donnees)
-                );
-
-                environnement.registerFont(police);
-
-                if ("Fairfax".equals(police.getFamily(Locale.ROOT))) {
-                    fairfaxChargee = true;
-                }
+            if (fichier == null) {
+                System.err.println(
+                        "Police Fairfax introuvable : " + chemin);
+                return;
             }
+
+            policeFairfax = Font.createFont(
+                    Font.TRUETYPE_FONT,
+                    fichier
+            );
+
+            GraphicsEnvironment environnement =
+                    GraphicsEnvironment
+                            .getLocalGraphicsEnvironment();
+
+            environnement.registerFont(policeFairfax);
+
+            System.out.println(
+                    "Police Fairfax chargée : "
+                    + policeFairfax.getFamily()
+            );
+
+        } catch (Exception e) {
+            System.err.println(
+                    "Erreur de chargement Fairfax : "
+                    + e.getMessage()
+            );
+        }
+    }
+
+    // Applique Fairfax aux composants Swing
+    // qui utilisent la police Fairfax.
+    public static void appliquerPoliceFairfax(Container parent) {
+
+        chargerPoliceFairfax();
+
+        if (policeFairfax == null) {
+            return;
         }
 
-        if (!fairfaxChargee) {
-            throw new IOException(
-                    "L’archive ne contient aucune police de la famille Fairfax."
-            );
+        for (Component composant : parent.getComponents()) {
+
+            Font anciennePolice = composant.getFont();
+
+            if (anciennePolice != null
+                    && anciennePolice.getName()
+                            .equalsIgnoreCase("Fairfax")) {
+
+                composant.setFont(
+                        policeFairfax.deriveFont(
+                                anciennePolice.getStyle(),
+                                (float) anciennePolice.getSize()
+                        )
+                );
+            }
+
+            if (composant instanceof Container) {
+                appliquerPoliceFairfax((Container) composant);
+            }
         }
     }
 }
