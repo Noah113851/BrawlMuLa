@@ -118,6 +118,7 @@ public final class FenetreIntroCarte extends JFrame {
 
         private final BufferedImage decor;
         private final String nom;
+        private final boolean introductionMarche;
         private final Timer animation;
         private long debutNs;
 
@@ -126,6 +127,8 @@ public final class FenetreIntroCarte extends JFrame {
                 throw new IllegalArgumentException("Nom de carte manquant");
             }
             this.nom = nomCarte.toUpperCase(Locale.FRENCH);
+            this.introductionMarche = cheminCarte.replace('\\', '/')
+                    .toLowerCase(Locale.ROOT).endsWith("/marche.png");
             this.decor = chargerDecor(cheminCarte);
             setPreferredSize(new Dimension(LARGEUR, HAUTEUR));
             setBackground(Color.BLACK);
@@ -198,18 +201,29 @@ public final class FenetreIntroCarte extends JFrame {
                                 / (double) DUREE_NS);
                 double mouvement = douceur(t / 0.91);
 
-                // 1) Camera : zoom 1.30 -> 1.00 et glissement droite -> centre.
-                // L'echelle de base remplit l'ecran en respectant le ratio
-                // ORIGINAL du decor : jamais de deformation ni de bords noirs.
+                // 1) Camera : chaque carte a sa propre trajectoire.
+                // Le Chateau reste EXACTEMENT comme dans la version validee.
+                // Le Marche part d'un plan serre en bas a gauche, puis la
+                // camera glisse en diagonale vers le centre en dezoomant.
+                // Le ratio ORIGINAL du decor est toujours respecte.
                 double echelleCouverture = Math.max(
                         w / (double) decor.getWidth(),
                         h / (double) decor.getHeight());
-                double zoom = 1.30 - 0.30 * mouvement;
+                double zoom;
+                double fractionX;
+                double fractionY;
+                if (introductionMarche) {
+                    zoom = 1.36 - 0.36 * mouvement;
+                    fractionX = 0.20 + 0.30 * mouvement;
+                    fractionY = 0.73 - 0.23 * mouvement;
+                } else {
+                    zoom = 1.30 - 0.30 * mouvement;
+                    fractionX = 0.69 - 0.19 * mouvement;
+                    fractionY = 0.34 + 0.16 * mouvement;
+                }
                 double largeurImage = decor.getWidth() * echelleCouverture * zoom;
                 double hauteurImage = decor.getHeight() * echelleCouverture * zoom;
 
-                double fractionX = 0.69 - 0.19 * mouvement;
-                double fractionY = 0.34 + 0.16 * mouvement;
                 int imageX = (int) Math.round(-(largeurImage - w) * fractionX);
                 int imageY = (int) Math.round(-(hauteurImage - h) * fractionY);
 
