@@ -21,6 +21,9 @@ public class Selection extends javax.swing.JFrame {
     private final JLabel[] nomsJoueurs;
     private final JLabel[] portraitsJoueurs;
     private boolean partieLancee = false;
+    private final boolean[] joueursPresents = {
+        true, false, false ,false
+    };
 
     private final int[] choixJoueurs = {-1, -1, -1, -1};
     private int choixCarte = 0;
@@ -38,6 +41,9 @@ public class Selection extends javax.swing.JFrame {
         setLocationRelativeTo(null);
 
         this.monNumeroJoueur = monNumeroJoueur;
+        if (monNumeroJoueur >= 1 && monNumeroJoueur <= 4) {
+    joueursPresents[monNumeroJoueur - 1] = true;
+}
         this.isHost = (monNumeroJoueur == 1);
         this.reseau = reseau;
         nomsJoueurs = new JLabel[]{lblNomJ1, lblNomJ2, lblNomJ3, lblNomJ4};
@@ -66,6 +72,19 @@ public class Selection extends javax.swing.JFrame {
     }
 
     private void traiterMessageReseau(String msg) {
+        // Detection des joueurs connectes au salon.
+if (msg != null && msg.matches("PRESENCE_P[1-4]")) {
+
+    int numeroJoueur = msg.charAt(msg.length() - 1) - '1';
+
+    joueursPresents[numeroJoueur] = true;
+
+    System.out.println(
+            "Joueur J" + (numeroJoueur + 1) + " connecte."
+    );
+
+    return;
+}
         if (Reseau.DEBUT_COMBAT.equals(msg)) {
             ouvrirFenetreDeJeu();
             return;
