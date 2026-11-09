@@ -27,7 +27,7 @@ public class Reseau {
     private static final int POSITION_INACTIVE = Avatar.LIMITE_CHUTE + 1;
     private static final int INTERVALLE_COMBAT_MS = 40;
     private static final String LIGNES_JOUEURS =
-            "emplacement BETWEEN 1 AND 4 AND pseudo = CONCAT('ChoixJ', emplacement)";
+            "pseudo IN ('ChoixJ1', 'ChoixJ2', 'ChoixJ3', 'ChoixJ4')";
     private static final String COMBAT_ACTIF =
             "EXISTS (SELECT 1 FROM reseau_salon WHERE id = ? AND message = 'START_GAME')";
 
@@ -173,6 +173,7 @@ public class Reseau {
                     if (!"P1".equals(monIdJoueur)) {
                         throw new SQLException("Seul l’hôte peut lancer le combat.");
                     }
+                    verifierLignesJoueurs(c);
                     // Les slots restent invisibles jusqu'à leur première position réelle.
                     try (PreparedStatement st = c.prepareStatement(
                             "UPDATE Joueur SET x = 0, y = ? WHERE " + LIGNES_JOUEURS)) {
@@ -185,6 +186,24 @@ public class Reseau {
             } catch (SQLException e) {
                 c.rollback();
                 throw e;
+            }
+        }
+    }
+
+    private void verifierLignesJoueurs(Connection c) throws SQLException {
+        // Une ancienne table peut avoir un emplacement vide ou différent du numéro du joueur.
+        // Le pseudo ChoixJ1..ChoixJ4 identifie la ligne utilisée par le relais.
+        try (PreparedStatement st = c.prepareStatement(
+                "SELECT CONCAT('ChoixJ', RIGHT(s.message, 1)) AS pseudo_attendu, "
+                + "COUNT(j.pseudo) AS nombre FROM reseau_salon s "
+                + "LEFT JOIN Joueur j ON j.pseudo = CONCAT('ChoixJ', RIGHT(s.message, 1)) "
+                + "WHERE s.message IN ('PRESENCE_P1', 'PRESENCE_P2', 'PRESENCE_P3', 'PRESENCE_P4') "
+                + "GROUP BY s.message HAVING COUNT(j.pseudo) <> 1");
+             ResultSet rs = st.executeQuery()) {
+            if (rs.next()) {
+                throw new SQLException("La table Joueur doit contenir exactement une ligne pour "
+                        + rs.getString("pseudo_attendu") + " (" + rs.getInt("nombre")
+                        + " trouvée(s)). Vérifiez les lignes de la BDD avant de relancer le combat.");
             }
         }
     }
@@ -234,24 +253,23 @@ public class Reseau {
         }
     }
 
-    public void demarrerSynchronisation(int emplacement, int x, int y) {
+    public void demarrerSynchronisation(int numeroJoueur, int x, int y) {
         envoyerMaPosition(x, y);
-        synchronisationCombat = new Thread(() -> synchroniserPositions(emplacement), "brawlmula-positions");
+        synchronisationCombat = new Thread(() -> synchroniserPositions(numeroJoueur), "brawlmula-positions");
         synchronisationCombat.setDaemon(true);
         synchronisationCombat.start();
     }
 
-    private void synchroniserPositions(int emplacement) {
+    private void synchroniserPositions(int numeroJoueur) {
         try {
             while (!ferme) {
                 try (Connection c = getConnexion();
                      PreparedStatement envoyer = c.prepareStatement(
-                             "UPDATE Joueur SET x = ?, y = ? WHERE emplacement = ? AND "
-                             + LIGNES_JOUEURS + " AND " + COMBAT_ACTIF);
+                             "UPDATE Joueur SET x = ?, y = ? WHERE pseudo = ? AND " + COMBAT_ACTIF);
                      PreparedStatement lire = c.prepareStatement(
-                             "SELECT emplacement, x, y FROM Joueur WHERE y <> ? AND "
+                             "SELECT RIGHT(TRIM(pseudo), 1) AS numero_joueur, x, y FROM Joueur WHERE y <> ? AND "
                              + LIGNES_JOUEURS + " AND " + COMBAT_ACTIF)) {
-                    envoyer.setInt(3, emplacement);
+                    envoyer.setString(3, "ChoixJ" + numeroJoueur);
                     envoyer.setInt(4, idCombat);
                     lire.setInt(1, POSITION_INACTIVE);
                     lire.setInt(2, idCombat);
@@ -267,7 +285,7 @@ public class Reseau {
                         List<JoueurData> joueurs = new ArrayList<>(4);
                         try (ResultSet rs = lire.executeQuery()) {
                             while (rs.next()) {
-                                joueurs.add(new JoueurData(rs.getInt("emplacement"),
+                                joueurs.add(new JoueurData(rs.getInt("numero_joueur"),
                                         rs.getInt("x"), rs.getInt("y")));
                             }
                         }
