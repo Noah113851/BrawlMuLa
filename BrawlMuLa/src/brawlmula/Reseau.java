@@ -26,10 +26,10 @@ public class Reseau {
     static final String DEBUT_COMBAT = "START_GAME";
     private static final int POSITION_INACTIVE = Avatar.LIMITE_CHUTE + 1;
     private static final int INTERVALLE_COMBAT_MS = 40;
-    private static final String LIGNES_JOUEURS =
-            "pseudo IN ('ChoixJ1', 'ChoixJ2', 'ChoixJ3', 'ChoixJ4')";
-    private static final String COMBAT_ACTIF =
-            "EXISTS (SELECT 1 FROM reseau_salon WHERE id = ? AND message = 'START_GAME')";
+    private static final String LIGNES_JOUEURS
+            = "pseudo IN ('ChoixJ1', 'ChoixJ2', 'ChoixJ3', 'ChoixJ4')";
+    private static final String COMBAT_ACTIF
+            = "EXISTS (SELECT 1 FROM reseau_salon WHERE id = ? AND message = 'START_GAME')";
 
     private final ExecutorService messagesSortants = Executors.newSingleThreadExecutor(tache -> {
         Thread thread = new Thread(tache, "brawlmula-envoi-salon");
@@ -41,6 +41,7 @@ public class Reseau {
     private volatile int idCombat;
     private volatile boolean ferme;
     private Thread ecouteSalon;
+    private Thread ecouteAttaques;
     private Thread synchronisationCombat;
     private volatile Position maPosition;
     private volatile List<JoueurData> positionsJoueurs = List.of();
@@ -65,8 +66,7 @@ public class Reseau {
     }
 
     public void enregistrerHote() throws SQLException {
-        try (Connection c = getConnexion();
-             PreparedStatement st = c.prepareStatement("DELETE FROM reseau_salon")) {
+        try (Connection c = getConnexion(); PreparedStatement st = c.prepareStatement("DELETE FROM reseau_salon")) {
             c.setAutoCommit(false);
             try {
                 st.executeUpdate();
@@ -87,8 +87,7 @@ public class Reseau {
                 idSalon = verrouillerSalon(c);
                 verifierSalonOuvert(c);
                 try (PreparedStatement st = c.prepareStatement(
-                        "SELECT COUNT(*) FROM reseau_salon WHERE message LIKE 'PRESENCE_P%'");
-                     ResultSet rs = st.executeQuery()) {
+                        "SELECT COUNT(*) FROM reseau_salon WHERE message LIKE 'PRESENCE_P%'"); ResultSet rs = st.executeQuery()) {
                     rs.next();
                     int numero = rs.getInt(1) + 1;
                     if (numero > 4) {
@@ -109,8 +108,7 @@ public class Reseau {
     // Sérialise les inscriptions, les choix et le départ sur la ligne de l'hôte.
     private int verrouillerSalon(Connection c) throws SQLException {
         try (PreparedStatement st = c.prepareStatement(
-                "SELECT id FROM reseau_salon WHERE emetteur = 'P1' AND message = 'PRESENCE_P1' FOR UPDATE");
-             ResultSet rs = st.executeQuery()) {
+                "SELECT id FROM reseau_salon WHERE emetteur = 'P1' AND message = 'PRESENCE_P1' FOR UPDATE"); ResultSet rs = st.executeQuery()) {
             if (!rs.next()) {
                 throw new SQLException("Aucun salon disponible.");
             }
@@ -120,8 +118,7 @@ public class Reseau {
 
     private void verifierSalonOuvert(Connection c) throws SQLException {
         try (PreparedStatement st = c.prepareStatement(
-                "SELECT id FROM reseau_salon WHERE message = 'START_GAME'");
-             ResultSet rs = st.executeQuery()) {
+                "SELECT id FROM reseau_salon WHERE message = 'START_GAME'"); ResultSet rs = st.executeQuery()) {
             if (rs.next()) {
                 throw new SQLException("Le combat a déjà commencé.");
             }
@@ -198,8 +195,7 @@ public class Reseau {
                 + "COUNT(j.pseudo) AS nombre FROM reseau_salon s "
                 + "LEFT JOIN Joueur j ON j.pseudo = CONCAT('ChoixJ', RIGHT(s.message, 1)) "
                 + "WHERE s.message IN ('PRESENCE_P1', 'PRESENCE_P2', 'PRESENCE_P3', 'PRESENCE_P4') "
-                + "GROUP BY s.message HAVING COUNT(j.pseudo) <> 1");
-             ResultSet rs = st.executeQuery()) {
+                + "GROUP BY s.message HAVING COUNT(j.pseudo) <> 1"); ResultSet rs = st.executeQuery()) {
             if (rs.next()) {
                 throw new SQLException("La table Joueur doit contenir exactement une ligne pour "
                         + rs.getString("pseudo_attendu") + " (" + rs.getInt("nombre")
@@ -218,10 +214,9 @@ public class Reseau {
         int dernierIdLu = idSalon;
         try {
             while (!ferme) {
-                try (Connection c = getConnexion();
-                     PreparedStatement st = c.prepareStatement(
-                             "SELECT id, message FROM reseau_salon WHERE id > ? "
-                             + "AND EXISTS (SELECT 1 FROM reseau_salon WHERE id = ?) ORDER BY id")) {
+                try (Connection c = getConnexion(); PreparedStatement st = c.prepareStatement(
+                        "SELECT id, message FROM reseau_salon WHERE id > ? "
+                        + "AND EXISTS (SELECT 1 FROM reseau_salon WHERE id = ?) ORDER BY id")) {
                     st.setInt(1, dernierIdLu);
                     st.setInt(2, idSalon);
                     try (ResultSet rs = st.executeQuery()) {
@@ -263,12 +258,10 @@ public class Reseau {
     private void synchroniserPositions(int numeroJoueur) {
         try {
             while (!ferme) {
-                try (Connection c = getConnexion();
-                     PreparedStatement envoyer = c.prepareStatement(
-                             "UPDATE Joueur SET x = ?, y = ? WHERE pseudo = ? AND " + COMBAT_ACTIF);
-                     PreparedStatement lire = c.prepareStatement(
-                             "SELECT RIGHT(TRIM(pseudo), 1) AS numero_joueur, x, y FROM Joueur WHERE y <> ? AND "
-                             + LIGNES_JOUEURS + " AND " + COMBAT_ACTIF)) {
+                try (Connection c = getConnexion(); PreparedStatement envoyer = c.prepareStatement(
+                        "UPDATE Joueur SET x = ?, y = ? WHERE pseudo = ? AND " + COMBAT_ACTIF); PreparedStatement lire = c.prepareStatement(
+                                "SELECT RIGHT(TRIM(pseudo), 1) AS numero_joueur, x, y FROM Joueur WHERE y <> ? AND "
+                                + LIGNES_JOUEURS + " AND " + COMBAT_ACTIF)) {
                     envoyer.setString(3, "ChoixJ" + numeroJoueur);
                     envoyer.setInt(4, idCombat);
                     lire.setInt(1, POSITION_INACTIVE);
@@ -321,9 +314,109 @@ public class Reseau {
         if (synchronisationCombat != null) {
             synchronisationCombat.interrupt();
         }
+        if (ecouteAttaques != null) {
+            ecouteAttaques.interrupt();
+        }
+
     }
 
-    private record Position(int x, int y) { }
+    private record Position(int x, int y) {
 
-    public record JoueurData(int emplacement, int x, int y) { }
+    }
+
+    public void envoyerAttaque() {
+
+        if (ferme || idCombat == 0) {
+            return;
+        }
+
+        messagesSortants.execute(() -> {
+
+            String sql
+                    = "INSERT INTO reseau_salon (emetteur, message) "
+                    + "SELECT ?, ? WHERE " + COMBAT_ACTIF;
+
+            try (Connection c = getConnexion(); PreparedStatement st = c.prepareStatement(sql)) {
+
+                st.setString(1, monIdJoueur);
+                st.setString(2, "ATTAQUE_" + monIdJoueur);
+                st.setInt(3, idCombat);
+
+                st.executeUpdate();
+
+            } catch (SQLException e) {
+                System.err.println(
+                        "Erreur envoi attaque : " + e.getMessage()
+                );
+            }
+        });
+    }
+
+    public void demarrerEcouteAttaques(
+            Consumer<Integer> recevoirAttaque) {
+
+        ecouteAttaques = new Thread(() -> {
+
+            int dernierIdLu = idCombat;
+
+            while (!ferme) {
+
+                try (Connection c = getConnexion(); PreparedStatement st = c.prepareStatement(
+                        "SELECT id, message FROM reseau_salon "
+                        + "WHERE id > ? "
+                        + "AND message LIKE 'ATTAQUE_P%' "
+                        + "AND " + COMBAT_ACTIF
+                        + " ORDER BY id")) {
+
+                    st.setInt(1, dernierIdLu);
+                    st.setInt(2, idCombat);
+
+                    try (ResultSet rs = st.executeQuery()) {
+
+                        while (rs.next() && !ferme) {
+
+                            dernierIdLu = rs.getInt("id");
+
+                            String message = rs.getString("message");
+
+                            if (message.matches("ATTAQUE_P[1-4]")) {
+
+                                int numero = message.charAt(8) - '0';
+
+                                EventQueue.invokeLater(() -> {
+                                    if (!ferme) {
+                                        recevoirAttaque.accept(numero);
+                                    }
+                                });
+                            }
+                        }
+                    }
+
+                } catch (SQLException e) {
+
+                    if (!ferme) {
+                        System.err.println(
+                                "Erreur réception attaque : "
+                                + e.getMessage()
+                        );
+                    }
+                }
+
+                try {
+                    Thread.sleep(120);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+            }
+
+        }, "brawlmula-attaques");
+
+        ecouteAttaques.setDaemon(true);
+        ecouteAttaques.start();
+    }
+
+    public record JoueurData(int emplacement, int x, int y) {
+
+    }
 }

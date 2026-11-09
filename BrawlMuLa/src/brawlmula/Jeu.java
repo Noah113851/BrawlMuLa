@@ -33,7 +33,7 @@ public class Jeu {
     }
 
     public Jeu(String j1, String j2, String j3, String j4,
-               String cheminCarte, Reseau reseau, int monNumeroJoueur) {
+            String cheminCarte, Reseau reseau, int monNumeroJoueur) {
         if (monNumeroJoueur < 1 || monNumeroJoueur > avatars.length) {
             throw new IllegalArgumentException("Numéro de joueur invalide : " + monNumeroJoueur);
         }
@@ -55,6 +55,20 @@ public class Jeu {
         placerAvatarSurPlateformePrincipale();
         if (reseau != null) {
             reseau.demarrerSynchronisation(monNumeroJoueur, (int) avatar.x, (int) avatar.y);
+
+            reseau.demarrerEcouteAttaques(numero -> {
+
+                int index = numero - 1;
+
+                if (index >= 0
+                        && index < avatars.length
+                        && index != indexLocal
+                        && avatars[index] != null) {
+
+                    avatars[index].afficherAttaqueDistante();
+                }
+            });
+
         }
     }
 
@@ -131,27 +145,55 @@ public class Jeu {
     }
 
     private void actualiserAvatarsDistants() {
-        for (Reseau.JoueurData etat : reseau.lireTousLesJoueurs()) {
+
+        for (Reseau.JoueurData etat
+                : reseau.lireTousLesJoueurs()) {
+
             int index = etat.emplacement() - 1;
-            if (index == indexLocal || index < 0 || index >= avatars.length) {
+
+            if (index == indexLocal
+                    || index < 0
+                    || index >= avatars.length) {
                 continue;
             }
 
             Avatar distant = avatars[index];
+
+            if (distant == null) {
+                continue;
+            }
+
             if (!avatarsVisibles[index]) {
+
                 distant.x = etat.x();
                 distant.y = etat.y();
+
+                distant.actualiserAnimationDistante(0, 0);
+
                 avatarsVisibles[index] = true;
                 continue;
             }
 
+            double ancienX = distant.x;
+            double ancienY = distant.y;
+
             double dx = etat.x() - distant.x;
             double dy = etat.y() - distant.y;
+
             double distance = Math.hypot(dx, dy);
-            // Lisser les deplacements et appliquer directement les reapparitions.
-            double fraction = distance < 1 || distance >= DISTANCE_TELEPORTATION ? 1 : 0.5;
+
+            double fraction
+                    = distance < 1
+                    || distance >= DISTANCE_TELEPORTATION
+                            ? 1.0 : 0.5;
+
             distant.x += fraction * dx;
             distant.y += fraction * dy;
+
+            distant.actualiserAnimationDistante(
+                    distant.x - ancienX,
+                    distant.y - ancienY
+            );
         }
     }
 
@@ -170,6 +212,16 @@ public class Jeu {
     }
 
     public void gererToucheAppuyee(int codeTouche) {
+
+        if (codeTouche == java.awt.event.KeyEvent.VK_J) {
+
+            if (avatar.attaquer() && reseau != null) {
+                reseau.envoyerAttaque();
+            }
+
+            return;
+        }
+
         avatar.gererToucheAppuyee(codeTouche);
     }
 

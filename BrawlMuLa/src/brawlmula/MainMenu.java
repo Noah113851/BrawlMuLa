@@ -23,7 +23,7 @@ public class MainMenu extends javax.swing.JFrame {
         setSize(1280, 760);
         setLocationRelativeTo(null);
 
-        Musiques_sons.playLoop("src/ressources/Musiques-sons/Welcome-Music-Brawlmula-Soundtrack.wav");
+        Musiques_sons.playLoop("/ressources/Musiques-sons/Welcome-Music-Brawlmula-Soundtrack.wav");
     }
 
     /**

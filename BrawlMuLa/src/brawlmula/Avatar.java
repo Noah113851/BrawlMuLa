@@ -35,7 +35,15 @@ public class Avatar {
     static final int LIMITE_CHUTE = ConfigurationCarte.HAUTEUR + 150;
     private static final int LARGEUR_HITBOX = 90;
     private static final int HAUTEUR_HITBOX = 110;
+    private static final long DUREE_ATTAQUE = 300_000_000L;
+    private static final long DELAI_ATTAQUE = 600_000_000L;
 
+    private long debutAttaque = 0L;
+    private long derniereAttaque = 0L;
+
+    private boolean animationDistante = false;
+    private long dernierMouvementDistant = 0L;
+    private long dernierSautDistant = 0L;
     private static final int DECALAGE_HITBOX_X
             = (LARGEUR_AVATAR - LARGEUR_HITBOX) / 2;
 
@@ -405,15 +413,168 @@ public class Avatar {
         }
     }
 
+// Déclencher une attaque avec un délai entre deux coups
+    public boolean attaquer() {
+        long maintenant = System.nanoTime();
+
+        if (derniereAttaque != 0L
+                && maintenant - derniereAttaque < DELAI_ATTAQUE) {
+            return false;
+        }
+
+        debutAttaque = maintenant;
+        derniereAttaque = maintenant;
+        return true;
+    }
+
+// Afficher l'attaque d'un joueur distant
+    public void afficherAttaqueDistante() {
+        debutAttaque = System.nanoTime();
+    }
+
+// Déduire les animations des déplacements réseau
+    public void actualiserAnimationDistante(double dx, double dy) {
+        animationDistante = true;
+
+        long maintenant = System.nanoTime();
+
+        if (Math.abs(dx) > 0.5) {
+            dernierMouvementDistant = maintenant;
+            regardeGauche = dx < 0;
+        }
+
+        if (Math.abs(dy) > 1.0) {
+            dernierSautDistant = maintenant;
+        }
+    }
+
     public void rendu(Graphics2D contexte) {
+
         if (sprite == null) {
             return;
         }
-        if (regardeGauche) {
-            contexte.drawImage(sprite, (int) x + LARGEUR_AVATAR, (int) y,
-                    -LARGEUR_AVATAR, HAUTEUR_AVATAR, null);
+
+        long maintenant = System.nanoTime();
+
+        boolean attaque = debutAttaque != 0L
+                && maintenant - debutAttaque < DUREE_ATTAQUE;
+
+        boolean saute = animationDistante
+                ? maintenant - dernierSautDistant < 160_000_000L
+                : !auSol;
+
+        boolean marche = animationDistante
+                ? maintenant - dernierMouvementDistant < 160_000_000L
+                : (gauche != droite) && auSol;
+
+        double temps = maintenant / 1_000_000_000.0;
+        double oscillation = Math.sin(temps * 18.0);
+
+        double echelleX = 1.0;
+        double echelleY = 1.0;
+        double inclinaison = 0.0;
+        double avance = 0.0;
+        double rebond = 0.0;
+
+        double progressionAttaque = 0.0;
+
+        if (attaque) {
+
+            progressionAttaque
+                    = (maintenant - debutAttaque)
+                    / (double) DUREE_ATTAQUE;
+
+            double mouvement
+                    = Math.sin(Math.PI * progressionAttaque);
+
+            // Le personnage se projette vers l'avant
+            echelleX = 1.0 + 0.12 * mouvement;
+            echelleY = 1.0 - 0.05 * mouvement;
+            inclinaison = 0.13 * mouvement;
+            avance = 15.0 * mouvement;
+
+        } else if (saute) {
+
+            // Le corps s'étire pendant le saut
+            echelleX = 0.94;
+            echelleY = 1.09;
+            inclinaison = 0.02 * oscillation;
+
+        } else if (marche) {
+
+            // Balancement gauche / droite
+            echelleX = 1.0 - 0.02 * oscillation;
+            echelleY = 1.0 + 0.03 * oscillation;
+            inclinaison = 0.055 * oscillation;
+
+            // Petit rebond des pas
+            rebond = 2.0 * Math.abs(oscillation);
+
         } else {
-            contexte.drawImage(sprite, (int) x, (int) y, null);
+
+            // Légère respiration au repos
+            echelleY = 1.0 + 0.008
+                    * Math.sin(temps * 4.0);
+        }
+
+        Graphics2D g = (Graphics2D) contexte.create();
+
+        try {
+
+            double direction = regardeGauche ? -1.0 : 1.0;
+
+            // Placer l'origine aux pieds du personnage
+            g.translate(
+                    x + LARGEUR_AVATAR / 2.0 + direction * avance,
+                    y + HAUTEUR_AVATAR - rebond
+            );
+
+            // Retourner le sprite selon la direction
+            g.scale(direction * echelleX, echelleY);
+
+            // Appliquer le balancement
+            g.rotate(inclinaison);
+
+            g.drawImage(
+                    sprite,
+                    -LARGEUR_AVATAR / 2,
+                    -HAUTEUR_AVATAR,
+                    null
+            );
+
+            // Effet visuel d'attaque
+            if (attaque) {
+
+                int transparence = (int) (220 * Math.sin(
+                        Math.PI * progressionAttaque
+                ));
+
+                transparence = Math.max(
+                        0, Math.min(255, transparence)
+                );
+
+                g.setColor(new java.awt.Color(
+                        255, 225, 120, transparence
+                ));
+
+                g.setStroke(new java.awt.BasicStroke(
+                        6f,
+                        java.awt.BasicStroke.CAP_ROUND,
+                        java.awt.BasicStroke.JOIN_ROUND
+                ));
+
+                g.drawArc(
+                        LARGEUR_AVATAR / 2 - 30,
+                        -HAUTEUR_AVATAR + 22,
+                        70,
+                        85,
+                        -75,
+                        120
+                );
+            }
+
+        } finally {
+            g.dispose();
         }
     }
 }
