@@ -1,53 +1,75 @@
 package brawlmula;
 
 import java.awt.Graphics2D;
-import java.util.List;
+import static brawlmula.Avatar.HAUTEUR_AVATAR;
+import static brawlmula.Avatar.LARGEUR_AVATAR;
 
 /**
- * Moteur du jeu : carte, personnage, collisions et synchronisation reseau.
+ * Physique de l'avatar local et rendu des combattants dans la boucle a 40 ms.
  */
 public class Jeu {
 
-    public Avatar avatar;
+    private static final double DISTANCE_TELEPORTATION = 180;
+
+    public final Avatar avatar;
     private final PanneauCombat panneauCombat;
-    private static final double HAUTEUR_AVATAR = 100;
-    private static final double LARGEUR_AVATAR = 100;
+    private final Avatar[] avatars = new Avatar[4];
+    private final boolean[] avatarsVisibles = new boolean[avatars.length];
+    private final Reseau reseau;
+    private final int indexLocal;
 
-    // Conserve la compatibilite avec le multijoueur existant.
-    private Reseau reseau;
-    private int monNumeroJoueur = 1;
-
+    /**
+     * Compatibilite : FenetreDeJeu() continue d'ouvrir le Chateau.
+     */
     public Jeu() {
         this("/ressources/Maps/chateau.png");
     }
 
+    /**
+     * Une meme physique, mais un decor et des plateformes selon la carte.
+     */
     public Jeu(String cheminCarte) {
-        panneauCombat = new PanneauCombat(cheminCarte);
-        panneauCombat.setSize(ConfigurationCarte.LARGEUR, ConfigurationCarte.HAUTEUR);
-        panneauCombat.setAfficherHitboxes(false);
-
-        avatar = new Avatar();
-        avatar.connecterPlateformes(panneauCombat.getGestionnairePlateformes());
-        placerAvatarSurPlateformePrincipale();
+        this("Carrot", null, null, null, cheminCarte, null, 1);
     }
 
     public Jeu(String j1, String j2, String j3, String j4,
                String cheminCarte, Reseau reseau, int monNumeroJoueur) {
-        this(cheminCarte);
+        if (monNumeroJoueur < 1 || monNumeroJoueur > avatars.length) {
+            throw new IllegalArgumentException("Numéro de joueur invalide : " + monNumeroJoueur);
+        }
         this.reseau = reseau;
-        this.monNumeroJoueur = monNumeroJoueur;
+        indexLocal = monNumeroJoueur - 1;
+        String[] personnages = {j1, j2, j3, j4};
+        for (int index = 0; index < avatars.length; index++) {
+            if (reseau != null || index == indexLocal) {
+                avatars[index] = new Avatar(personnages[index]);
+            }
+        }
+        avatarsVisibles[indexLocal] = true;
+        panneauCombat = new PanneauCombat(cheminCarte, avatars, avatarsVisibles);
+        panneauCombat.setSize(ConfigurationCarte.LARGEUR, ConfigurationCarte.HAUTEUR);
+        panneauCombat.setAfficherHitboxes(false);
+
+        avatar = avatars[indexLocal];
+        avatar.connecterPlateformes(panneauCombat.getGestionnairePlateformes());
+        placerAvatarSurPlateformePrincipale();
+        if (reseau != null) {
+            reseau.demarrerSynchronisation(monNumeroJoueur, (int) avatar.x, (int) avatar.y);
+        }
     }
 
+    /**
+     * Apparition initiale sur le support principal.
+     */
     private void placerAvatarSurPlateformePrincipale() {
-        if (estCarteFlottante()) {
-            Plateforme principale = chercherPlateformePrincipaleFlottante();
-            avatar.x = principale.getX()
-                    + (principale.getLargeur() - LARGEUR_AVATAR) / 2.0;
+        if (reseau != null || estCarteFlottante()) {
+            Plateforme principale = chercherPlateformePrincipale();
+            double fraction = reseau == null ? 0.5 : (indexLocal + 0.5) / avatars.length;
+            avatar.x = principale.getX() + principale.getLargeur() * fraction - LARGEUR_AVATAR / 2.0;
             avatar.y = principale.getY() - HAUTEUR_AVATAR;
             return;
         }
-
-        // Chateau : sol principal deja represente dans le decor.
+        // Conserver l'apparition du Chateau et des autres cartes.
         double solLePlusHaut = Double.POSITIVE_INFINITY;
         double avatarX = avatar.x;
         for (Plateforme p : panneauCombat.getGestionnairePlateformes().getPlateformes()) {
@@ -62,6 +84,10 @@ public class Jeu {
         }
     }
 
+    /**
+     * Le Marche, le Potager et la Colonie ont une plateforme principale
+     * flottante.
+     */
     private boolean estCarteFlottante() {
         String nom = panneauCombat.getConfiguration().getNom();
         return "MARCHE".equals(nom)
@@ -69,7 +95,10 @@ public class Jeu {
                 || "COLONIE".equals(nom);
     }
 
-    private Plateforme chercherPlateformePrincipaleFlottante() {
+    /**
+     * Plus grande plateforme solide de la carte.
+     */
+    private Plateforme chercherPlateformePrincipale() {
         Plateforme principale = null;
         for (Plateforme p : panneauCombat.getGestionnairePlateformes().getPlateformes()) {
             if (p.getType() == Plateforme.Type.SOLIDE
@@ -85,57 +114,66 @@ public class Jeu {
     }
 
     public void miseAJour() {
-        // Un seul Timer pilote le monde et le personnage (40 ms par tick).
+        // Un seul Timer pilote les plateformes et le personnage local (40 ms par tick).
         panneauCombat.getGestionnairePlateformes().miseAJour(0.040);
         avatar.miseAJour();
 
-        // Marche, Potager et Colonie : reapparition sur le grand plateau.
+        // Sur les cartes flottantes, remettre l'avatar sur le plateau principal.
         if (estCarteFlottante() && avatar.y > ConfigurationCarte.HAUTEUR) {
-            reapparaitreSurPlateformePrincipale();
+            avatar.connecterPlateformes(panneauCombat.getGestionnairePlateformes());
+            placerAvatarSurPlateformePrincipale();
         }
 
-        // Synchronisation reseau deja presente dans le projet.
         if (reseau != null) {
-            reseau.envoyerMaPosition(
-                    monNumeroJoueur, (int) avatar.x, (int) avatar.y);
-
-            List<Reseau.JoueurData> etatsBDD = reseau.lireTousLesJoueurs();
-            for (Reseau.JoueurData data : etatsBDD) {
-                if (!data.pseudo.equals("ChoixJ" + monNumeroJoueur)) {
-                    // Les positions distantes pourront servir a l'affichage
-                    // des autres joueurs lors de l'integration multijoueur.
-                }
-            }
+            reseau.envoyerMaPosition((int) avatar.x, (int) avatar.y);
+            actualiserAvatarsDistants();
         }
     }
 
-    private void reapparaitreSurPlateformePrincipale() {
-        Plateforme principale = chercherPlateformePrincipaleFlottante();
-        avatar.connecterPlateformes(panneauCombat.getGestionnairePlateformes());
-        avatar.x = principale.getX()
-                + (principale.getLargeur() - LARGEUR_AVATAR) / 2.0;
-        avatar.y = principale.getY() - HAUTEUR_AVATAR;
+    private void actualiserAvatarsDistants() {
+        for (Reseau.JoueurData etat : reseau.lireTousLesJoueurs()) {
+            int index = etat.emplacement() - 1;
+            if (index == indexLocal || index < 0 || index >= avatars.length) {
+                continue;
+            }
+
+            Avatar distant = avatars[index];
+            if (!avatarsVisibles[index]) {
+                distant.x = etat.x();
+                distant.y = etat.y();
+                avatarsVisibles[index] = true;
+                continue;
+            }
+
+            double dx = etat.x() - distant.x;
+            double dy = etat.y() - distant.y;
+            double distance = Math.hypot(dx, dy);
+            // Lisser les deplacements et appliquer directement les reapparitions.
+            double fraction = distance < 1 || distance >= DISTANCE_TELEPORTATION ? 1 : 0.5;
+            distant.x += fraction * dx;
+            distant.y += fraction * dy;
+        }
     }
 
     public void rendu(Graphics2D contexte) {
         panneauCombat.paint(contexte);
-        avatar.rendu(contexte);
+    }
+
+    public void fermer() {
+        if (reseau != null) {
+            reseau.fermer();
+        }
     }
 
     public PanneauCombat getPanneauCombat() {
         return panneauCombat;
     }
 
-    // Compatibilite avec les appels des touches depuis les autres fenetres.
     public void gererToucheAppuyee(int codeTouche) {
-        if (avatar != null) {
-            avatar.gererToucheAppuyee(codeTouche);
-        }
+        avatar.gererToucheAppuyee(codeTouche);
     }
 
     public void gererToucheRelachee(int codeTouche) {
-        if (avatar != null) {
-            avatar.gererToucheRelachee(codeTouche);
-        }
+        avatar.gererToucheRelachee(codeTouche);
     }
 }

@@ -1,11 +1,14 @@
 package brawlmula;
 
 import java.awt.Graphics2D;
+import java.awt.RenderingHints;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
@@ -16,7 +19,8 @@ import javax.imageio.ImageIO;
  */
 public class Avatar {
 
-    private BufferedImage sprite;
+    private static final Map<String, BufferedImage> SPRITES = new ConcurrentHashMap<>();
+    private final BufferedImage sprite;
     protected double x, y;
     private boolean gauche, droite, haut, bas;
     private boolean regardeGauche = false;
@@ -26,8 +30,9 @@ public class Avatar {
     private static final double SOL = 420;
     private static final double GRAVITE = 15;
     private static final double VITESSE_SAUT = 70;
-    private static final double LARGEUR_AVATAR = 100;
-    private static final double HAUTEUR_AVATAR = 100;
+    static final int LARGEUR_AVATAR = 100;
+    static final int HAUTEUR_AVATAR = 100;
+    static final int LIMITE_CHUTE = ConfigurationCarte.HAUTEUR + 150;
 
     private GestionnairePlateforme gestionnaire;
     private Plateforme support;
@@ -37,7 +42,19 @@ public class Avatar {
     private static final double MARGE_TRAVERSEE = 8.0;
 
     public Avatar() {
-        chargerSpritePersonnage("Carrot");
+        this("Carrot");
+    }
+
+    public Avatar(String nomPersonnage) {
+        String nom = nomPersonnage == null ? "carrot"
+                : nomPersonnage.trim().toLowerCase(Locale.ROOT);
+        String personnage = switch (nom) {
+            case "nikku", "tomato", "potato" -> nom;
+            default -> "carrot";
+        };
+        BufferedImage image = SPRITES.computeIfAbsent(personnage, Avatar::chargerSpritePersonnage);
+        sprite = image == null && !"carrot".equals(personnage)
+                ? SPRITES.computeIfAbsent("carrot", Avatar::chargerSpritePersonnage) : image;
         this.x = 100;
         this.y = SOL;
         this.vy = 0;
@@ -47,50 +64,32 @@ public class Avatar {
         this.bas = false;
     }
 
-    public Avatar(String nomPersonnage) {
-        this();
-        if (nomPersonnage != null && !nomPersonnage.trim().isEmpty()) {
-            chargerSpritePersonnage(nomPersonnage);
-        }
-    }
-
-    /** Charge le personnage choisi sans changer la physique. */
-    private void chargerSpritePersonnage(String nomPersonnage) {
-        if (nomPersonnage == null) {
-            return;
-        }
-        String fichier;
-        switch (nomPersonnage.trim().toLowerCase(Locale.ROOT)) {
-            case "carrot":
-                fichier = "carrot_fight.png";
-                break;
-            case "nikku":
-                fichier = "nikku_fight.png";
-                break;
-            case "tomato":
-                fichier = "tomato_fight.png";
-                break;
-            case "potato":
-                fichier = "potato_fight.png";
-                break;
-            default:
-                fichier = "carrot_fight.png";
-                break;
-        }
-        String chemin = "/ressources/avatars/" + fichier;
-        URL url = getClass().getResource(chemin);
+    /** Redimensionne le sprite une fois au chargement pour la boucle de rendu. */
+    private static BufferedImage chargerSpritePersonnage(String personnage) {
+        String chemin = "/ressources/avatars/" + personnage + "_fight.png";
+        URL url = Avatar.class.getResource(chemin);
         if (url == null) {
             System.err.println("[BrawlMuLa] Sprite introuvable : " + chemin);
-            return;
+            return null;
         }
         try {
             BufferedImage image = ImageIO.read(url);
-            if (image != null) {
-                sprite = image;
+            if (image == null) {
+                throw new IOException("Format d'image invalide");
             }
+            BufferedImage sprite = new BufferedImage(LARGEUR_AVATAR, HAUTEUR_AVATAR, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = sprite.createGraphics();
+            try {
+                g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                g.drawImage(image, 0, 0, LARGEUR_AVATAR, HAUTEUR_AVATAR, null);
+            } finally {
+                g.dispose();
+            }
+            return sprite;
         } catch (IOException e) {
             Logger.getLogger(Avatar.class.getName()).log(Level.SEVERE,
                     "Impossible de charger le sprite : " + chemin, e);
+            return null;
         }
     }
 
@@ -295,7 +294,7 @@ public class Avatar {
         }
 
         // Garde-fou de l'ancienne version (Jeu gere les cartes flottantes).
-        if (y > ConfigurationCarte.HAUTEUR + 150) {
+        if (y > LIMITE_CHUTE) {
             x = 600;
             y = 400;
             vy = 0;
@@ -310,11 +309,10 @@ public class Avatar {
             return;
         }
         if (regardeGauche) {
-            contexte.drawImage(sprite, (int) x + 100, (int) y,
-                    -100, 100, null);
+            contexte.drawImage(sprite, (int) x + LARGEUR_AVATAR, (int) y,
+                    -LARGEUR_AVATAR, HAUTEUR_AVATAR, null);
         } else {
-            contexte.drawImage(sprite, (int) x, (int) y,
-                    100, 100, null);
+            contexte.drawImage(sprite, (int) x, (int) y, null);
         }
     }
 }
