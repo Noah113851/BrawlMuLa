@@ -211,17 +211,20 @@ public class Jeu {
         return panneauCombat;
     }
 
-    public void gererToucheAppuyee(int codeTouche) {
+    public void attaquer() {
 
-        if (codeTouche == java.awt.event.KeyEvent.VK_J) {
+        if (avatar.attaquer()) {
 
-            if (avatar.attaquer() && reseau != null) {
+            // Synchroniser l'attaque avec les autres joueurs
+            if (reseau != null) {
                 reseau.envoyerAttaque();
             }
-
-            return;
         }
+    }
 
+    public void gererToucheAppuyee(int codeTouche) {
+
+        // Conserver uniquement les déplacements et le saut
         avatar.gererToucheAppuyee(codeTouche);
     }
 

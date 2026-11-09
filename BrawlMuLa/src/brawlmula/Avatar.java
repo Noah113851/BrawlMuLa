@@ -21,6 +21,10 @@ public class Avatar {
 
     private static final Map<String, BufferedImage> SPRITES = new ConcurrentHashMap<>();
     private final BufferedImage sprite;
+    private static final Map<String, BufferedImage> SPRITES_ATTAQUE
+            = new ConcurrentHashMap<>();
+
+    private final BufferedImage spriteAttaque;
     protected double x, y;
     private boolean gauche, droite, haut, bas;
     private boolean regardeGauche = false;
@@ -73,6 +77,11 @@ public class Avatar {
         BufferedImage image = SPRITES.computeIfAbsent(personnage, Avatar::chargerSpritePersonnage);
         sprite = image == null && !"carrot".equals(personnage)
                 ? SPRITES.computeIfAbsent("carrot", Avatar::chargerSpritePersonnage) : image;
+
+        spriteAttaque = SPRITES_ATTAQUE.computeIfAbsent(
+                personnage,
+                Avatar::chargerSpriteAttaque
+        );
         this.x = 100;
         this.y = SOL;
         this.vy = 0;
@@ -189,6 +198,61 @@ public class Avatar {
                     Level.SEVERE,
                     "Impossible de charger le sprite : " + chemin,
                     e
+            );
+            return null;
+        }
+    }
+
+    private static BufferedImage chargerSpriteAttaque(String personnage) {
+
+        String chemin = "/ressources/avatars/"
+                + personnage + "_attack.png";
+
+        URL url = Avatar.class.getResource(chemin);
+
+        if (url == null) {
+            System.err.println("Image d'attaque introuvable : " + chemin);
+            return null;
+        }
+
+        try {
+            BufferedImage image = ImageIO.read(url);
+
+            if (image == null) {
+                throw new IOException("Image d'attaque invalide");
+            }
+
+            BufferedImage sprite = new BufferedImage(
+                    LARGEUR_AVATAR,
+                    HAUTEUR_AVATAR,
+                    BufferedImage.TYPE_INT_ARGB
+            );
+
+            Graphics2D g = sprite.createGraphics();
+
+            try {
+                g.setRenderingHint(
+                        RenderingHints.KEY_INTERPOLATION,
+                        RenderingHints.VALUE_INTERPOLATION_BILINEAR
+                );
+
+                g.drawImage(
+                        image,
+                        0,
+                        0,
+                        LARGEUR_AVATAR,
+                        HAUTEUR_AVATAR,
+                        null
+                );
+            } finally {
+                g.dispose();
+            }
+
+            return sprite;
+
+        } catch (IOException e) {
+            System.err.println(
+                    "Erreur chargement attaque : " + e.getMessage()
             );
             return null;
         }
@@ -459,6 +523,12 @@ public class Avatar {
         boolean attaque = debutAttaque != 0L
                 && maintenant - debutAttaque < DUREE_ATTAQUE;
 
+        // Choisir l'image suivant l'état du personnage
+        BufferedImage imageAffichee
+                = attaque && spriteAttaque != null
+                        ? spriteAttaque
+                        : sprite;
+
         boolean saute = animationDistante
                 ? maintenant - dernierSautDistant < 160_000_000L
                 : !auSol;
@@ -476,45 +546,37 @@ public class Avatar {
         double avance = 0.0;
         double rebond = 0.0;
 
-        double progressionAttaque = 0.0;
-
         if (attaque) {
 
-            progressionAttaque
+            double progression
                     = (maintenant - debutAttaque)
                     / (double) DUREE_ATTAQUE;
 
-            double mouvement
-                    = Math.sin(Math.PI * progressionAttaque);
+            double mouvement = Math.sin(
+                    Math.PI * progression
+            );
 
-            // Le personnage se projette vers l'avant
-            echelleX = 1.0 + 0.12 * mouvement;
-            echelleY = 1.0 - 0.05 * mouvement;
-            inclinaison = 0.13 * mouvement;
-            avance = 15.0 * mouvement;
+            // Petit mouvement vers l'avant pendant l'attaque
+            echelleX = 1.0 + 0.06 * mouvement;
+            avance = 8.0 * mouvement;
 
         } else if (saute) {
 
-            // Le corps s'étire pendant le saut
             echelleX = 0.94;
             echelleY = 1.09;
-            inclinaison = 0.02 * oscillation;
 
         } else if (marche) {
 
-            // Balancement gauche / droite
             echelleX = 1.0 - 0.02 * oscillation;
             echelleY = 1.0 + 0.03 * oscillation;
-            inclinaison = 0.055 * oscillation;
 
-            // Petit rebond des pas
+            inclinaison = 0.055 * oscillation;
             rebond = 2.0 * Math.abs(oscillation);
 
         } else {
 
-            // Légère respiration au repos
-            echelleY = 1.0 + 0.008
-                    * Math.sin(temps * 4.0);
+            echelleY = 1.0
+                    + 0.008 * Math.sin(temps * 4.0);
         }
 
         Graphics2D g = (Graphics2D) contexte.create();
@@ -523,55 +585,25 @@ public class Avatar {
 
             double direction = regardeGauche ? -1.0 : 1.0;
 
-            // Placer l'origine aux pieds du personnage
+            // Garder les pieds du personnage au même endroit
             g.translate(
-                    x + LARGEUR_AVATAR / 2.0 + direction * avance,
+                    x + LARGEUR_AVATAR / 2.0
+                    + direction * avance,
                     y + HAUTEUR_AVATAR - rebond
             );
 
-            // Retourner le sprite selon la direction
+            // Retourner automatiquement l'image vers la gauche
             g.scale(direction * echelleX, echelleY);
 
-            // Appliquer le balancement
             g.rotate(inclinaison);
 
+            // Afficher l'image normale ou l'image d'attaque
             g.drawImage(
-                    sprite,
+                    imageAffichee,
                     -LARGEUR_AVATAR / 2,
                     -HAUTEUR_AVATAR,
                     null
             );
-
-            // Effet visuel d'attaque
-            if (attaque) {
-
-                int transparence = (int) (220 * Math.sin(
-                        Math.PI * progressionAttaque
-                ));
-
-                transparence = Math.max(
-                        0, Math.min(255, transparence)
-                );
-
-                g.setColor(new java.awt.Color(
-                        255, 225, 120, transparence
-                ));
-
-                g.setStroke(new java.awt.BasicStroke(
-                        6f,
-                        java.awt.BasicStroke.CAP_ROUND,
-                        java.awt.BasicStroke.JOIN_ROUND
-                ));
-
-                g.drawArc(
-                        LARGEUR_AVATAR / 2 - 30,
-                        -HAUTEUR_AVATAR + 22,
-                        70,
-                        85,
-                        -75,
-                        120
-                );
-            }
 
         } finally {
             g.dispose();

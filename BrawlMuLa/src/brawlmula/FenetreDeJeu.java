@@ -58,6 +58,19 @@ public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener 
         // Transmission de la configuration complète au moteur de jeu
         jeu = new Jeu(j1, j2, j3, j4, carteChoisie, reseau, monNumeroJoueur);
 
+// Attaque avec le clic gauche de la souris
+        jLabel1.addMouseListener(new java.awt.event.MouseAdapter() {
+
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent evt) {
+
+                if (javax.swing.SwingUtilities.isLeftMouseButton(evt)) {
+
+                    jeu.attaquer();
+                }
+            }
+        });
+
         framebuffer = new BufferedImage(jLabel1.getWidth(),
                 jLabel1.getHeight(), BufferedImage.TYPE_INT_ARGB);
         jLabel1.setIcon(new ImageIcon(framebuffer));
