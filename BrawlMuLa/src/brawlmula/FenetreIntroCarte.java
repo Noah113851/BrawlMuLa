@@ -49,7 +49,10 @@ public final class FenetreIntroCarte extends JFrame {
      */
     public FenetreIntroCarte(String cheminCarte, String nomCarte) {
         this(cheminCarte, nomCarte,
-                () -> new FenetreDeJeu(cheminCarte).setVisible(true));
+                () -> new FenetreVS(cheminCarte,
+                        "Carrot", "Nikku", "Tomato", "Potato",
+                        () -> new FenetreDeJeu(cheminCarte).setVisible(true))
+                        .setVisible(true));
     }
 
     /**
