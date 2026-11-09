@@ -69,7 +69,7 @@ public class MainMenu extends javax.swing.JFrame {
             }
         });
         btnCreer.addActionListener(this::btnCreerActionPerformed);
-        getContentPane().add(btnCreer, new org.netbeans.lib.awtextra.AbsoluteConstraints(380, 450, 530, 60));
+        getContentPane().add(btnCreer, new org.netbeans.lib.awtextra.AbsoluteConstraints(430, 450, 440, 50));
 
         btnRejoindre.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
         btnRejoindre.setText("[ Rejoindre Partie ]");
@@ -87,7 +87,7 @@ public class MainMenu extends javax.swing.JFrame {
             }
         });
         btnRejoindre.addActionListener(this::btnRejoindreActionPerformed);
-        getContentPane().add(btnRejoindre, new org.netbeans.lib.awtextra.AbsoluteConstraints(360, 510, 600, 60));
+        getContentPane().add(btnRejoindre, new org.netbeans.lib.awtextra.AbsoluteConstraints(380, 510, 540, 50));
 
         btnReglages1.setFont(new java.awt.Font("Fairfax", 1, 36)); // NOI18N
         btnReglages1.setText("[ Réglages ]");
@@ -105,7 +105,7 @@ public class MainMenu extends javax.swing.JFrame {
             }
         });
         btnReglages1.addActionListener(this::btnReglages1ActionPerformed);
-        getContentPane().add(btnReglages1, new org.netbeans.lib.awtextra.AbsoluteConstraints(520, 570, -1, 60));
+        getContentPane().add(btnReglages1, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 590, 280, 40));
 
         btnQuitter.setFont(new java.awt.Font("Fairfax", 1, 36)); // NOI18N
         btnQuitter.setText("[ Quitter ]");
@@ -123,7 +123,7 @@ public class MainMenu extends javax.swing.JFrame {
             }
         });
         btnQuitter.addActionListener(this::btnQuitterActionPerformed);
-        getContentPane().add(btnQuitter, new org.netbeans.lib.awtextra.AbsoluteConstraints(490, 630, 330, 50));
+        getContentPane().add(btnQuitter, new org.netbeans.lib.awtextra.AbsoluteConstraints(520, 640, 260, 40));
 
         jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/brawlmula/INTERFACE/acceuil.jpg"))); // NOI18N
         getContentPane().add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, -1, -1));

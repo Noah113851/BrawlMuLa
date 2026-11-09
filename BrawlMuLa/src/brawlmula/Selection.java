@@ -94,22 +94,65 @@ public class Selection extends javax.swing.JFrame {
     }
 
     private void ouvrirFenetreDeJeu() {
-        if (partieLancee) {
-            return;
-        }
-        partieLancee = true;
-
-        int carte = reseau == null ? choixCarte : choixCarteReseau;
-        String cheminCarte = imagesCartes.isEmpty() ? "/ressources/Maps/chateau.png" : imagesCartes.get(carte);
-        if (cheminCarte.contains("/cartes/")) {
-            cheminCarte = cheminCarte.replace("/cartes/", "/Maps/");
-        }
-
-        FenetreDeJeu jeu = new FenetreDeJeu(nomPersonnage(0), nomPersonnage(1),
-                nomPersonnage(2), nomPersonnage(3), cheminCarte, reseau, monNumeroJoueur);
-        jeu.setVisible(true);
-        this.dispose();
+    if (partieLancee) {
+        return;
     }
+
+    // Récupérer la carte choisie par l'hôte
+    int carte = (reseau == null) ? choixCarte : choixCarteReseau;
+
+    String cheminCarte = imagesCartes.isEmpty()
+            ? "/ressources/Maps/chateau.png"
+            : imagesCartes.get(carte);
+
+    if (cheminCarte.contains("/cartes/")) {
+        cheminCarte = cheminCarte.replace("/cartes/", "/Maps/");
+    }
+
+    // Nom de la carte : Château, Marché, Colonie ou Potager
+    String nomCarte = cartes.isEmpty()
+            ? "CHATEAU"
+            : cartes.get(carte);
+
+    // Conserver les personnages sélectionnés
+    String j1 = nomPersonnage(0);
+    String j2 = nomPersonnage(1);
+    String j3 = nomPersonnage(2);
+    String j4 = nomPersonnage(3);
+
+    final String carteFinale = cheminCarte;
+
+    // Créer l'introduction correspondant à la carte choisie
+    FenetreIntroCarte introduction = new FenetreIntroCarte(
+            carteFinale,
+            nomCarte,
+            () -> {
+                // Après l'introduction, lancer le combat multijoueur
+                FenetreDeJeu jeu = new FenetreDeJeu(
+                        j1,
+                        j2,
+                        j3,
+                        j4,
+                        carteFinale,
+                        reseau,
+                        monNumeroJoueur
+                );
+
+                jeu.setVisible(true);
+            }
+    );
+
+    partieLancee = true;
+
+    // Arrêter la musique de sélection sur tous les PC
+    //Musiques_sons.stop();
+
+    // Afficher l'introduction
+    introduction.setVisible(true);
+
+    // Fermer la fenêtre de sélection sans couper le réseau
+    this.dispose();
+}
 
     private String nomPersonnage(int joueur) {
         int index = choixJoueurs[joueur];

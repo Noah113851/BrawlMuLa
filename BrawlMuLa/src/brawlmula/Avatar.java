@@ -30,8 +30,8 @@ public class Avatar {
     private static final double SOL = 420;
     private static final double GRAVITE = 15;
     private static final double VITESSE_SAUT = 70;
-    static final int LARGEUR_AVATAR = 100;
-    static final int HAUTEUR_AVATAR = 100;
+    static final int LARGEUR_AVATAR = 150;
+    static final int HAUTEUR_AVATAR = 150;
     static final int LIMITE_CHUTE = ConfigurationCarte.HAUTEUR + 150;
 
     private GestionnairePlateforme gestionnaire;
