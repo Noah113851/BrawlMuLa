@@ -8,7 +8,7 @@ public final class SequenceAvantCombat {
 
     private SequenceAvantCombat() { }
 
-    /** Ancien appel : mode quatre joueurs, toujours compatible. */
+    /** Appel historique : affiche quatre joueurs (mode demonstration). */
     public static void lancer(String j1, String j2, String j3, String j4,
                               String cheminCarte, Reseau reseau,
                               int monNumeroJoueur) {
@@ -28,6 +28,12 @@ public final class SequenceAvantCombat {
                     "Il faut quatre indicateurs de presence (J1 a J4).");
         }
         final boolean[] slots = presents.clone();
+        // Dans un salon reseau, l'hote J1 est toujours present.
+        // Son message PRESENCE_P1 n'est pas forcement rejoue par Reseau
+        // aux clients (il peut servir de borne initiale au polling SQL).
+        if (reseau != null) {
+            slots[0] = true;
+        }
         // Le joueur local est forcement present.
         if (monNumeroJoueur >= 1 && monNumeroJoueur <= 4) {
             slots[monNumeroJoueur - 1] = true;
