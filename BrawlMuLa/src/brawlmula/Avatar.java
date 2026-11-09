@@ -5,15 +5,18 @@
 package brawlmula;
 
 import java.awt.Graphics2D;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.net.URL;
+import java.util.Locale;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 
 /**
- * Avatar d'origine avec branchement facultatif aux plateformes. Garde les memes
- * touches, vitesses, saut, gravite, rendu et constructeur.
+ * Personnage : touches, affichage, gravite, sauts et collisions.
+ * Compatible avec les plateformes intermittentes de la Colonie.
  */
 public class Avatar {
 
@@ -30,24 +33,15 @@ public class Avatar {
     private static final double LARGEUR_AVATAR = 100;
     private static final double HAUTEUR_AVATAR = 100;
 
-    // Ajouts minimaux pour le test du Chateau.
     private GestionnairePlateforme gestionnaire;
     private Plateforme support;
     private double dernierSupportX;
 
-    // Plateforme que le joueur vient de quitter en appuyant sur S.
-    // On ignore temporairement les plateformes TRAVERSABLES pendant
-    // que ses pieds depassent le dessus de cette plateforme.
     private Plateforme plateformeEnCoursDeTraverse;
     private static final double MARGE_TRAVERSEE = 8.0;
 
     public Avatar() {
-        try {
-            this.sprite = ImageIO.read(getClass().getClassLoader()
-                    .getResource("ressources/avatars/carrot_fight.png"));
-        } catch (IOException ex) {
-            Logger.getLogger(Avatar.class.getName()).log(Level.SEVERE, null, ex);
-        }
+        chargerSpritePersonnage("Carrot");
         this.x = 100;
         this.y = SOL;
         this.vy = 0;
@@ -58,17 +52,52 @@ public class Avatar {
     }
 
     public Avatar(String nomPersonnage) {
-        this(); // Appelle le constructeur par défaut
-        // Charger le sprite spécifique au nom (ex: "Carrot", "Nikku", "Tomato", "Potato")
-        if (nomPersonnage != null && !nomPersonnage.isEmpty()) {
+        this();
+        if (nomPersonnage != null && !nomPersonnage.trim().isEmpty()) {
             chargerSpritePersonnage(nomPersonnage);
         }
     }
 
-    /**
-     * A appeler UNE fois depuis Jeu : le personnage partage exactement les
-     * memes plateformes que celles dessinees par PanneauCombat.
-     */
+    /** Charge le personnage choisi sans changer la physique. */
+    private void chargerSpritePersonnage(String nomPersonnage) {
+        if (nomPersonnage == null) {
+            return;
+        }
+        String fichier;
+        switch (nomPersonnage.trim().toLowerCase(Locale.ROOT)) {
+            case "carrot":
+                fichier = "carrot_fight.png";
+                break;
+            case "nikku":
+                fichier = "nikku_fight.png";
+                break;
+            case "tomato":
+                fichier = "tomato_fight.png";
+                break;
+            case "potato":
+                fichier = "potato_fight.png";
+                break;
+            default:
+                fichier = "carrot_fight.png";
+                break;
+        }
+        String chemin = "/ressources/avatars/" + fichier;
+        URL url = getClass().getResource(chemin);
+        if (url == null) {
+            System.err.println("[BrawlMuLa] Sprite introuvable : " + chemin);
+            return;
+        }
+        try {
+            BufferedImage image = ImageIO.read(url);
+            if (image != null) {
+                sprite = image;
+            }
+        } catch (IOException e) {
+            Logger.getLogger(Avatar.class.getName()).log(Level.SEVERE,
+                    "Impossible de charger le sprite : " + chemin, e);
+        }
+    }
+
     public void connecterPlateformes(GestionnairePlateforme gestionnaire) {
         if (gestionnaire == null) {
             throw new IllegalArgumentException("GestionnairePlateforme manquant");
@@ -78,7 +107,7 @@ public class Avatar {
         this.dernierSupportX = 0;
         this.plateformeEnCoursDeTraverse = null;
         this.x = 600;
-        this.y = 400; // Pieds en y=500 : dessus de la grande plateforme du Chateau.
+        this.y = 400;
         this.vy = 0;
         this.auSol = true;
     }
@@ -104,11 +133,44 @@ public class Avatar {
         }
     }
 
+    // Methodes appelees par Jeu.java (correction des erreurs NetBeans).
+    public void gererToucheAppuyee(int codeTouche) {
+        switch (codeTouche) {
+            case KeyEvent.VK_Q:
+                setGauche(true);
+                break;
+            case KeyEvent.VK_D:
+                setDroite(true);
+                break;
+            case KeyEvent.VK_SPACE:
+                saute();
+                break;
+            case KeyEvent.VK_S:
+                setBas(true);
+                break;
+            default:
+                break;
+        }
+    }
+
+    public void gererToucheRelachee(int codeTouche) {
+        switch (codeTouche) {
+            case KeyEvent.VK_Q:
+                setGauche(false);
+                break;
+            case KeyEvent.VK_D:
+                setDroite(false);
+                break;
+            case KeyEvent.VK_S:
+                setBas(false);
+                break;
+            default:
+                break;
+        }
+    }
+
     public void miseAJour() {
-        // Si une plateforme temporaire disparait sous les pieds,
-        // abandonner son support AVANT la resolution des collisions.
-        // Sinon la correction des plateformes mobiles peut maintenir
-        // artificiellement l'avatar en l'air sur le support invisible.
+        // Une plateforme temporaire disparue ne porte plus le joueur.
         if (support != null && !support.estActive()) {
             support = null;
             auSol = false;
@@ -119,7 +181,7 @@ public class Avatar {
         double ancienX = x;
         double ancienY = y;
 
-        // Deplacement horizontal d'origine, conserve tel quel.
+        // Conserver la vitesse horizontale actuelle du projet.
         if (this.gauche) {
             x -= 5;
             regardeGauche = true;
@@ -135,8 +197,8 @@ public class Avatar {
             x += 5;
         }
 
-        // Sur Chateau, le repere est 1280 px et non 960.
-        double largeurMonde = gestionnaire == null ? 960 : ConfigurationCarte.LARGEUR;
+        double largeurMonde = gestionnaire == null
+                ? 960 : ConfigurationCarte.LARGEUR;
         if (x > largeurMonde - LARGEUR_AVATAR) {
             x = largeurMonde - LARGEUR_AVATAR;
         }
@@ -144,18 +206,15 @@ public class Avatar {
             x = 0;
         }
 
-        // Appuyer sur S lorsque les pieds reposent sur une petite plateforme :
-        // on la quitte sans la rendre solide pendant notre descente.
-        // Attention : la grande plateforme SOLIDE reste infranchissable.
+        // S permet de traverser les petites plateformes par le dessus.
         if (gestionnaire != null && bas && auSol && support != null
                 && support.getType() == Plateforme.Type.TRAVERSABLE) {
             plateformeEnCoursDeTraverse = support;
             support = null;
             auSol = false;
-            vy = Math.max(vy, 7.0); // lancer une petite impulsion vers le bas
+            vy = Math.max(vy, 7.0);
         }
 
-        // Chute rapide d'origine.
         if (this.bas && !this.auSol) {
             if (vy < 0) {
                 vy = 0;
@@ -164,7 +223,7 @@ public class Avatar {
         }
 
         if (gestionnaire == null) {
-            // Comportement historique si l'avatar est cree hors du test Chateau.
+            // Comportement historique hors des cartes a plateformes.
             if (!this.auSol) {
                 y += vy;
                 vy += GRAVITE;
@@ -180,17 +239,18 @@ public class Avatar {
             return;
         }
 
-        // Partie nouvelle : adapter les positions voulues a la physique du Chateau.
         Plateforme supportPrecedent = auSol ? support : null;
         if (supportPrecedent != null) {
-            // Porter le joueur lorsqu'une plateforme se deplace horizontalement.
+            // Suivre la translation horizontale du support.
             x += supportPrecedent.getX() - dernierSupportX;
-            x = Math.max(0, Math.min(x, ConfigurationCarte.LARGEUR - LARGEUR_AVATAR));
+            x = Math.max(0,
+                    Math.min(x, ConfigurationCarte.LARGEUR - LARGEUR_AVATAR));
         }
 
         double ySouhaite;
         if (auSol) {
-            ySouhaite = supportPrecedent == null ? y + 1
+            ySouhaite = supportPrecedent == null
+                    ? y + 1
                     : supportPrecedent.getY() - HAUTEUR_AVATAR + 1;
         } else {
             ySouhaite = y + vy;
@@ -200,10 +260,6 @@ public class Avatar {
             }
         }
 
-        // Apres le debut de la traversee, on reactivera les collisions
-        // TRAVERSABLES des que les pieds auront depasse de 8 px le dessus
-        // de la plateforme quittee (meme si S a deja ete relachee).
-        // La comparaison est faite AVANT la collision pour ne pas se recoller.
         if (plateformeEnCoursDeTraverse != null
                 && ancienY + HAUTEUR_AVATAR
                 > plateformeEnCoursDeTraverse.getY() + MARGE_TRAVERSEE) {
@@ -211,7 +267,6 @@ public class Avatar {
         }
         boolean ignorerTraversables = plateformeEnCoursDeTraverse != null;
 
-        // ResultatColision : un seul l, conforme au projet BrawlMuLa.
         ResultatColision resultat = gestionnaire.resoudre(
                 ancienX, ancienY, x, ySouhaite,
                 LARGEUR_AVATAR, HAUTEUR_AVATAR, ignorerTraversables);
@@ -226,8 +281,7 @@ public class Avatar {
         } else if (supportPrecedent != null && supportPrecedent.estActive()
                 && x < supportPrecedent.getX() + supportPrecedent.getLargeur()
                 && x + LARGEUR_AVATAR > supportPrecedent.getX()) {
-            // Une plateforme verticale qui monte peut ne pas etre detectee par
-            // le balayage ; dans ce cas conserver son appui jusqu'a la quitter.
+            // Conserver l'appui sur un ascenseur qui monte.
             y = supportPrecedent.getY() - HAUTEUR_AVATAR;
             vy = 0;
             auSol = true;
@@ -244,7 +298,7 @@ public class Avatar {
             dernierSupportX = support.getX();
         }
 
-        // Reapparition si on tombe hors de l'arene pendant les tests.
+        // Garde-fou de l'ancienne version (Jeu gere les cartes flottantes).
         if (y > ConfigurationCarte.HAUTEUR + 150) {
             x = 600;
             y = 400;
@@ -256,11 +310,14 @@ public class Avatar {
     }
 
     public void rendu(Graphics2D contexte) {
+        if (sprite == null) {
+            return;
+        }
         if (regardeGauche) {
-            contexte.drawImage(this.sprite, (int) x + 100, (int) y,
+            contexte.drawImage(sprite, (int) x + 100, (int) y,
                     -100, 100, null);
         } else {
-            contexte.drawImage(this.sprite, (int) x, (int) y,
+            contexte.drawImage(sprite, (int) x, (int) y,
                     100, 100, null);
         }
     }
