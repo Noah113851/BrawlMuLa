@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
 package brawlmula;
 
 import java.awt.Color;
@@ -13,6 +9,10 @@ import javax.swing.JOptionPane;
 
 public class Selection extends javax.swing.JFrame {
 
+    private static final String URL_BDD = "jdbc:mariadb://nemrod.ens2m.fr:3306/2026-2027_s1_vs2_tp2_brawlmula";
+    private static final String USER_BDD = "etudiant";
+    private static final String PASSWORD_BDD = "YTDTvj9TR3CDYCmP";
+
     private static final String[] PERSONNAGES_PAR_DEFAUT = {"Carrot", "Nikku", "Tomato", "Potato"};
 
     private final int monNumeroJoueur;
@@ -21,9 +21,10 @@ public class Selection extends javax.swing.JFrame {
     private final JLabel[] nomsJoueurs;
     private final JLabel[] portraitsJoueurs;
     private boolean partieLancee = false;
-    private final boolean[] joueursPresents = {
-        true, false, false ,false
-    };
+
+    // Vrais emplacements occupes dans la partie (J1 a J4).
+    // J1 est l'hote. Les autres deviennent presents avec PRESENCE_P2..P4.
+    private final boolean[] joueursPresents = {true, false, false, false};
 
     private final int[] choixJoueurs = {-1, -1, -1, -1};
     private int choixCarte = 0;
@@ -42,8 +43,8 @@ public class Selection extends javax.swing.JFrame {
 
         this.monNumeroJoueur = monNumeroJoueur;
         if (monNumeroJoueur >= 1 && monNumeroJoueur <= 4) {
-    joueursPresents[monNumeroJoueur - 1] = true;
-}
+            joueursPresents[monNumeroJoueur - 1] = true;
+        }
         this.isHost = (monNumeroJoueur == 1);
         this.reseau = reseau;
         nomsJoueurs = new JLabel[]{lblNomJ1, lblNomJ2, lblNomJ3, lblNomJ4};
@@ -72,19 +73,18 @@ public class Selection extends javax.swing.JFrame {
     }
 
     private void traiterMessageReseau(String msg) {
-        // Detection des joueurs connectes au salon.
-if (msg != null && msg.matches("PRESENCE_P[1-4]")) {
+        // Les evenements de presence n'ont pas de ':' : les intercepter
+        // AVANT la logique des choix de personnages et de START_GAME.
+        if (msg != null && msg.matches("PRESENCE_P[1-4]")) {
+            int numero = msg.charAt(msg.length() - 1) - '1';
+            joueursPresents[numero] = true;
+            System.out.println("[BrawlMuLa] Joueur J" + (numero + 1) + " present.");
+            return;
+        }
+        if (msg == null) {
+            return;
+        }
 
-    int numeroJoueur = msg.charAt(msg.length() - 1) - '1';
-
-    joueursPresents[numeroJoueur] = true;
-
-    System.out.println(
-            "Joueur J" + (numeroJoueur + 1) + " connecte."
-    );
-
-    return;
-}
         if (Reseau.DEBUT_COMBAT.equals(msg)) {
             ouvrirFenetreDeJeu();
             return;
@@ -100,6 +100,7 @@ if (msg != null && msg.matches("PRESENCE_P[1-4]")) {
                 if (joueur >= 0 && joueur < choixJoueurs.length && index >= 0 && index < personnages.size()) {
                     // Tous les postes utilisent les choix lus avant START_GAME, y compris les leurs.
                     choixJoueurs[joueur] = index;
+                    joueursPresents[joueur] = true; // Choix recu = joueur bien connecte.
                     afficherPersonnage(joueur, index);
                 }
             } else if (msg.startsWith("MAP:") && index >= 0 && index < cartes.size()) {
@@ -113,66 +114,80 @@ if (msg != null && msg.matches("PRESENCE_P[1-4]")) {
         }
     }
 
-    private void ouvrirFenetreDeJeu() {
-    if (partieLancee) {
-        return;
-    }
-
-    // Récupérer la carte choisie par l'hôte
-    int carte = (reseau == null) ? choixCarte : choixCarteReseau;
-
-    String cheminCarte = imagesCartes.isEmpty()
-            ? "/ressources/Maps/chateau.png"
-            : imagesCartes.get(carte);
-
-    if (cheminCarte.contains("/cartes/")) {
-        cheminCarte = cheminCarte.replace("/cartes/", "/Maps/");
-    }
-
-    // Nom de la carte : Château, Marché, Colonie ou Potager
-    String nomCarte = cartes.isEmpty()
-            ? "CHATEAU"
-            : cartes.get(carte);
-
-    // Conserver les personnages sélectionnés
-    String j1 = nomPersonnage(0);
-    String j2 = nomPersonnage(1);
-    String j3 = nomPersonnage(2);
-    String j4 = nomPersonnage(3);
-
-    final String carteFinale = cheminCarte;
-
-    // Créer l'introduction correspondant à la carte choisie
-    FenetreIntroCarte introduction = new FenetreIntroCarte(
-            carteFinale,
-            nomCarte,
-            () -> {
-                // Après l'introduction, lancer le combat multijoueur
-                FenetreDeJeu jeu = new FenetreDeJeu(
-                        j1,
-                        j2,
-                        j3,
-                        j4,
-                        carteFinale,
-                        reseau,
-                        monNumeroJoueur
-                );
-
-                jeu.setVisible(true);
+    /**
+     * Au moment de START_GAME, consulte les vraies PRESENCE_P1..P4.
+     * Cela corrige le cas ou Selection n'a pas recu un message de presence.
+     * En cas d'erreur SQL, les choix et messages deja recus restent utilises.
+     */
+    private boolean[] joueursPresentsAuDepart() {
+        boolean[] resultat = joueursPresents.clone();
+        resultat[0] = true;
+        if (monNumeroJoueur >= 1 && monNumeroJoueur <= 4) {
+            resultat[monNumeroJoueur - 1] = true;
+        }
+        for (int i = 0; i < choixJoueurs.length; i++) {
+            if (choixJoueurs[i] >= 0) {
+                resultat[i] = true;
             }
-    );
+        }
+        if (reseau != null) {
+            String requete = "SELECT DISTINCT message FROM reseau_salon "
+                    + "WHERE message IN ('PRESENCE_P1', 'PRESENCE_P2', "
+                    + "'PRESENCE_P3', 'PRESENCE_P4')";
+            try (Connection c = DriverManager.getConnection(
+                        URL_BDD, USER_BDD, PASSWORD_BDD);
+                 PreparedStatement st = c.prepareStatement(requete);
+                 ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    String message = rs.getString(1);
+                    if (message != null && message.matches("PRESENCE_P[1-4]")) {
+                        int numero = message.charAt(message.length() - 1) - '1';
+                        resultat[numero] = true;
+                    }
+                }
+            } catch (SQLException ex) {
+                System.err.println("[BrawlMuLa][VS] Lecture des joueurs "
+                        + "en base impossible : " + ex.getMessage());
+            }
+        }
+        return resultat;
+    }
 
-    partieLancee = true;
+    private void ouvrirFenetreDeJeu() {
+        if (partieLancee) return;
 
-    // Arrêter la musique de sélection sur tous les PC
-    Musiques_sons.stop();
+        int carte = reseau == null ? choixCarte : choixCarteReseau;
+        String cheminCarte = imagesCartes.isEmpty()
+                ? "/ressources/Maps/chateau.png"
+                : imagesCartes.get(carte);
+        if (cheminCarte.contains("/cartes/")) {
+            cheminCarte = cheminCarte.replace("/cartes/", "/Maps/");
+        }
 
-    // Afficher l'introduction
-    introduction.setVisible(true);
+        String j1 = nomPersonnage(0);
+        String j2 = nomPersonnage(1);
+        String j3 = nomPersonnage(2);
+        String j4 = nomPersonnage(3);
+        boolean[] presents = reseau == null
+                ? new boolean[]{true, true, true, true}
+                : joueursPresentsAuDepart();
 
-    // Fermer la fenêtre de sélection sans couper le réseau
-    this.dispose();
-}
+        StringBuilder joueurs = new StringBuilder();
+        for (int i = 0; i < presents.length; i++) {
+            if (presents[i]) joueurs.append(" J").append(i + 1);
+        }
+        System.out.println("[BrawlMuLa][Selection] START_GAME ; carte="
+                + cheminCarte + " ; joueurs=" + joueurs);
+
+        // Garder le reseau vivant lorsque Selection se ferme.
+        partieLancee = true;
+        Musiques_sons.stop();
+
+        // Intro de la map -> VS adaptatif -> fenetre de combat.
+        SequenceAvantCombat.lancer(j1, j2, j3, j4,
+                cheminCarte, reseau, monNumeroJoueur, presents);
+        this.dispose();
+    }
 
     private String nomPersonnage(int joueur) {
         int index = choixJoueurs[joueur];
@@ -190,8 +205,7 @@ if (msg != null && msg.matches("PRESENCE_P[1-4]")) {
     private void chargerCartesDepuisBDD() {
         cartes.clear();
         imagesCartes.clear();
-        String url = "jdbc:mariadb://nemrod.ens2m.fr:3306/2026-2027_s1_vs2_tp2_brawlmula";
-        try (Connection c = DriverManager.getConnection(url, "etudiant", "YTDTvj9TR3CDYCmP");
+        try (Connection c = DriverManager.getConnection(URL_BDD, USER_BDD, PASSWORD_BDD);
              PreparedStatement r = c.prepareStatement("SELECT nom, image FROM Maps ORDER BY nom, image");
              ResultSet rs = r.executeQuery()) {
             while (rs.next()) {
@@ -208,8 +222,7 @@ if (msg != null && msg.matches("PRESENCE_P[1-4]")) {
     private void chargerAvatarsDepuisBDD() {
         personnages.clear();
         imagesPersonnages.clear();
-        String url = "jdbc:mariadb://nemrod.ens2m.fr:3306/2026-2027_s1_vs2_tp2_brawlmula";
-        try (Connection c = DriverManager.getConnection(url, "etudiant", "YTDTvj9TR3CDYCmP");
+        try (Connection c = DriverManager.getConnection(URL_BDD, USER_BDD, PASSWORD_BDD);
              PreparedStatement r = c.prepareStatement("SELECT nom, avatars_image FROM Avatars ORDER BY nom, avatars_image");
              ResultSet rs = r.executeQuery()) {
             while (rs.next()) {

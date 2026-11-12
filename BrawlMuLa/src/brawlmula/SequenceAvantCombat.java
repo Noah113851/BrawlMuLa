@@ -46,7 +46,19 @@ public final class SequenceAvantCombat {
         String[] choix = {j1, j2, j3, j4};
         int nombre = 0;
         for (boolean present : slots) if (present) nombre++;
+        System.out.println("[BrawlMuLa][Sequence] Joueurs detectes : " + nombre);
         if (nombre < 2) {
+            // Alerte explicite au lieu d'un saut silencieux du VS.
+            System.err.println("[BrawlMuLa][VS] Un seul joueur detecte ! "
+                    + "Le VS a 2 joueurs ne peut pas etre affiche.");
+            if (reseau != null) {
+                javax.swing.JOptionPane.showMessageDialog(null,
+                    "Un seul joueur detecte dans le salon.\n"
+                    + "Verifie que les deux PC utilisent le meme projet "
+                    + "et que J2 a rejoint avant de lancer Combat.",
+                    "BrawlMuLa - Diagnostic VS",
+                    javax.swing.JOptionPane.WARNING_MESSAGE);
+            }
             // En solo, on ne cree aucun adversaire fictif : intro puis combat.
             Runnable combatSolo = () -> new FenetreDeJeu(j1, j2, j3, j4,
                     cheminCarte, reseau, monNumeroJoueur).setVisible(true);
@@ -67,8 +79,19 @@ public final class SequenceAvantCombat {
 
         Runnable combat = () -> new FenetreDeJeu(j1, j2, j3, j4,
                 cheminCarte, reseau, monNumeroJoueur).setVisible(true);
-        Runnable vs = () -> new FenetreVS(cheminCarte, noms, numeros,
-                combat).setVisible(true);
+        Runnable vs = () -> {
+            System.out.println("[BrawlMuLa][Sequence] Ouverture de la fenetre VS.");
+            try {
+                new FenetreVS(cheminCarte, noms, numeros, combat).setVisible(true);
+            } catch (RuntimeException erreur) {
+                erreur.printStackTrace();
+                javax.swing.JOptionPane.showMessageDialog(null,
+                        "Impossible d'afficher le VS : " + erreur.getMessage(),
+                        "BrawlMuLa - Erreur VS",
+                        javax.swing.JOptionPane.ERROR_MESSAGE);
+                // Ne pas ouvrir le combat a la place en masquant l'erreur.
+            }
+        };
         new FenetreIntroCarte(cheminCarte, nomDeLaCarte(cheminCarte), vs)
                 .setVisible(true);
     }

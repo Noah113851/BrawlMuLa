@@ -111,6 +111,7 @@ public final class FenetreIntroCarte extends JFrame {
         dispose();
         // L'intro se termine AVANT la creation du Jeu : aucune physique
         // ou synchronisation reseau ne tourne pendant la presentation.
+        System.out.println("[BrawlMuLa][Intro] Fin de l'introduction : ouverture du VS.");
         apresIntroduction.run();
     }
 

@@ -76,6 +76,8 @@ public final class FenetreVS extends JFrame {
         });
         chronometre.setCoalesce(true);
 
+        System.out.println("[BrawlMuLa][VS] Fenetre VS creee : "
+                + personnages.length + " joueurs, carte=" + panneau.nomCarte);
         setTitle("BrawlMuLa - VS : " + panneau.nomCarte);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setResizable(false);
@@ -109,6 +111,7 @@ public final class FenetreVS extends JFrame {
         terminee = true;
         chronometre.stop();
         dispose();
+        System.out.println("[BrawlMuLa][VS] VS termine : ouverture du combat.");
         apresVS.run();
     }
 
