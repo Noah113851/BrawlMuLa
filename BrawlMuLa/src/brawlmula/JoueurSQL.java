@@ -268,6 +268,45 @@ public int lireDegats(int emplacement) {
     }
     return 10;   // valeur par défaut
 }
+/** Remet le score (PV infligés) à 0 au début du combat. */
+public void reinitialiserDegatsInfliges(int emplacement) {
+    try (PreparedStatement r = connexion.prepareStatement(
+            "UPDATE Joueur SET score = 0 WHERE emplacement = ?")) {
+        r.setInt(1, emplacement);
+        r.executeUpdate();
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+    }
+}
+
+/** Ajoute des PV infligés au score de ce joueur. */
+public void ajouterDegatsInfliges(int emplacement, int montant) {
+    try (PreparedStatement r = connexion.prepareStatement(
+            "UPDATE Joueur SET score = score + ? WHERE emplacement = ?")) {
+        r.setInt(1, montant);
+        r.setInt(2, emplacement);
+        r.executeUpdate();
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+    }
+}
+
+/** PV infligés par un joueur. */
+public int lireDegatsInfliges(int emplacement) {
+    try (PreparedStatement r = connexion.prepareStatement(
+            "SELECT score FROM Joueur WHERE emplacement = ?")) {
+        r.setInt(1, emplacement);
+        try (ResultSet rs = r.executeQuery()) {
+            if (rs.next()) return rs.getInt(1);
+        }
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+    }
+    return 0;
+}
+
+
+
     /** Ferme la connexion : a appeler une seule fois, quand le jeu est termine. */
     public void closeTable() {
         try {

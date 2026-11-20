@@ -1,5 +1,6 @@
 package brawlmula;
 
+import java.awt.Rectangle;
 import java.awt.Graphics2D;
 import static brawlmula.Avatar.HAUTEUR_AVATAR;
 import static brawlmula.Avatar.LARGEUR_AVATAR;
@@ -17,6 +18,9 @@ public class Jeu {
     private final boolean[] avatarsVisibles = new boolean[avatars.length];
     private final Reseau reseau;
     private final int indexLocal;
+    private final JoueurSQL sql;
+    private final ModeDeJeu mode;
+    private long derniereChute = 0L;
 
     /**
      * Compatibilite : FenetreDeJeu() continue d'ouvrir le Chateau.
@@ -49,6 +53,12 @@ public class Jeu {
         panneauCombat = new PanneauCombat(cheminCarte, avatars, avatarsVisibles);
         panneauCombat.setSize(ConfigurationCarte.LARGEUR, ConfigurationCarte.HAUTEUR);
         panneauCombat.setAfficherHitboxes(false);
+       sql = new JoueurSQL();
+mode = ModeDeJeu.courant;
+for (int i = 1; i <= mode.getNbJoueurs(); i++) {
+    sql.initialiserPv(i);
+}
+panneauCombat.setHud(new BarreVieHUD(sql, mode));
 
         avatar = avatars[indexLocal];
         avatar.connecterPlateformes(panneauCombat.getGestionnairePlateformes());
@@ -155,10 +165,18 @@ public class Jeu {
         avatar.miseAJour();
 
         // Sur les cartes flottantes, remettre l'avatar sur le plateau principal.
-        if (estCarteFlottante() && avatar.y > ConfigurationCarte.HAUTEUR) {
-            avatar.connecterPlateformes(panneauCombat.getGestionnairePlateformes());
-            placerAvatarSurPlateformePrincipale();
-        }
+        if (avatar.consommerChute()) {
+    long maintenant = System.currentTimeMillis();
+    if (maintenant - derniereChute > 1500) {
+        sql.retirerPv(indexLocal + 1, 15);
+        derniereChute = maintenant;
+    }
+    Plateforme principale = chercherPlateformePrincipale();
+    avatar.connecterPlateformes(panneauCombat.getGestionnairePlateformes());
+    avatar.reapparaitreSur(
+            principale.getX() + principale.getLargeur() / 2.0 - LARGEUR_AVATAR / 2.0,
+            principale.getY() - HAUTEUR_AVATAR - 30);
+}
 
         if (reseau != null) {
             reseau.envoyerMaPosition((int) avatar.x, (int) avatar.y);
@@ -246,26 +264,42 @@ public class Jeu {
         panneauCombat.paint(contexte);
     }
 
-    public void fermer() {
-        if (reseau != null) {
-            reseau.fermer();
-        }
+   public void fermer() {
+    if (reseau != null) {
+        reseau.fermer();
     }
+    sql.closeTable();
+}
 
     public PanneauCombat getPanneauCombat() {
         return panneauCombat;
     }
 
-    public void attaquer() {
+public void attaquer() {
 
-        if (avatar.attaquer()) {
+    if (avatar.attaquer()) {
 
-            // Synchroniser l'attaque avec les autres joueurs
-            if (reseau != null) {
-                reseau.envoyerAttaque();
+        // Synchroniser l'attaque avec les autres joueurs
+        if (reseau != null) {
+            reseau.envoyerAttaque();
+        }
+
+        // Détection des adversaires touchés
+        Rectangle zone = avatar.getZoneAttaque();
+        for (int i = 0; i < avatars.length; i++) {
+            if (i == indexLocal || avatars[i] == null || !avatarsVisibles[i]) {
+                continue;
+            }
+            // pas de tir ami en 2v2
+            if (mode.parEquipes() && mode.getEquipe(i) == mode.getEquipe(indexLocal)) {
+                continue;
+            }
+            if (zone.intersects(avatars[i].getHitbox())) {
+                sql.retirerPv(i + 1, sql.lireDegats(indexLocal + 1));
             }
         }
     }
+}
 
     public void gererToucheAppuyee(int codeTouche) {
 
