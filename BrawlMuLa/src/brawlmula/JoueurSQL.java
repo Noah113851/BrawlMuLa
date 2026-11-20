@@ -212,6 +212,48 @@ public class JoueurSQL {
         return compter("SELECT COUNT(*) FROM Joueur WHERE pret = 1");
     }
 
+    
+    /** Au début du combat : PV actuels = PV max du personnage choisi. */
+public void initialiserPv(int emplacement) {
+    int pvMax = lirePvMax(emplacement);
+    String sql = "UPDATE Joueur SET PV = ? WHERE emplacement = ?";
+    try (PreparedStatement r = connexion.prepareStatement(sql)) {
+        r.setInt(1, pvMax);
+        r.setInt(2, emplacement);
+        r.executeUpdate();
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+    }
+}
+
+/** Retire des PV (sans descendre sous 0) et renvoie les PV restants. */
+public int retirerPv(int emplacement, int degats) {
+    String sql = "UPDATE Joueur SET PV = GREATEST(0, PV - ?) WHERE emplacement = ?";
+    try (PreparedStatement r = connexion.prepareStatement(sql)) {
+        r.setInt(1, degats);
+        r.setInt(2, emplacement);
+        r.executeUpdate();
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+    }
+    return lirePv(emplacement);
+}
+
+/** PV actuels d'un joueur. */
+public int lirePv(int emplacement) {
+    String sql = "SELECT PV FROM Joueur WHERE emplacement = ?";
+    try (PreparedStatement r = connexion.prepareStatement(sql)) {
+        r.setInt(1, emplacement);
+        try (ResultSet rs = r.executeQuery()) {
+            if (rs.next()) return rs.getInt("PV");
+        }
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+    }
+    return 0;
+}
+
+
     /** Ferme la connexion : a appeler une seule fois, quand le jeu est termine. */
     public void closeTable() {
         try {
@@ -222,4 +264,23 @@ public class JoueurSQL {
             ex.printStackTrace();
         }
     }
+    
+    /** PV maximum du personnage choisi par ce joueur (lus dans Avatars). */
+public int lirePvMax(int emplacement) {
+    String sql = "SELECT a.pv FROM Joueur j "
+               + "JOIN Avatars a ON j.id_avatar = a.id "
+               + "WHERE j.emplacement = ?";
+    try (PreparedStatement r = connexion.prepareStatement(sql)) {
+        r.setInt(1, emplacement);
+        try (ResultSet rs = r.executeQuery()) {
+            if (rs.next()) {
+                return rs.getInt("pv");
+            }
+        }
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+    }
+    return 500;   // valeur par défaut si le joueur n'a pas encore de personnage
+}
+
 }

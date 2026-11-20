@@ -608,5 +608,6 @@ public class Avatar {
         } finally {
             g.dispose();
         }
+        
     }
 }

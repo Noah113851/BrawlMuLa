@@ -17,6 +17,8 @@ public class Jeu {
     private final boolean[] avatarsVisibles = new boolean[avatars.length];
     private final Reseau reseau;
     private final int indexLocal;
+    private final JoueurSQL sql;
+    private final ModeDeJeu mode;
 
     /**
      * Compatibilite : FenetreDeJeu() continue d'ouvrir le Chateau.
@@ -49,6 +51,19 @@ public class Jeu {
         panneauCombat = new PanneauCombat(cheminCarte, avatars, avatarsVisibles);
         panneauCombat.setSize(ConfigurationCarte.LARGEUR, ConfigurationCarte.HAUTEUR);
         panneauCombat.setAfficherHitboxes(false);
+        
+        // --- barre de vie (PV lus et écrits dans la base) ---
+        sql = new JoueurSQL();
+        int nombreDeJoueurs = 0;
+        for (String p : personnages) {
+            if (p != null) nombreDeJoueurs++;
+        }
+        mode = ModeDeJeu.depuisNombre(nombreDeJoueurs);
+        for (int i = 1; i <= mode.getNbJoueurs(); i++) {
+            sql.initialiserPv(i);
+        }
+        
+        panneauCombat.setHud(new BarreVieHUD(sql, mode));
 
         avatar = avatars[indexLocal];
         avatar.connecterPlateformes(panneauCombat.getGestionnairePlateformes());
@@ -202,9 +217,10 @@ public class Jeu {
     }
 
     public void fermer() {
-        if (reseau != null) {
-            reseau.fermer();
-        }
+    if (reseau != null) {
+        reseau.fermer();
+    }
+    sql.closeTable();
     }
 
     public PanneauCombat getPanneauCombat() {

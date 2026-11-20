@@ -125,4 +125,5 @@ public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new FenetreDeJeu().setVisible(true));
     }
+    
 }
