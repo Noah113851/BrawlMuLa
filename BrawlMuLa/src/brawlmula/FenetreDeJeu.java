@@ -110,15 +110,22 @@ public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener 
 
     @Override
     public void dispose() {
+
+        // Arrêter la musique de combat
+        Musiques_sons.stop();
+
         if (timer != null) {
             timer.stop();
         }
+
         if (jeu != null) {
             jeu.fermer();
         }
+
         if (contexte != null) {
             contexte.dispose();
         }
+
         super.dispose();
     }
 
@@ -128,5 +135,5 @@ public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new FenetreDeJeu().setVisible(true));
     }
-    
+
 }
