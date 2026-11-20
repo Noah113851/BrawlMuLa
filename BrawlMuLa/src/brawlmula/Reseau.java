@@ -385,7 +385,7 @@ public class Reseau {
 
                             if (message.matches("ATTAQUE_P[1-4]")) {
 
-                                int numero = message.charAt(8) - '0';
+                                int numero = message.charAt(9) - '0';
 
                                 EventQueue.invokeLater(() -> {
                                     if (!ferme) {
