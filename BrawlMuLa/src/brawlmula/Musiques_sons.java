@@ -8,66 +8,140 @@ package brawlmula;
  *
  * @author Shyturo
  */
-import javax.sound.sampled.*;
-import java.io.File;
 import java.net.URL;
-import javax.sound.sampled.FloatControl;
+import javax.sound.sampled.*;
 
 public class Musiques_sons {
+
     private static Clip clip;
-    
-    public static void reglerVolume(int volumePourcent) {
-    if (clip != null && clip.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
-        FloatControl gainControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
-        
-        // Conversion de l'échelle 0-100 en décibels (dB)
-        float volumeVal = volumePourcent / 100.0f;
-        float dB = (float) (Math.log(volumeVal == 0 ? 0.0001f : volumeVal) / Math.log(10) * 20.0);
-        
-        gainControl.setValue(dB);
-    }
+    private static int volume = 100;
+
+    // Charger les sons depuis les ressources du projet
+    private static URL trouverSon(String chemin) {
+
+        URL url = Musiques_sons.class.getResource(chemin);
+
+        if (url == null) {
+            System.err.println(
+                    "Fichier audio introuvable : " + chemin
+            );
+        }
+
+        return url;
     }
 
-    public static void playLoop(String filepath) {
+    // Jouer une musique en boucle
+    public static void playLoop(String chemin) {
+
+        stop();
+
         try {
-            // Arrête une musique déjà en cours si besoin
-            stop();
+            URL url = trouverSon(chemin);
 
-            File musicFile = new File(filepath);
-            if (musicFile.exists()) {
-                AudioInputStream audioInput = AudioSystem.getAudioInputStream(musicFile);
-                clip = AudioSystem.getClip();
-                clip.open(audioInput);
-                clip.loop(Clip.LOOP_CONTINUOUSLY); // Joue en boucle infinie
-                clip.start();
-            } else {
-                System.err.println("Fichier audio introuvable : " + filepath);
+            if (url == null) {
+                return;
             }
+
+            try (AudioInputStream audio =
+                    AudioSystem.getAudioInputStream(url)) {
+
+                clip = AudioSystem.getClip();
+                clip.open(audio);
+
+                appliquerVolume(clip);
+
+                clip.setFramePosition(0);
+                clip.loop(Clip.LOOP_CONTINUOUSLY);
+            }
+
         } catch (Exception e) {
-            e.printStackTrace();
+            System.err.println(
+                    "Erreur musique : " + e.getMessage()
+            );
         }
     }
 
+    // Jouer un effet sonore
+    public static void jouerSon(String chemin) {
+
+        try {
+            URL url = trouverSon(chemin);
+
+            if (url == null) {
+                return;
+            }
+
+            try (AudioInputStream audio =
+                    AudioSystem.getAudioInputStream(url)) {
+
+                Clip effet = AudioSystem.getClip();
+                effet.open(audio);
+
+                appliquerVolume(effet);
+
+                // Libérer le son après sa lecture
+                effet.addLineListener(event -> {
+
+                    if (event.getType() == LineEvent.Type.STOP) {
+                        effet.close();
+                    }
+                });
+
+                effet.start();
+            }
+
+        } catch (Exception e) {
+            System.err.println(
+                    "Erreur effet sonore : " + e.getMessage()
+            );
+        }
+    }
+
+    // Régler le volume
+    public static void reglerVolume(int volumePourcent) {
+
+        volume = Math.max(
+                0,
+                Math.min(100, volumePourcent)
+        );
+
+        if (clip != null) {
+            appliquerVolume(clip);
+        }
+    }
+
+    private static void appliquerVolume(Clip son) {
+
+        if (son == null || !son.isControlSupported(
+                FloatControl.Type.MASTER_GAIN)) {
+            return;
+        }
+
+        FloatControl controle = (FloatControl)
+                son.getControl(FloatControl.Type.MASTER_GAIN);
+
+        float valeur = Math.max(0.0001f, volume / 100.0f);
+
+        float decibels = (float) (
+                20 * Math.log10(valeur)
+        );
+
+        decibels = Math.max(
+                controle.getMinimum(),
+                Math.min(controle.getMaximum(), decibels)
+        );
+
+        controle.setValue(decibels);
+    }
+
+    // Arrêter la musique
     public static void stop() {
-        if (clip != null && clip.isRunning()) {
+
+        if (clip != null) {
+
             clip.stop();
             clip.close();
-        }
-    }
-    public static void jouerSon(String chemin) {
-        try {
-            
-            URL url = Musiques_sons.class.getResource(chemin);
-            
-            
-            AudioInputStream audio = AudioSystem.getAudioInputStream(url);
-            Clip clip = AudioSystem.getClip();
-            clip.open(audio);
-            clip.start(); 
-        } catch (Exception e) {
-            System.out.println("Erreur : son introuvable");
+            clip = null;
         }
     }
 }
-    
-

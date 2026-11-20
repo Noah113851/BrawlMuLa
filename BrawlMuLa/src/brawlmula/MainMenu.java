@@ -19,11 +19,11 @@ public class MainMenu extends javax.swing.JFrame {
      */
     public MainMenu() {
         initComponents();
-
+        BrawlMuLa.appliquerPoliceFairfax(getContentPane());
         setSize(1280, 760);
         setLocationRelativeTo(null);
 
-        Musiques_sons.playLoop("src/ressources/Musiques-sons/Welcome-Music-Brawlmula-Soundtrack.wav");
+        Musiques_sons.playLoop("/ressources/Musiques-sons/Welcome-Music-Brawlmula-Soundtrack.wav");
     }
 
     /**
@@ -36,8 +36,8 @@ public class MainMenu extends javax.swing.JFrame {
     private void initComponents() {
 
         jLabel3 = new javax.swing.JLabel();
-        btnRejoindre = new javax.swing.JButton();
         btnCreer = new javax.swing.JButton();
+        btnRejoindre = new javax.swing.JButton();
         btnReglages1 = new javax.swing.JButton();
         btnQuitter = new javax.swing.JButton();
         jLabel2 = new javax.swing.JLabel();
@@ -52,24 +52,6 @@ public class MainMenu extends javax.swing.JFrame {
         jLabel3.setText("jLabel3");
         jLabel3.setPreferredSize(new java.awt.Dimension(1280, 720));
         getContentPane().add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 50, -1, 250));
-
-        btnRejoindre.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
-        btnRejoindre.setText("[ Rejoindre Partie ]");
-        btnRejoindre.setToolTipText("");
-        btnRejoindre.setBorderPainted(false);
-        btnRejoindre.setContentAreaFilled(false);
-        btnRejoindre.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnRejoindre.setFocusPainted(false);
-        btnRejoindre.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                btnRejoindreMouseEntered(evt);
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                btnRejoindreMouseExited(evt);
-            }
-        });
-        btnRejoindre.addActionListener(this::btnRejoindreActionPerformed);
-        getContentPane().add(btnRejoindre, new org.netbeans.lib.awtextra.AbsoluteConstraints(360, 510, 600, 60));
 
         btnCreer.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
         btnCreer.setText("[ Créer Partie ]");
@@ -87,7 +69,25 @@ public class MainMenu extends javax.swing.JFrame {
             }
         });
         btnCreer.addActionListener(this::btnCreerActionPerformed);
-        getContentPane().add(btnCreer, new org.netbeans.lib.awtextra.AbsoluteConstraints(380, 450, 530, 60));
+        getContentPane().add(btnCreer, new org.netbeans.lib.awtextra.AbsoluteConstraints(430, 450, 440, 50));
+
+        btnRejoindre.setFont(new java.awt.Font("Fairfax", 1, 48)); // NOI18N
+        btnRejoindre.setText("[ Rejoindre Partie ]");
+        btnRejoindre.setToolTipText("");
+        btnRejoindre.setBorderPainted(false);
+        btnRejoindre.setContentAreaFilled(false);
+        btnRejoindre.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnRejoindre.setFocusPainted(false);
+        btnRejoindre.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btnRejoindreMouseEntered(evt);
+            }
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btnRejoindreMouseExited(evt);
+            }
+        });
+        btnRejoindre.addActionListener(this::btnRejoindreActionPerformed);
+        getContentPane().add(btnRejoindre, new org.netbeans.lib.awtextra.AbsoluteConstraints(380, 510, 540, 50));
 
         btnReglages1.setFont(new java.awt.Font("Fairfax", 1, 36)); // NOI18N
         btnReglages1.setText("[ Réglages ]");
@@ -105,7 +105,7 @@ public class MainMenu extends javax.swing.JFrame {
             }
         });
         btnReglages1.addActionListener(this::btnReglages1ActionPerformed);
-        getContentPane().add(btnReglages1, new org.netbeans.lib.awtextra.AbsoluteConstraints(520, 570, -1, 60));
+        getContentPane().add(btnReglages1, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 590, 280, 40));
 
         btnQuitter.setFont(new java.awt.Font("Fairfax", 1, 36)); // NOI18N
         btnQuitter.setText("[ Quitter ]");
@@ -123,7 +123,7 @@ public class MainMenu extends javax.swing.JFrame {
             }
         });
         btnQuitter.addActionListener(this::btnQuitterActionPerformed);
-        getContentPane().add(btnQuitter, new org.netbeans.lib.awtextra.AbsoluteConstraints(490, 630, 330, 50));
+        getContentPane().add(btnQuitter, new org.netbeans.lib.awtextra.AbsoluteConstraints(520, 640, 260, 40));
 
         jLabel2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/brawlmula/INTERFACE/acceuil.jpg"))); // NOI18N
         getContentPane().add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, -1, -1));
@@ -136,30 +136,39 @@ public class MainMenu extends javax.swing.JFrame {
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
 
         try {
-            // 1. Démarrer le serveur TCP sur le port 5000
+            // 1. Initialiser le relais réseau BDD et inscrire le Joueur 1
             Reseau reseau = new Reseau(5000);
+            reseau.enregistrerHote();
 
-            // 2. Récupérer l'IP locale (ou code de la partie)
-            String codeIP = java.net.InetAddress.getLocalHost().getHostAddress();
+            // 2. Récupérer l'adresse IP locale de la machine hôte
+            String codeIP = "127.0.0.1";
+            try {
+                codeIP = java.net.InetAddress.getLocalHost().getHostAddress();
+            } catch (Exception ex) {
+                System.err.println("Impossible de récupérer l'IP locale.");
+            }
 
-            // 3. Fenêtre popup : l'exécution s'arrête ici jusqu'au clic sur "OK"
+            // 3. Afficher la fenêtre avec le code IP pour les autres joueurs
             javax.swing.JOptionPane.showMessageDialog(
                     this,
-                    "Partie créée avec succès !\n\nCode IP pour le Joueur 2 : " + codeIP + "\n\nCliquez sur OK pour accéder à la sélection.",
+                    "Partie créée avec succès !\n\nCode de la partie (IP) : " + codeIP
+                    + "\n\n(Les joueurs 2, 3 et 4 s'inscriront automatiquement via la BDD)",
                     "Code de la Partie",
                     javax.swing.JOptionPane.INFORMATION_MESSAGE
             );
 
-            // 4. Dès qu'on clique sur OK, basculement direct vers l'écran de sélection (Hôte / J1)
-            Selection fenetreSelection = new Selection(true, reseau);
+            // 4. Ouvrir la sélection pour le Joueur 1 (Hôte)
+            Selection fenetreSelection = new Selection(1, reseau);
             fenetreSelection.setVisible(true);
             this.dispose();
 
         } catch (Exception e) {
-            javax.swing.JOptionPane.showMessageDialog(this,
+            javax.swing.JOptionPane.showMessageDialog(
+                    this,
                     "Erreur lors de la création de la partie : " + e.getMessage(),
                     "Erreur Réseau",
-                    javax.swing.JOptionPane.ERROR_MESSAGE);
+                    javax.swing.JOptionPane.ERROR_MESSAGE
+            );
         }
     }//GEN-LAST:event_btnCreerActionPerformed
 
@@ -236,15 +245,15 @@ public class MainMenu extends javax.swing.JFrame {
     private void btnRejoindreMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRejoindreMouseEntered
         Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
 
-        btnReglages1.setOpaque(true);
+        btnRejoindre.setOpaque(true);
 
-        btnReglages1.setBackground(new Color(255, 245, 180));
-        btnReglages1.setForeground(new Color(180, 40, 20));
+        btnRejoindre.setBackground(new Color(255, 245, 180));
+        btnRejoindre.setForeground(new Color(180, 40, 20));
     }//GEN-LAST:event_btnRejoindreMouseEntered
 
     private void btnRejoindreMouseExited(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnRejoindreMouseExited
-        btnReglages1.setOpaque(false);
-        btnReglages1.setForeground(new Color(0, 25, 25));
+        btnRejoindre.setOpaque(false);
+        btnRejoindre.setForeground(new Color(0, 25, 25));
     }//GEN-LAST:event_btnRejoindreMouseExited
 
     private void btnRejoindreActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnRejoindreActionPerformed
@@ -258,10 +267,13 @@ public class MainMenu extends javax.swing.JFrame {
         if (codeEntre != null && !codeEntre.trim().isEmpty()) {
             new Thread(() -> {
                 try {
-                    Reseau reseau = new Reseau(codeEntre.trim(), 5000);
+                    Reseau reseau = new Reseau("127.0.0.1", 5000);
+
+                    // Détection automatique du numéro de joueur disponible (2, 3 ou 4)
+                    int monNumero = reseau.inscrireClientEtObtenirNumero();
 
                     java.awt.EventQueue.invokeLater(() -> {
-                        Selection selection = new Selection(false, reseau);
+                        Selection selection = new Selection(monNumero, reseau);
                         selection.setVisible(true);
                         this.dispose();
                     });
@@ -269,8 +281,8 @@ public class MainMenu extends javax.swing.JFrame {
                 } catch (Exception e) {
                     java.awt.EventQueue.invokeLater(() -> {
                         javax.swing.JOptionPane.showMessageDialog(this,
-                                "Impossible de rejoindre la partie avec le code : " + codeEntre,
-                                "Code Incorrect ou Hôte Introuvable",
+                                "Impossible de rejoindre la partie.",
+                                "Erreur Réseau",
                                 javax.swing.JOptionPane.ERROR_MESSAGE);
                     });
                 }
@@ -278,30 +290,30 @@ public class MainMenu extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_btnRejoindreActionPerformed
 
-        /**
-         * @param args the command line arguments
-         */
-        public static void main(String args[]) {
-            /* Set the Nimbus look and feel */
-            //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
-            /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
+    /**
+     * @param args the command line arguments
+     */
+    public static void main(String args[]) {
+        /* Set the Nimbus look and feel */
+        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
+        /* If Nimbus (introduced in Java SE 6) is not available, stay with the default look and feel.
          * For details see http://download.oracle.com/javase/tutorial/uiswing/lookandfeel/plaf.html 
-             */
-            try {
-                for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
-                    if ("Nimbus".equals(info.getName())) {
-                        javax.swing.UIManager.setLookAndFeel(info.getClassName());
-                        break;
-                    }
+         */
+        try {
+            for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
+                if ("Nimbus".equals(info.getName())) {
+                    javax.swing.UIManager.setLookAndFeel(info.getClassName());
+                    break;
                 }
-            } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
-                logger.log(java.util.logging.Level.SEVERE, null, ex);
             }
-            //</editor-fold>
-
-            /* Create and display the form */
-            java.awt.EventQueue.invokeLater(() -> new MainMenu().setVisible(true));
+        } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
+            logger.log(java.util.logging.Level.SEVERE, null, ex);
         }
+        //</editor-fold>
+
+        /* Create and display the form */
+        java.awt.EventQueue.invokeLater(() -> new MainMenu().setVisible(true));
+    }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnCreer;
