@@ -466,15 +466,16 @@ public class Avatar {
             dernierSupportX = support.getX();
         }
 
-        // Garde-fou de l'ancienne version (Jeu gere les cartes flottantes).
-        if (y > LIMITE_CHUTE) {
+                // Garde-fou de l'ancienne version (Jeu gere les cartes flottantes).
+                if (y > LIMITE_CHUTE) {
+            aChute = true;          // signale la chute à Jeu
             x = 600;
             y = 400;
             vy = 0;
             auSol = true;
             support = null;
             plateformeEnCoursDeTraverse = null;
-        }
+                }
     }
 
 // Déclencher une attaque avec un délai entre deux coups
@@ -609,5 +610,23 @@ public class Avatar {
             g.dispose();
         }
         
+    }
+    private boolean aChute = false;
+
+/** Vrai une seule fois après une chute dans le vide. */
+    public boolean consommerChute() {
+    boolean r = aChute;
+    aChute = false;
+    return r;
+    }
+    
+    /** Réapparition propre : l'avatar tombe de quelques pixels sur la plateforme. */
+    public void reapparaitreSur(double nx, double ny) {
+        x = nx;
+        y = ny;
+        vy = 0;
+        auSol = false;     // on laisse la gravité le poser normalement
+        support = null;
+        plateformeEnCoursDeTraverse = null;
     }
 }

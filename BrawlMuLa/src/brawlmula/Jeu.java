@@ -19,6 +19,7 @@ public class Jeu {
     private final int indexLocal;
     private final JoueurSQL sql;
     private final ModeDeJeu mode;
+    private long derniereChute = 0L;
 
     /**
      * Compatibilite : FenetreDeJeu() continue d'ouvrir le Chateau.
@@ -137,24 +138,31 @@ public class Jeu {
         }
         return principale;
     }
+    
+public void miseAJour() {
 
-    public void miseAJour() {
-        // Un seul Timer pilote les plateformes et le personnage local (40 ms par tick).
-        panneauCombat.getGestionnairePlateformes().miseAJour(0.040);
-        avatar.miseAJour();
+    panneauCombat.getGestionnairePlateformes().miseAJour(0.040);
+    avatar.miseAJour();
 
-        // Sur les cartes flottantes, remettre l'avatar sur le plateau principal.
-        if (estCarteFlottante() && avatar.y > ConfigurationCarte.HAUTEUR) {
-            avatar.connecterPlateformes(panneauCombat.getGestionnairePlateformes());
-            placerAvatarSurPlateformePrincipale();
+    // Chute dans le vide : -15 PV, puis réapparition sur la plateforme principale
+    if (avatar.consommerChute()) {
+        long maintenant = System.currentTimeMillis();
+        if (maintenant - derniereChute > 1500) {   // 1 chute max toutes les 1,5 s
+            sql.retirerPv(indexLocal + 1, 15);
+            derniereChute = maintenant;
         }
-
-        if (reseau != null) {
-            reseau.envoyerMaPosition((int) avatar.x, (int) avatar.y);
-            actualiserAvatarsDistants();
-        }
+        Plateforme principale = chercherPlateformePrincipale();
+        avatar.connecterPlateformes(panneauCombat.getGestionnairePlateformes());
+        avatar.reapparaitreSur(
+                principale.getX() + principale.getLargeur() / 2.0 - LARGEUR_AVATAR / 2.0,
+                principale.getY() - HAUTEUR_AVATAR - 30);
     }
 
+    if (reseau != null) {
+        reseau.envoyerMaPosition((int) avatar.x, (int) avatar.y);
+        actualiserAvatarsDistants();
+    }
+}
     private void actualiserAvatarsDistants() {
 
         for (Reseau.JoueurData etat
