@@ -675,4 +675,26 @@ public class Avatar {
     public void setAttaqueSpecialeActive(boolean etat) {
         this.attaqueSpecialeActive = etat;
     }
+    
+    private boolean bouclierActif = false;
+
+ public void activerBouclier() {
+     this.bouclierActif = true;
+ }
+
+ public boolean hasBouclier() {
+     return bouclierActif;
+ }
+
+ public void setBouclierActif(boolean etat) {
+     this.bouclierActif = etat;
+ }
+
+ public boolean absorberAttaqueAvecBouclier() {
+     if (bouclierActif) {
+         bouclierActif = false;
+         return true;
+     }
+     return false;
+ }
 }

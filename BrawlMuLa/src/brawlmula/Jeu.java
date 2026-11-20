@@ -21,7 +21,8 @@ public class Jeu {
     private final JoueurSQL sql;
     private final ModeDeJeu mode;
     private long derniereChute = 0L;
-
+    private long dernierSpawnVer = System.currentTimeMillis();
+    private static final long DELAI_SPAWN_MS = 12000; // Spawn toutes les 12 secondes
     /**
      * Compatibilite : FenetreDeJeu() continue d'ouvrir le Chateau.
      */
@@ -91,13 +92,13 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
                         int idx = Integer.parseInt(parts[1]) - 1;
                         panneauCombat.getVerDeTerre().ramasser();
                         if (idx >= 0 && idx < avatars.length && avatars[idx] != null) {
-                            avatars[idx].activerAttaqueSpeciale();
+                            avatars[idx].activerBouclier();
                         }
                     }
                 } else if (parts.length == 2 && "VER_UTILISE".equals(parts[0])) {
                     int idx = Integer.parseInt(parts[1]) - 1;
-                    if (idx != indexLocal && idx >= 0 && idx < avatars.length && avatars[idx] != null) {
-                        avatars[idx].setAttaqueSpecialeActive(false);
+                    if (idx >= 0 && idx < avatars.length && avatars[idx] != null) {
+                        avatars[idx].setBouclierActif(false);
                     }
                 }
             });
@@ -183,27 +184,35 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
             actualiserAvatarsDistants();
         }
         VerDeTerre ver = panneauCombat.getVerDeTerre();
-        if (reseau == null || indexLocal == 0) {
-            // 1. Apparition aléatoire sur une plateforme active toutes les 12s
-            if (!ver.isActif() && (System.currentTimeMillis() - dernierSpawnVer >= DELAI_SPAWN_MS)) {
-                ver.apparaitreAleatoirement(panneauCombat.getGestionnairePlateformes().getPlateformes());
-                dernierSpawnVer = System.currentTimeMillis();
-            }
+            if (reseau == null || indexLocal == 0) {
+                // 1. L'hôte (J1) fait apparaître le ver toutes les 12s et envoie ses coordonnées
+                if (!ver.isActif() && (System.currentTimeMillis() - dernierSpawnVer >= DELAI_SPAWN_MS)) {
+                    ver.apparaitreAleatoirement(panneauCombat.getGestionnairePlateformes().getPlateformes());
+                    dernierSpawnVer = System.currentTimeMillis();
+                    if (reseau != null && ver.isActif()) {
+                        reseau.envoyerEvenementVer("VER_SPAWN:"
+                                + (int) Math.round(ver.getX()) + ":"
+                                + (int) Math.round(ver.getY()));
+                    }
+                }
 
-            // 2. Vérification du ramassage par l'un des 4 joueurs
-            if (ver.isActif()) {
-                for (int i = 0; i < avatars.length; i++) {
-                    Avatar joueur = avatars[i];
-                    if (joueur != null && avatarsVisibles[i]) {
-                        if (ver.getHitbox().intersects(joueur.x, joueur.y, LARGEUR_AVATAR, HAUTEUR_AVATAR)) {
-                            joueur.activerAttaqueSpeciale();
-                            ver.ramasser();
-                            dernierSpawnVer = System.currentTimeMillis();
-                            break;
+                // 2. L'hôte vérifie si un joueur ramasse le ver
+                if (ver.isActif()) {
+                    for (int i = 0; i < avatars.length; i++) {
+                        Avatar joueur = avatars[i];
+                        if (joueur != null && avatarsVisibles[i]) {
+                            if (ver.getHitbox().intersects(joueur.getHitbox())) {
+                                joueur.activerBouclier();
+                                ver.ramasser();
+                                dernierSpawnVer = System.currentTimeMillis();
+                                if (reseau != null) {
+                                    reseau.envoyerEvenementVer("VER_PRIS:" + (i + 1));
+                                }
+                                break;
+                            }
                         }
                     }
                 }
-            }
         }
     }
 
@@ -276,30 +285,36 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
     }
 
 public void attaquer() {
+        if (avatar.attaquer()) {
 
-    if (avatar.attaquer()) {
-
-        // Synchroniser l'attaque avec les autres joueurs
-        if (reseau != null) {
-            reseau.envoyerAttaque();
-        }
-
-        // Détection des adversaires touchés
-        Rectangle zone = avatar.getZoneAttaque();
-        for (int i = 0; i < avatars.length; i++) {
-            if (i == indexLocal || avatars[i] == null || !avatarsVisibles[i]) {
-                continue;
+            // Synchroniser l'attaque avec les autres joueurs
+            if (reseau != null) {
+                reseau.envoyerAttaque();
             }
-            // pas de tir ami en 2v2
-            if (mode.parEquipes() && mode.getEquipe(i) == mode.getEquipe(indexLocal)) {
-                continue;
-            }
-            if (zone.intersects(avatars[i].getHitbox())) {
-                sql.retirerPv(i + 1, sql.lireDegats(indexLocal + 1));
+
+            // Détection des adversaires touchés
+            Rectangle zone = avatar.getZoneAttaque();
+            for (int i = 0; i < avatars.length; i++) {
+                if (i == indexLocal || avatars[i] == null || !avatarsVisibles[i]) {
+                    continue;
+                }
+                // Pas de tir ami en 2v2
+                if (mode.parEquipes() && mode.getEquipe(i) == mode.getEquipe(indexLocal)) {
+                    continue;
+                }
+                if (zone.intersects(avatars[i].getHitbox())) {
+                    if (avatars[i].absorberAttaqueAvecBouclier()) {
+                        // Le bouclier absorbe cette attaque et se brise (0 dégât subi)
+                        if (reseau != null) {
+                            reseau.envoyerEvenementVer("VER_UTILISE:" + (i + 1));
+                        }
+                    } else {
+                        sql.retirerPv(i + 1, sql.lireDegats(indexLocal + 1));
+                    }
+                }
             }
         }
     }
-}
 
     public void gererToucheAppuyee(int codeTouche) {
 
@@ -310,13 +325,7 @@ public void attaquer() {
     public void gererToucheRelachee(int codeTouche) {
         avatar.gererToucheRelachee(codeTouche);
     }
-    private final VerDeTerre verDeTerre = new VerDeTerre();
-    private long dernierSpawnVer = System.currentTimeMillis();
-    private static final long DELAI_SPAWN_MS = 12000; // Spawn toutes les 12 secondes
-
-    public VerDeTerre getVerDeTerre() {
-        return verDeTerre;
-    }
+    
 }
 
 
