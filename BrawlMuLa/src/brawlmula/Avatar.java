@@ -581,19 +581,7 @@ public class Avatar {
             echelleY = 1.0
                     + 0.008 * Math.sin(temps * 4.0);
         }
-        
-        if (attaqueSpecialeActive) {
-            Graphics2D gAura = (Graphics2D) contexte.create();
-            try {
-                gAura.setColor(new java.awt.Color(255, 215, 0, 110));
-                gAura.fillOval((int) x + 10, (int) y + 5, LARGEUR_AVATAR - 20, HAUTEUR_AVATAR - 10);
-                gAura.setColor(java.awt.Color.ORANGE);
-                gAura.drawOval((int) x + 10, (int) y + 5, LARGEUR_AVATAR - 20, HAUTEUR_AVATAR - 10);
-            } finally {
-                gAura.dispose();
-            }
-        }
-        
+
         Graphics2D g = (Graphics2D) contexte.create();
 
         try {
@@ -623,17 +611,36 @@ public class Avatar {
         } finally {
             g.dispose();
         }
-        
+
+        // Afficher la bulle de bouclier par-dessus le personnage
+        if (bouclierActif) {
+            Graphics2D gBouclier = (Graphics2D) contexte.create();
+            try {
+                gBouclier.setRenderingHint(
+                        RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON
+                );
+                gBouclier.setColor(new java.awt.Color(0, 200, 255, 80));
+                gBouclier.fillOval((int) x + 5, (int) y, LARGEUR_AVATAR - 10, HAUTEUR_AVATAR);
+
+                gBouclier.setStroke(new java.awt.BasicStroke(3f));
+                gBouclier.setColor(java.awt.Color.CYAN);
+                gBouclier.drawOval((int) x + 5, (int) y, LARGEUR_AVATAR - 10, HAUTEUR_AVATAR);
+            } finally {
+                gBouclier.dispose();
+            }
+        }
     }
+
     private boolean aChute = false;
 
-/** Vrai une seule fois après une chute dans le vide. */
+    /** Vrai une seule fois après une chute dans le vide. */
     public boolean consommerChute() {
-    boolean r = aChute;
-    aChute = false;
-    return r;
+        boolean r = aChute;
+        aChute = false;
+        return r;
     }
-    
+
     /** Réapparition propre : l'avatar tombe de quelques pixels sur la plateforme. */
     public void reapparaitreSur(double nx, double ny) {
         x = nx;
@@ -643,12 +650,12 @@ public class Avatar {
         support = null;
         plateformeEnCoursDeTraverse = null;
     }
-    
+
     /** Zone occupée par le personnage. */
     public Rectangle getHitbox() {
         return new Rectangle((int) x + DECALAGE_HITBOX_X,
                 (int) y + DECALAGE_HITBOX_Y, LARGEUR_HITBOX, HAUTEUR_HITBOX);
-}
+    }
 
     /** Zone touchée par un coup : devant le personnage. */
     public Rectangle getZoneAttaque() {
@@ -661,40 +668,26 @@ public class Avatar {
         return new Rectangle((int) x + DECALAGE_HITBOX_X + LARGEUR_HITBOX / 2, haut,
                 portee + LARGEUR_HITBOX / 2, HAUTEUR_HITBOX);
     }
-        private boolean attaqueSpecialeActive = false;
-    private static final double MULTIPLICATEUR_VER = 2.0; // Double les dégâts du prochain coup
 
-    public void activerAttaqueSpeciale() {
-        this.attaqueSpecialeActive = true;
-    }
-
-    public boolean hasAttaqueSpeciale() {
-        return attaqueSpecialeActive;
-    }
-
-    public void setAttaqueSpecialeActive(boolean etat) {
-        this.attaqueSpecialeActive = etat;
-    }
-    
     private boolean bouclierActif = false;
 
- public void activerBouclier() {
-     this.bouclierActif = true;
- }
+    public void activerBouclier() {
+        this.bouclierActif = true;
+    }
 
- public boolean hasBouclier() {
-     return bouclierActif;
- }
+    public boolean hasBouclier() {
+        return bouclierActif;
+    }
 
- public void setBouclierActif(boolean etat) {
-     this.bouclierActif = etat;
- }
+    public void setBouclierActif(boolean etat) {
+        this.bouclierActif = etat;
+    }
 
- public boolean absorberAttaqueAvecBouclier() {
-     if (bouclierActif) {
-         bouclierActif = false;
-         return true;
-     }
-     return false;
- }
+    public boolean absorberAttaqueAvecBouclier() {
+        if (bouclierActif) {
+            bouclierActif = false;
+            return true;
+        }
+        return false;
+    }
 }
