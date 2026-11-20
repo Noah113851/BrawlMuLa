@@ -52,17 +52,13 @@ public class Jeu {
         panneauCombat.setSize(ConfigurationCarte.LARGEUR, ConfigurationCarte.HAUTEUR);
         panneauCombat.setAfficherHitboxes(false);
         
-        // --- barre de vie (PV lus et écrits dans la base) ---
-        sql = new JoueurSQL();
-        int nombreDeJoueurs = 0;
-        for (String p : personnages) {
-            if (p != null) nombreDeJoueurs++;
-        }
-        mode = ModeDeJeu.depuisNombre(nombreDeJoueurs);
-        for (int i = 1; i <= mode.getNbJoueurs(); i++) {
-            sql.initialiserPv(i);
-        }
-        
+       // --- barre de vie (PV lus et écrits dans la base) ---
+       sql = new JoueurSQL();
+       mode = ModeDeJeu.courant;   // mode choisi dans Selection
+       for (int i = 1; i <= mode.getNbJoueurs(); i++) {
+           sql.initialiserPv(i);
+       
+       }
         panneauCombat.setHud(new BarreVieHUD(sql, mode));
 
         avatar = avatars[indexLocal];
