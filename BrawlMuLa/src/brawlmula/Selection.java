@@ -65,7 +65,7 @@ public class Selection extends javax.swing.JFrame {
             choisirPersonnage(PERSONNAGES_PAR_DEFAUT[monNumeroJoueur - 1]);
         }
 
-        Musiques_sons.playLoop("/ressources/Musiques-sons/Welcome-Music-Brawlmula-Soundtrack.wav");
+        Musiques_sons.playLoop("/ressources/Musiques-sons/Character-Select-Theme-Brawlmula-Soundtrack.wav");
     }
 
     public Selection() {
