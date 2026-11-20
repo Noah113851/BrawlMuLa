@@ -15,6 +15,7 @@ import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import java.awt.Rectangle;
 
+
 /**
  * Personnage : touches, affichage, gravite, sauts et collisions. Compatible
  * avec les plateformes intermittentes de la Colonie.
@@ -32,6 +33,7 @@ public class Avatar {
     private boolean regardeGauche = false;
 
     private double vy;
+    private double reculX = 0;
     private boolean auSol;
     private static final double SOL = 420;
     private static final double GRAVITE = 15;
@@ -367,6 +369,13 @@ public class Avatar {
         if (x < 0) {
             x = 0;
         }
+        if (reculX != 0) {
+            x += reculX;
+            reculX *= 0.85;                    // le recul s'atténue
+            if (Math.abs(reculX) < 0.5) reculX = 0;
+            double largeurMonde2 = gestionnaire == null ? 960 : ConfigurationCarte.LARGEUR;
+            x = Math.max(0, Math.min(x, largeurMonde2 - LARGEUR_AVATAR));
+        }
 
         // S permet de traverser les petites plateformes par le dessus.
         if (gestionnaire != null && bas && auSol && support != null
@@ -689,5 +698,14 @@ public class Avatar {
             return true;
         }
         return false;
+    }
+    
+    /** Pousse l'avatar : direction = 1 (vers la droite) ou -1 (vers la gauche). */
+    public void recevoirRecul(double direction) {
+        reculX = direction * 22;   // force horizontale
+        vy = -25;                  // petit saut
+        auSol = false;
+        support = null;
+        plateformeEnCoursDeTraverse = null;
     }
 }
