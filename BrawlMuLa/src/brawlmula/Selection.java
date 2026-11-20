@@ -65,7 +65,7 @@ public class Selection extends javax.swing.JFrame {
             choisirPersonnage(PERSONNAGES_PAR_DEFAUT[monNumeroJoueur - 1]);
         }
 
-        Musiques_sons.playLoop("/ressources/Musiques-sons/Welcome-Music-Brawlmula-Soundtrack.wav");
+        Musiques_sons.playLoop("/ressources/Musiques-sons/Character-Select-Theme-Brawlmula-Soundtrack.wav");
     }
 
     public Selection() {
@@ -547,9 +547,18 @@ public class Selection extends javax.swing.JFrame {
     }//GEN-LAST:event_btnCombatMouseEntered
 
     private void btnCombatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCombatActionPerformed
-        if (!isHost) {
-            return;
-        }
+        String[] options = {"1v1", "1v1v1", "2v2"};
+    int reponse = javax.swing.JOptionPane.showOptionDialog(
+            this, "Choisis le mode de jeu", "Mode de jeu",
+            javax.swing.JOptionPane.DEFAULT_OPTION,
+            javax.swing.JOptionPane.QUESTION_MESSAGE,
+            null, options, options[0]);
+    if (reponse < 0) {
+        return;
+    }
+    ModeDeJeu.courant = reponse == 0 ? ModeDeJeu.DUEL
+            : reponse == 1 ? ModeDeJeu.TRIO
+            : ModeDeJeu.DEUX_CONTRE_DEUX;
 
 //        if (!j1Selectionne || !j2Selectionne || !j3Selectionne || !j4Selectionne) {
 //            javax.swing.JOptionPane.showMessageDialog(

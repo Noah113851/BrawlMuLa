@@ -98,6 +98,15 @@ public final class PanneauCombat extends JPanel {
     private final Timer timer;
     private long precedentNanos;
     private boolean afficherHitboxes = false;
+    
+    
+    
+    private BarreVieHUD hud;
+
+    public void setHud(BarreVieHUD hud) {
+
+        this.hud = hud;
+    }
 
     // ===== CONSTRUCTEUR =====
 
@@ -476,7 +485,12 @@ public final class PanneauCombat extends JPanel {
                     avatars[index].rendu(g);
                 }
             }
-
+            if (hud != null) {
+                hud.dessiner(g);
+            }
+            if (hud != null) {
+                hud.dessiner(g);
+            }
             if (afficherHitboxes) {
                 carte.getPlateformes().dessinerHitboxes(g);
             }

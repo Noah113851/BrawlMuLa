@@ -1,5 +1,6 @@
 package brawlmula;
 
+
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.event.KeyEvent;
@@ -12,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
+import java.awt.Rectangle;
 
 /**
  * Personnage : touches, affichage, gravite, sauts et collisions. Compatible
@@ -466,15 +468,16 @@ public class Avatar {
             dernierSupportX = support.getX();
         }
 
-        // Garde-fou de l'ancienne version (Jeu gere les cartes flottantes).
-        if (y > LIMITE_CHUTE) {
+                // Garde-fou de l'ancienne version (Jeu gere les cartes flottantes).
+                if (y > LIMITE_CHUTE) {
+            aChute = true;          // signale la chute à Jeu
             x = 600;
             y = 400;
             vy = 0;
             auSol = true;
             support = null;
             plateformeEnCoursDeTraverse = null;
-        }
+                }
     }
 
 // Déclencher une attaque avec un délai entre deux coups
@@ -620,6 +623,43 @@ public class Avatar {
         } finally {
             g.dispose();
         }
+        
+    }
+    private boolean aChute = false;
+
+/** Vrai une seule fois après une chute dans le vide. */
+    public boolean consommerChute() {
+    boolean r = aChute;
+    aChute = false;
+    return r;
+    }
+    
+    /** Réapparition propre : l'avatar tombe de quelques pixels sur la plateforme. */
+    public void reapparaitreSur(double nx, double ny) {
+        x = nx;
+        y = ny;
+        vy = 0;
+        auSol = false;     // on laisse la gravité le poser normalement
+        support = null;
+        plateformeEnCoursDeTraverse = null;
+    }
+    
+    /** Zone occupée par le personnage. */
+    public Rectangle getHitbox() {
+        return new Rectangle((int) x + DECALAGE_HITBOX_X,
+                (int) y + DECALAGE_HITBOX_Y, LARGEUR_HITBOX, HAUTEUR_HITBOX);
+}
+
+    /** Zone touchée par un coup : devant le personnage. */
+    public Rectangle getZoneAttaque() {
+        int portee = 80;
+        int haut = (int) y + DECALAGE_HITBOX_Y;
+        if (regardeGauche) {
+            return new Rectangle((int) x + DECALAGE_HITBOX_X - portee, haut,
+                    portee + LARGEUR_HITBOX / 2, HAUTEUR_HITBOX);
+        }
+        return new Rectangle((int) x + DECALAGE_HITBOX_X + LARGEUR_HITBOX / 2, haut,
+                portee + LARGEUR_HITBOX / 2, HAUTEUR_HITBOX);
     }
         private boolean attaqueSpecialeActive = false;
     private static final double MULTIPLICATEUR_VER = 2.0; // Double les dégâts du prochain coup
