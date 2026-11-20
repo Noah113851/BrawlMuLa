@@ -68,7 +68,29 @@ public class Jeu {
                     avatars[index].afficherAttaqueDistante();
                 }
             });
-
+            reseau.demarrerEcouteVer(msg -> {
+                String[] parts = msg.split(":");
+                if (parts.length == 3 && "VER_SPAWN".equals(parts[0])) {
+                    if (indexLocal != 0) {
+                        int vx = Integer.parseInt(parts[1]);
+                        int vy = Integer.parseInt(parts[2]);
+                        panneauCombat.getVerDeTerre().synchroniser(true, vx, vy);
+                    }
+                } else if (parts.length == 2 && "VER_PRIS".equals(parts[0])) {
+                    if (indexLocal != 0) {
+                        int idx = Integer.parseInt(parts[1]) - 1;
+                        panneauCombat.getVerDeTerre().ramasser();
+                        if (idx >= 0 && idx < avatars.length && avatars[idx] != null) {
+                            avatars[idx].activerAttaqueSpeciale();
+                        }
+                    }
+                } else if (parts.length == 2 && "VER_UTILISE".equals(parts[0])) {
+                    int idx = Integer.parseInt(parts[1]) - 1;
+                    if (idx != indexLocal && idx >= 0 && idx < avatars.length && avatars[idx] != null) {
+                        avatars[idx].setAttaqueSpecialeActive(false);
+                    }
+                }
+            });
         }
     }
 
@@ -141,6 +163,29 @@ public class Jeu {
         if (reseau != null) {
             reseau.envoyerMaPosition((int) avatar.x, (int) avatar.y);
             actualiserAvatarsDistants();
+        }
+        VerDeTerre ver = panneauCombat.getVerDeTerre();
+        if (reseau == null || indexLocal == 0) {
+            // 1. Apparition aléatoire sur une plateforme active toutes les 12s
+            if (!ver.isActif() && (System.currentTimeMillis() - dernierSpawnVer >= DELAI_SPAWN_MS)) {
+                ver.apparaitreAleatoirement(panneauCombat.getGestionnairePlateformes().getPlateformes());
+                dernierSpawnVer = System.currentTimeMillis();
+            }
+
+            // 2. Vérification du ramassage par l'un des 4 joueurs
+            if (ver.isActif()) {
+                for (int i = 0; i < avatars.length; i++) {
+                    Avatar joueur = avatars[i];
+                    if (joueur != null && avatarsVisibles[i]) {
+                        if (ver.getHitbox().intersects(joueur.x, joueur.y, LARGEUR_AVATAR, HAUTEUR_AVATAR)) {
+                            joueur.activerAttaqueSpeciale();
+                            ver.ramasser();
+                            dernierSpawnVer = System.currentTimeMillis();
+                            break;
+                        }
+                    }
+                }
+            }
         }
     }
 
@@ -230,6 +275,13 @@ public class Jeu {
 
     public void gererToucheRelachee(int codeTouche) {
         avatar.gererToucheRelachee(codeTouche);
+    }
+    private final VerDeTerre verDeTerre = new VerDeTerre();
+    private long dernierSpawnVer = System.currentTimeMillis();
+    private static final long DELAI_SPAWN_MS = 12000; // Spawn toutes les 12 secondes
+
+    public VerDeTerre getVerDeTerre() {
+        return verDeTerre;
     }
 }
 

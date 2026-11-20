@@ -578,7 +578,19 @@ public class Avatar {
             echelleY = 1.0
                     + 0.008 * Math.sin(temps * 4.0);
         }
-
+        
+        if (attaqueSpecialeActive) {
+            Graphics2D gAura = (Graphics2D) contexte.create();
+            try {
+                gAura.setColor(new java.awt.Color(255, 215, 0, 110));
+                gAura.fillOval((int) x + 10, (int) y + 5, LARGEUR_AVATAR - 20, HAUTEUR_AVATAR - 10);
+                gAura.setColor(java.awt.Color.ORANGE);
+                gAura.drawOval((int) x + 10, (int) y + 5, LARGEUR_AVATAR - 20, HAUTEUR_AVATAR - 10);
+            } finally {
+                gAura.dispose();
+            }
+        }
+        
         Graphics2D g = (Graphics2D) contexte.create();
 
         try {
@@ -608,5 +620,19 @@ public class Avatar {
         } finally {
             g.dispose();
         }
+    }
+        private boolean attaqueSpecialeActive = false;
+    private static final double MULTIPLICATEUR_VER = 2.0; // Double les dégâts du prochain coup
+
+    public void activerAttaqueSpeciale() {
+        this.attaqueSpecialeActive = true;
+    }
+
+    public boolean hasAttaqueSpeciale() {
+        return attaqueSpecialeActive;
+    }
+
+    public void setAttaqueSpecialeActive(boolean etat) {
+        this.attaqueSpecialeActive = etat;
     }
 }

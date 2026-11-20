@@ -42,6 +42,7 @@ public class Reseau {
     private volatile boolean ferme;
     private Thread ecouteSalon;
     private Thread ecouteAttaques;
+    private Thread ecouteVer;
     private Thread synchronisationCombat;
     private volatile Position maPosition;
     private volatile List<JoueurData> positionsJoueurs = List.of();
@@ -317,6 +318,9 @@ public class Reseau {
         if (ecouteAttaques != null) {
             ecouteAttaques.interrupt();
         }
+        if (ecouteVer != null) {
+            ecouteVer.interrupt();
+        }
 
     }
 
@@ -415,7 +419,64 @@ public class Reseau {
         ecouteAttaques.setDaemon(true);
         ecouteAttaques.start();
     }
+    public void envoyerEvenementVer(String contenu) {
+        if (ferme || idCombat == 0) {
+            return;
+        }
+        messagesSortants.execute(() -> {
+            String sql = "INSERT INTO reseau_salon (emetteur, message) "
+                    + "SELECT ?, ? WHERE " + COMBAT_ACTIF;
+            try (Connection c = getConnexion(); PreparedStatement st = c.prepareStatement(sql)) {
+                st.setString(1, monIdJoueur);
+                st.setString(2, contenu);
+                st.setInt(3, idCombat);
+                st.executeUpdate();
+            } catch (SQLException e) {
+                System.err.println("Erreur envoi ver : " + e.getMessage());
+            }
+        });
+    }
 
+    public void demarrerEcouteVer(Consumer<String> recevoirEvenementVer) {
+        ecouteVer = new Thread(() -> {
+            int dernierIdLu = idCombat;
+            while (!ferme) {
+                try (Connection c = getConnexion(); PreparedStatement st = c.prepareStatement(
+                        "SELECT id, message FROM reseau_salon "
+                        + "WHERE id > ? "
+                        + "AND message LIKE 'VER_%' "
+                        + "AND " + COMBAT_ACTIF
+                        + " ORDER BY id")) {
+                    st.setInt(1, dernierIdLu);
+                    st.setInt(2, idCombat);
+                    try (ResultSet rs = st.executeQuery()) {
+                        while (rs.next() && !ferme) {
+                            dernierIdLu = rs.getInt("id");
+                            String message = rs.getString("message");
+                            EventQueue.invokeLater(() -> {
+                                if (!ferme) {
+                                    recevoirEvenementVer.accept(message);
+                                }
+                            });
+                        }
+                    }
+                } catch (SQLException e) {
+                    if (!ferme) {
+                        System.err.println("Erreur réception ver : " + e.getMessage());
+                    }
+                }
+                try {
+                    Thread.sleep(100);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+            }
+        }, "brawlmula-ver");
+        ecouteVer.setDaemon(true);
+        ecouteVer.start();
+    }
+    
     public record JoueurData(int emplacement, int x, int y) {
 
     }
