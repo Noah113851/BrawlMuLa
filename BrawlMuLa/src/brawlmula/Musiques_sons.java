@@ -42,8 +42,8 @@ public class Musiques_sons {
                 return;
             }
 
-            try (AudioInputStream audio =
-                    AudioSystem.getAudioInputStream(url)) {
+            try (AudioInputStream audio
+                    = AudioSystem.getAudioInputStream(url)) {
 
                 clip = AudioSystem.getClip();
                 clip.open(audio);
@@ -71,8 +71,8 @@ public class Musiques_sons {
                 return;
             }
 
-            try (AudioInputStream audio =
-                    AudioSystem.getAudioInputStream(url)) {
+            try (AudioInputStream audio
+                    = AudioSystem.getAudioInputStream(url)) {
 
                 Clip effet = AudioSystem.getClip();
                 effet.open(audio);
@@ -117,14 +117,11 @@ public class Musiques_sons {
             return;
         }
 
-        FloatControl controle = (FloatControl)
-                son.getControl(FloatControl.Type.MASTER_GAIN);
+        FloatControl controle = (FloatControl) son.getControl(FloatControl.Type.MASTER_GAIN);
 
         float valeur = Math.max(0.0001f, volume / 100.0f);
 
-        float decibels = (float) (
-                20 * Math.log10(valeur)
-        );
+        float decibels = (float) (20 * Math.log10(valeur));
 
         decibels = Math.max(
                 controle.getMinimum(),
@@ -132,6 +129,53 @@ public class Musiques_sons {
         );
 
         controle.setValue(decibels);
+    }
+
+    public static void jouerMusiqueCarte(String cheminCarte) {
+
+        if (cheminCarte == null) {
+            System.err.println("Aucune carte sélectionnée.");
+            return;
+        }
+
+        String nom = cheminCarte.replace('\\', '/')
+                .toLowerCase(java.util.Locale.ROOT);
+
+        String musique;
+
+        if (nom.endsWith("chateau.png")) {
+
+            musique = "chateau_theme.wav";
+
+        } else if (nom.endsWith("marche.png")) {
+
+            musique = "marche_theme.wav";
+
+        } else if (nom.endsWith("colonie.png")) {
+
+            musique = "colonie_theme.wav";
+
+        } else if (nom.endsWith("potager.png")) {
+
+            musique = "potager_theme.wav";
+
+        } else {
+
+            System.err.println(
+                    "Carte inconnue : " + cheminCarte
+            );
+            return;
+        }
+
+        String cheminMusique
+                = "/ressources/Musiques-sons/" + musique;
+
+        System.out.println(
+                "Lancement musique : " + cheminMusique
+        );
+
+        // Arrête la musique précédente et lance la nouvelle
+        playLoop(cheminMusique);
     }
 
     // Arrêter la musique

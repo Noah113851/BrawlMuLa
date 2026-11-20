@@ -79,6 +79,9 @@ public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener 
         timer = new Timer(40, this);
         timer.setCoalesce(true);
         timer.start();
+
+        // Lancer automatiquement la musique de la carte
+        Musiques_sons.jouerMusiqueCarte(carteChoisie);
     }
 
     @Override

@@ -11,6 +11,7 @@ public final class FenetreDeJeuColonie extends FenetreDeJeu {
 
     public FenetreDeJeuColonie() {
         super("/ressources/Maps/colonie.png");
+        
     }
 
     public static void main(String[] args) {
