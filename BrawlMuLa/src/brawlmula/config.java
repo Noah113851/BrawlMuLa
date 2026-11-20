@@ -3,6 +3,7 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
  */
 package brawlmula;
+
 import java.awt.event.KeyEvent;
 import java.util.HashMap;
 
@@ -11,6 +12,7 @@ import java.util.HashMap;
  * @author Shyturo
  */
 public class config {
+
     public static int volume = 80;
 
     // Dictionnaire contenant les 10 actions et leurs touches associées
@@ -29,5 +31,5 @@ public class config {
         touches.put("CAPACITE", KeyEvent.VK_E);
         touches.put("ULTI", KeyEvent.VK_R);
     }
-    
+
 }
