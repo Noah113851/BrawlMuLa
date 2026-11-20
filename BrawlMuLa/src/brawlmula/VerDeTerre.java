@@ -17,19 +17,21 @@ import javax.imageio.ImageIO;
 public class VerDeTerre {
     private double x, y;
     private double largeur = 50;
-    private final double hauteur = 60; // Changez uniquement cette valeur pour agrandir/réduire le verre
+    private final double hauteur = 60;
     private boolean actif = false;
     private BufferedImage sprite;
     private final Random rand = new Random();
 
+    private Plateforme support;
+    private double decalageX;
+
     public VerDeTerre() {
         try {
-            URL url = getClass().getResource("/ressources/verredeterre.png");
+            URL url = getClass().getResource("/ressources/verdeterre.png");
             if (url != null) {
                 BufferedImage brute = ImageIO.read(url);
                 if (brute != null) {
                     this.sprite = nettoyerEtRecadrer(brute);
-                    // Calcule automatiquement la largeur exacte selon les vraies proportions du verre
                     this.largeur = Math.round(this.hauteur * (sprite.getWidth() / (double) sprite.getHeight()));
                 }
             }
@@ -38,9 +40,6 @@ public class VerDeTerre {
         }
     }
 
-    /**
-     * Rend le fond blanc transparent et coupe les marges vides autour du verre.
-     */
     private static BufferedImage nettoyerEtRecadrer(BufferedImage src) {
         int w = src.getWidth();
         int h = src.getHeight();
@@ -56,7 +55,6 @@ public class VerDeTerre {
                 int g = (argb >> 8) & 0xFF;
                 int b = argb & 0xFF;
 
-                // Supprime la transparence existante ou le fond blanc pur
                 if (alpha < 20 || (r > 248 && g > 248 && b > 248)) {
                     img.setRGB(px, py, 0x00000000);
                 } else {
@@ -88,20 +86,57 @@ public class VerDeTerre {
         if (!actives.isEmpty()) {
             Plateforme p = actives.get(rand.nextInt(actives.size()));
             double marge = Math.max(0, p.getLargeur() - largeur);
-            this.x = p.getX() + (rand.nextDouble() * marge);
+            this.support = p;
+            this.decalageX = rand.nextDouble() * marge;
+            this.x = p.getX() + decalageX;
             this.y = p.getY() - hauteur;
             this.actif = true;
         }
     }
 
-    public void synchroniser(boolean actif, double x, double y) {
+    public void miseAJour() {
+        if (!actif || support == null) {
+            return;
+        }
+        // Si la plateforme intermittente disparaît, le bonus disparaît aussi
+        if (!support.estActive()) {
+            ramasser();
+            return;
+        }
+        // Suit les déplacements horizontaux et verticaux de la plateforme
+        this.x = support.getX() + decalageX;
+        this.y = support.getY() - hauteur;
+    }
+
+    public void synchroniser(boolean actif, double x, double y, List<Plateforme> plateformes) {
         this.actif = actif;
         this.x = x;
         this.y = y;
+        this.support = null;
+
+        if (actif && plateformes != null) {
+            double centreX = x + largeur / 2.0;
+            double basY = y + hauteur;
+            for (Plateforme p : plateformes) {
+                if (p.estActive()
+                        && centreX >= p.getX() - 10
+                        && centreX <= p.getX() + p.getLargeur() + 10
+                        && Math.abs(p.getY() - basY) < 25) {
+                    this.support = p;
+                    this.decalageX = x - p.getX();
+                    break;
+                }
+            }
+        }
+    }
+
+    public void synchroniser(boolean actif, double x, double y) {
+        synchroniser(actif, x, y, null);
     }
 
     public void ramasser() {
         this.actif = false;
+        this.support = null;
     }
 
     public boolean isActif() { return actif; }

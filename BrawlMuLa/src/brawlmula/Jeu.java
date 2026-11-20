@@ -85,7 +85,8 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
                     if (indexLocal != 0) {
                         int vx = Integer.parseInt(parts[1]);
                         int vy = Integer.parseInt(parts[2]);
-                        panneauCombat.getVerDeTerre().synchroniser(true, vx, vy);
+                        panneauCombat.getVerDeTerre().synchroniser(
+                                true, vx, vy, panneauCombat.getGestionnairePlateformes().getPlateformes());
                     }
                 } else if (parts.length == 2 && "VER_PRIS".equals(parts[0])) {
                     if (indexLocal != 0) {
@@ -163,6 +164,8 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
     public void miseAJour() {
         // Un seul Timer pilote les plateformes et le personnage local (40 ms par tick).
         panneauCombat.getGestionnairePlateformes().miseAJour(0.040);
+        panneauCombat.getGestionnairePlateformes().miseAJour(0.040);
+        panneauCombat.getVerDeTerre().miseAJour();
         avatar.miseAJour();
 
         // Sur les cartes flottantes, remettre l'avatar sur le plateau principal.
