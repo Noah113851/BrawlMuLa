@@ -1,5 +1,6 @@
 package brawlmula;
 
+
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.event.KeyEvent;
@@ -12,6 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
+import java.awt.Rectangle;
 
 /**
  * Personnage : touches, affichage, gravite, sauts et collisions. Compatible
@@ -628,5 +630,23 @@ public class Avatar {
         auSol = false;     // on laisse la gravité le poser normalement
         support = null;
         plateformeEnCoursDeTraverse = null;
+    }
+    
+    /** Zone occupée par le personnage. */
+    public Rectangle getHitbox() {
+        return new Rectangle((int) x + DECALAGE_HITBOX_X,
+                (int) y + DECALAGE_HITBOX_Y, LARGEUR_HITBOX, HAUTEUR_HITBOX);
+}
+
+    /** Zone touchée par un coup : devant le personnage. */
+    public Rectangle getZoneAttaque() {
+        int portee = 80;
+        int haut = (int) y + DECALAGE_HITBOX_Y;
+        if (regardeGauche) {
+            return new Rectangle((int) x + DECALAGE_HITBOX_X - portee, haut,
+                    portee + LARGEUR_HITBOX / 2, HAUTEUR_HITBOX);
+        }
+        return new Rectangle((int) x + DECALAGE_HITBOX_X + LARGEUR_HITBOX / 2, haut,
+                portee + LARGEUR_HITBOX / 2, HAUTEUR_HITBOX);
     }
 }

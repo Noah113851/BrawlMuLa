@@ -253,7 +253,21 @@ public int lirePv(int emplacement) {
     return 0;
 }
 
-
+/** Dégâts du personnage choisi par ce joueur (table Avatars). */
+public int lireDegats(int emplacement) {
+    String sql = "SELECT a.degats FROM Joueur j "
+               + "JOIN Avatars a ON j.id_avatar = a.id "
+               + "WHERE j.emplacement = ?";
+    try (PreparedStatement r = connexion.prepareStatement(sql)) {
+        r.setInt(1, emplacement);
+        try (ResultSet rs = r.executeQuery()) {
+            if (rs.next()) return rs.getInt("degats");
+        }
+    } catch (SQLException ex) {
+        ex.printStackTrace();
+    }
+    return 10;   // valeur par défaut
+}
     /** Ferme la connexion : a appeler une seule fois, quand le jeu est termine. */
     public void closeTable() {
         try {

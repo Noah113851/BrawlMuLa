@@ -1,5 +1,6 @@
 package brawlmula;
 
+import java.awt.Rectangle;
 import java.awt.Graphics2D;
 import static brawlmula.Avatar.HAUTEUR_AVATAR;
 import static brawlmula.Avatar.LARGEUR_AVATAR;
@@ -230,17 +231,31 @@ public void miseAJour() {
     public PanneauCombat getPanneauCombat() {
         return panneauCombat;
     }
+    
+public void attaquer() {
+    if (avatar.attaquer()) {
 
-    public void attaquer() {
+        // Synchroniser l'attaque avec les autres joueurs
+        if (reseau != null) {
+            reseau.envoyerAttaque();
+        }
 
-        if (avatar.attaquer()) {
-
-            // Synchroniser l'attaque avec les autres joueurs
-            if (reseau != null) {
-                reseau.envoyerAttaque();
+        // Détection des adversaires touchés
+        Rectangle zone = avatar.getZoneAttaque();
+        for (int i = 0; i < avatars.length; i++) {
+            if (i == indexLocal || avatars[i] == null || !avatarsVisibles[i]) {
+                continue;
+            }
+            // pas de tir ami en 2v2
+            if (mode.parEquipes() && mode.getEquipe(i) == mode.getEquipe(indexLocal)) {
+                continue;
+            }
+            if (zone.intersects(avatars[i].getHitbox())) {
+                sql.retirerPv(i + 1, sql.lireDegats(indexLocal + 1));
             }
         }
     }
+}
 
     public void gererToucheAppuyee(int codeTouche) {
 
