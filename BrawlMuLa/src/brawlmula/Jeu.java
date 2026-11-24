@@ -14,8 +14,8 @@ public class Jeu {
 
     public final Avatar avatar;
     private final PanneauCombat panneauCombat;
-    private final Avatar[] avatars = new Avatar[4];
-    private final boolean[] avatarsVisibles = new boolean[avatars.length];
+    private final Avatar[] avatars; 
+    private final boolean[] avatarsVisibles;
     private final Reseau reseau;
     private final int indexLocal;
     private final JoueurSQL sql;
@@ -26,6 +26,7 @@ public class Jeu {
     // Second bonus independant : environ toutes les 18 secondes.
     private static final long DELAI_PIMENT_MS = 18000;
     private long dernierSpawnPiment = System.currentTimeMillis();
+
     /**
      * Compatibilite : FenetreDeJeu() continue d'ouvrir le Chateau.
      */
@@ -42,6 +43,8 @@ public class Jeu {
 
     public Jeu(String j1, String j2, String j3, String j4,
             String cheminCarte, Reseau reseau, int monNumeroJoueur) {
+        this.avatars = new Avatar[4];
+        this.avatarsVisibles = new boolean[avatars.length];
         if (monNumeroJoueur < 1 || monNumeroJoueur > avatars.length) {
             throw new IllegalArgumentException("Numéro de joueur invalide : " + monNumeroJoueur);
         }
@@ -57,12 +60,12 @@ public class Jeu {
         panneauCombat = new PanneauCombat(cheminCarte, avatars, avatarsVisibles);
         panneauCombat.setSize(ConfigurationCarte.LARGEUR, ConfigurationCarte.HAUTEUR);
         panneauCombat.setAfficherHitboxes(false);
-       sql = new JoueurSQL();
-mode = ModeDeJeu.courant;
-for (int i = 1; i <= mode.getNbJoueurs(); i++) {
-    sql.initialiserPv(i);
-}
-panneauCombat.setHud(new BarreVieHUD(sql, mode));
+        sql = new JoueurSQL();
+        mode = ModeDeJeu.courant;
+        for (int i = 1; i <= mode.getNbJoueurs(); i++) {
+            sql.initialiserPv(i);
+        }
+        panneauCombat.setHud(new BarreVieHUD(sql, mode));
 
         avatar = avatars[indexLocal];
         avatar.connecterPlateformes(panneauCombat.getGestionnairePlateformes());
@@ -137,7 +140,7 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
                         avatar.recevoirRecul(dir);
                     }
                 }
-                
+
             });
         }
     }
@@ -207,17 +210,17 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
 
         // Sur les cartes flottantes, remettre l'avatar sur le plateau principal.
         if (avatar.consommerChute()) {
-    long maintenant = System.currentTimeMillis();
-    if (maintenant - derniereChute > 1500) {
-        sql.retirerPv(indexLocal + 1, 15);
-        derniereChute = maintenant;
-    }
-    Plateforme principale = chercherPlateformePrincipale();
-    avatar.connecterPlateformes(panneauCombat.getGestionnairePlateformes());
-    avatar.reapparaitreSur(
-            principale.getX() + principale.getLargeur() / 2.0 - LARGEUR_AVATAR / 2.0,
-            principale.getY() - HAUTEUR_AVATAR - 30);
-}
+            long maintenant = System.currentTimeMillis();
+            if (maintenant - derniereChute > 1500) {
+                sql.retirerPv(indexLocal + 1, 15);
+                derniereChute = maintenant;
+            }
+            Plateforme principale = chercherPlateformePrincipale();
+            avatar.connecterPlateformes(panneauCombat.getGestionnairePlateformes());
+            avatar.reapparaitreSur(
+                    principale.getX() + principale.getLargeur() / 2.0 - LARGEUR_AVATAR / 2.0,
+                    principale.getY() - HAUTEUR_AVATAR - 30);
+        }
 
         if (reseau != null) {
             reseau.envoyerMaPosition((int) avatar.x, (int) avatar.y);
@@ -225,44 +228,46 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
         }
         gererBonusDoubleDegats();
         VerDeTerre ver = panneauCombat.getVerDeTerre();
-            if (reseau == null || indexLocal == 0) {
-                // 1. L'hôte (J1) fait apparaître le ver toutes les 12s et envoie ses coordonnées
-                if (!ver.isActif() && (System.currentTimeMillis() - dernierSpawnVer >= DELAI_SPAWN_MS)) {
-                    ver.apparaitreAleatoirement(panneauCombat.getGestionnairePlateformes().getPlateformes());
-                    dernierSpawnVer = System.currentTimeMillis();
-                    if (reseau != null && ver.isActif()) {
-                        reseau.envoyerEvenementVer("VER_SPAWN:"
-                                + (int) Math.round(ver.getX()) + ":"
-                                + (int) Math.round(ver.getY()));
-                    }
+        if (reseau == null || indexLocal == 0) {
+            // 1. L'hôte (J1) fait apparaître le ver toutes les 12s et envoie ses coordonnées
+            if (!ver.isActif() && (System.currentTimeMillis() - dernierSpawnVer >= DELAI_SPAWN_MS)) {
+                ver.apparaitreAleatoirement(panneauCombat.getGestionnairePlateformes().getPlateformes());
+                dernierSpawnVer = System.currentTimeMillis();
+                if (reseau != null && ver.isActif()) {
+                    reseau.envoyerEvenementVer("VER_SPAWN:"
+                            + (int) Math.round(ver.getX()) + ":"
+                            + (int) Math.round(ver.getY()));
                 }
+            }
 
-                // 2. L'hôte vérifie si un joueur ramasse le ver
-                if (ver.isActif()) {
-                    for (int i = 0; i < avatars.length; i++) {
-                        Avatar joueur = avatars[i];
-                        if (joueur != null && avatarsVisibles[i]) {
-                            if (ver.getHitbox().intersects(joueur.getHitbox())) {
-                                joueur.activerBouclier();
-                                ver.ramasser();
-                                dernierSpawnVer = System.currentTimeMillis();
-                                if (reseau != null) {
-                                    reseau.envoyerEvenementVer("VER_PRIS:" + (i + 1));
-                                }
-                                break;
+            // 2. L'hôte vérifie si un joueur ramasse le ver
+            if (ver.isActif()) {
+                for (int i = 0; i < avatars.length; i++) {
+                    Avatar joueur = avatars[i];
+                    if (joueur != null && avatarsVisibles[i]) {
+                        if (ver.getHitbox().intersects(joueur.getHitbox())) {
+                            joueur.activerBouclier();
+                            ver.ramasser();
+                            dernierSpawnVer = System.currentTimeMillis();
+                            if (reseau != null) {
+                                reseau.envoyerEvenementVer("VER_PRIS:" + (i + 1));
                             }
+                            break;
                         }
                     }
                 }
+            }
         }
     }
 
     /**
-     * Le PC hote choisit le support et le joueur qui ramasse le piment.
-     * Les clients appliquent uniquement les evenements diffuses par l'hote.
+     * Le PC hote choisit le support et le joueur qui ramasse le piment. Les
+     * clients appliquent uniquement les evenements diffuses par l'hote.
      */
     private void gererBonusDoubleDegats() {
-        if (reseau != null && indexLocal != 0) return;
+        if (reseau != null && indexLocal != 0) {
+            return;
+        }
         BonusDoubleDegats bonus = panneauCombat.getBonusDoubleDegats();
         long maintenant = System.currentTimeMillis();
         if (!bonus.isActif() && maintenant - dernierSpawnPiment >= DELAI_PIMENT_MS) {
@@ -349,12 +354,12 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
         panneauCombat.paint(contexte);
     }
 
-   public void fermer() {
-    if (reseau != null) {
-        reseau.fermer();
+    public void fermer() {
+        if (reseau != null) {
+            reseau.fermer();
+        }
+        sql.closeTable();
     }
-    sql.closeTable();
-}
 
     public PanneauCombat getPanneauCombat() {
         return panneauCombat;
@@ -396,6 +401,17 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
                 reseau.envoyerEvenementVer("VER_X2_UTILISE:" + (indexLocal + 1));
             }
         }
+
+       
+
+//    public void gererToucheAppuyee(int codeTouche) {
+//
+//        // Conserver uniquement les déplacements et le saut
+//        this.avatars.gererToucheAppuyee(codeTouche);
+//    }
+
+    void gererToucheAppuyee(int keyCode) {
+        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 
     /**
