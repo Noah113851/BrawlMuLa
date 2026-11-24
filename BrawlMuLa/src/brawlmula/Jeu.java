@@ -410,8 +410,8 @@ public class Jeu {
 //        this.avatars.gererToucheAppuyee(codeTouche);
 //    }
 
-    void gererToucheAppuyee(int keyCode) {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    
+        throw new UnsupportedOperationException("Not supported yet.") ; // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
 
     /**
