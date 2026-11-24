@@ -881,6 +881,23 @@ public class Avatar {
         return new Rectangle(hitX + LARGEUR_HITBOX / 2, haut,
                 portee + LARGEUR_HITBOX / 2, hauteur);
     }
+        private boolean doubleDegatsActif = false;
+
+    public void activerDoubleDegats() {
+        this.doubleDegatsActif = true;
+    }
+
+    public boolean aDoubleDegats() {
+        return doubleDegatsActif;
+    }
+
+    public void consommerDoubleDegats() {
+        this.doubleDegatsActif = false;
+    }
+
+    public void setDoubleDegatsActif(boolean etat) {
+        this.doubleDegatsActif = etat;
+    }
     private boolean bouclierActif = false;
 
     public void activerBouclier() {
