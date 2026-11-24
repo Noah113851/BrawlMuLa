@@ -73,16 +73,17 @@ public class Jeu {
         if (reseau != null) {
             reseau.demarrerSynchronisation(monNumeroJoueur, (int) avatar.x, (int) avatar.y);
 
-            reseau.demarrerEcouteAttaques(numero -> {
-
+            reseau.demarrerEcouteAttaques((numero, lourde) -> {
                 int index = numero - 1;
-
                 if (index >= 0
                         && index < avatars.length
                         && index != indexLocal
                         && avatars[index] != null) {
-
-                    avatars[index].afficherAttaqueDistante();
+                    if (lourde) {
+                        avatars[index].afficherAttaqueLourdeDistante();
+                    } else {
+                        avatars[index].afficherAttaqueDistante();
+                    }
                 }
             });
 
@@ -363,65 +364,41 @@ public class Jeu {
     public PanneauCombat getPanneauCombat() {
         return panneauCombat;
     }
+        public void attaquer() {
+        if (!avatar.attaquer()) {
+            return;
+        }
+        // L'effet x2 s'applique au prochain COUP REUSSI, pas au prochain clic.
+        boolean bonusSurCeCoup = avatar.aDoubleDegats();
+        if (reseau != null) {
+            reseau.envoyerAttaque(false);
+        }
+        int degatsBase = Math.max(0, sql.lireDegats(indexLocal + 1));
+        boolean aInflige = toucherAdversaires(avatar.getZoneAttaque(), degatsBase, bonusSurCeCoup);
+        consommerBonusSiBesoin(bonusSurCeCoup, aInflige);
+    }
 
-    public void attaquer() {
-        if (avatar.attaquer()) {
+    /** Attaque lourde : la spécialité du personnage local. */
+    public void attaquerLourd() {
+        if (!avatar.attaquerLourd()) {
+            return;
+        }
+        boolean bonusSurCeCoup = avatar.aDoubleDegats();
+        if (reseau != null) {
+            reseau.envoyerAttaque(true);
+        }
+        int degatsBase = avatar.getAttaqueLourde()
+                .calculerDegats(sql.lireDegats(indexLocal + 1));
+        boolean aInflige = toucherAdversaires(avatar.getZoneAttaqueLourde(), degatsBase, bonusSurCeCoup);
+        consommerBonusSiBesoin(bonusSurCeCoup, aInflige);
+    }
 
-            // L'effet s'applique au prochain COUP REUSSI, pas au prochain clic.
-            boolean bonusSurCeCoup = avatar.aDoubleDegats();
-            boolean aInfligeDesDegats = false;
-            int degatsBase = Math.max(0, sql.lireDegats(indexLocal + 1));
-
-            // Les animations d'attaque continuent d'etre synchronisees.
+    /** Une seule charge x2 consommée, même si plusieurs ennemis sont touchés. */
+    private void consommerBonusSiBesoin(boolean bonusSurCeCoup, boolean aInflige) {
+        if (bonusSurCeCoup && aInflige) {
+            avatar.consommerDoubleDegats();
             if (reseau != null) {
-                reseau.envoyerAttaque();
-            }
-//            Rectangle zone = avatar.getZoneAttaque();
-//            for (int i = 0; i < avatars.length; i++) {
-//                if (i == indexLocal || avatars[i] == null || !avatarsVisibles[i]) {
-//                    continue;
-//                }
-//                if (mode.parEquipes() && mode.getEquipe(i) == mode.getEquipe(indexLocal)) {
-//                    continue; // Ne jamais toucher un allie.
-//                }
-//                if (!zone.intersects(avatars[i].getHitbox())) {
-//                    continue;
-//                }
-
-                // Détection des adversaires touchés
-                Rectangle zone = avatar.getZoneAttaque();
-                for (int i = 0; i < avatars.length; i++) {
-                    if (i == indexLocal || avatars[i] == null || !avatarsVisibles[i]) {
-                        continue;
-                    }
-                    // Pas de tir ami en 2v2
-                    if (mode.parEquipes() && mode.getEquipe(i) == mode.getEquipe(indexLocal)) {
-                        continue;
-                    }
-                    if (zone.intersects(avatars[i].getHitbox())) {
-                        if (avatars[i].absorberAttaqueAvecBouclier()) {
-                            // Le bouclier absorbe cette attaque et se brise (0 dégât subi)
-                            if (reseau != null) {
-                                reseau.envoyerEvenementVer("VER_UTILISE:" + (i + 1));
-                            }
-                        } else {
-                            sql.retirerPv(i + 1, sql.lireDegats(indexLocal + 1));
-                            System.out.println("ENVOI RECUL vers joueur " + (i + 1) + ", reseau=" + (reseau != null));
-                            if (reseau != null) {
-                                int dir = avatars[i].x >= avatar.x ? 1 : -1;
-                                reseau.envoyerEvenementVer("VER_RECUL:" + (i + 1) + ":" + dir);
-                            }
-                        }
-                    } else {
-                        sql.retirerPv(i + 1, sql.lireDegats(indexLocal + 1));
-                        System.out.println("ENVOI RECUL vers joueur " + (i + 1) + ", reseau=" + (reseau != null));
-                        if (reseau != null) {
-                            int dir = avatars[i].x >= avatar.x ? 1 : -1;
-                            reseau.envoyerEvenementVer("VER_RECUL:" + (i + 1) + ":" + dir);
-                        }
-                    }
-
-                }
+                reseau.envoyerEvenementVer("VER_X2_UTILISE:" + (indexLocal + 1));
             }
         }
 
@@ -436,11 +413,56 @@ public class Jeu {
     void gererToucheAppuyee(int keyCode) {
         throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
     }
-    public void gererToucheRelachee(int codeTouche) {
-    avatar.gererToucheRelachee(codeTouche);
-}
 
- 
+    /**
+     * Applique les dégâts aux adversaires présents dans la zone.
+     * Renvoie vrai si au moins un adversaire a perdu des PV.
+     */
+    private boolean toucherAdversaires(Rectangle zone, int degatsBase, boolean bonusX2) {
+        boolean aInflige = false;
+        for (int i = 0; i < avatars.length; i++) {
+            if (i == indexLocal || avatars[i] == null || !avatarsVisibles[i]) {
+                continue;
+            }
+            // Pas de tir ami en 2v2
+            if (mode.parEquipes() && mode.getEquipe(i) == mode.getEquipe(indexLocal)) {
+                continue;
+            }
+            if (!zone.intersects(avatars[i].getHitbox())) {
+                continue;
+            }
+            if (avatars[i].absorberAttaqueAvecBouclier()) {
+                // Le bouclier absorbe cette attaque et se brise (0 dégât subi)
+                if (reseau != null) {
+                    reseau.envoyerEvenementVer("VER_UTILISE:" + (i + 1));
+                }
+            } else if (degatsBase > 0 && sql.lirePv(i + 1) > 0) {
+                int montant = BonusDoubleDegats.calculerDegats(degatsBase, bonusX2);
+                sql.retirerPv(i + 1, montant);
+                aInflige = true;
+                if (reseau != null) {
+                    int dir = avatars[i].x >= avatar.x ? 1 : -1;
+                    reseau.envoyerEvenementVer("VER_RECUL:" + (i + 1) + ":" + dir);
+                }
+            }
+        }
+        return aInflige;
+    }
+
+    public void gererToucheAppuyee(int codeTouche) {
+        // Touche d'attaque lourde définie dans les réglages (K par défaut)
+        Integer toucheLourde = config.touches.get("ATTAQUE_LOURDE");
+        if (toucheLourde != null && codeTouche == toucheLourde) {
+            attaquerLourd();
+            return;
+        }
+        avatar.gererToucheAppuyee(codeTouche);
+    }
+
+    public void gererToucheRelachee(int codeTouche) {
+        avatar.gererToucheRelachee(codeTouche);
+    }
+
 }
 
 
