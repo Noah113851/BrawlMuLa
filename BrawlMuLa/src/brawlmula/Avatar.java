@@ -927,6 +927,6 @@ public class Avatar {
         auSol = false;
         support = null;
         plateformeEnCoursDeTraverse = null;
-        System.out.println("RECUL reçu : " + direction);
+//        System.out.println("RECUL reçu : " + direction);
     }
 }
