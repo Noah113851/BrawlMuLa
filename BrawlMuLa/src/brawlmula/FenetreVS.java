@@ -30,9 +30,9 @@ import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
 /**
- * Ecran VS 2D adapte aux parties de 2, 3 ou 4 joueurs.
- * Design adapte a chaque carte. Les choix viennent de Selection.
- * L'ecran ne lance pas la physique du jeu : celle-ci demarre apres le VS.
+ * Ecran VS 2D adapte aux parties de 2, 3 ou 4 joueurs. Design adapte a chaque
+ * carte. Les choix viennent de Selection. L'ecran ne lance pas la physique du
+ * jeu : celle-ci demarre apres le VS.
  */
 public final class FenetreVS extends JFrame {
 
@@ -40,44 +40,76 @@ public final class FenetreVS extends JFrame {
     private static final int HAUTEUR = 760;
     private static final long DUREE_NS = 3_600_000_000L;
 
+    private static final double DEBUT_FIGHT = 0.78;
+
     private final PanneauVS panneau;
     private final Runnable apresVS;
     private final Timer chronometre;
-    private long debutNs;
-    private boolean terminee;
 
-    /** Compatibilite : les appels historiques affichent toujours 4 joueurs. */
+    private long debutNs;
+    private boolean terminee = false;
+    private boolean fightAnnonce = false;
+
     public FenetreVS(String cheminCarte, String j1, String j2,
-                     String j3, String j4, Runnable apresVS) {
-        this(cheminCarte,
+            String j3, String j4, Runnable apresVS) {
+
+        this(
+                cheminCarte,
                 new String[]{j1, j2, j3, j4},
-                new int[]{1, 2, 3, 4}, apresVS);
+                new int[]{1, 2, 3, 4},
+                apresVS
+        );
     }
 
-    /**
-     * Nouveau constructeur : seuls les joueurs presents sont affiches.
-     * numerosJoueurs : numeros reels de 1 a 4 (ex : {1, 3}).
-     * personnages : dans le meme ordre que les numeros.
-     */
-    public FenetreVS(String cheminCarte, String[] personnages,
-                     int[] numerosJoueurs, Runnable apresVS) {
+    public FenetreVS(String cheminCarte,
+            String[] personnages,
+            int[] numerosJoueurs,
+            Runnable apresVS) {
+
         if (apresVS == null) {
-            throw new IllegalArgumentException("Action de fin du VS manquante.");
+            throw new IllegalArgumentException(
+                    "Action de fin du VS manquante."
+            );
         }
+
         this.apresVS = apresVS;
-        this.panneau = new PanneauVS(cheminCarte, personnages, numerosJoueurs);
+
+        this.panneau = new PanneauVS(
+                cheminCarte,
+                personnages,
+                numerosJoueurs
+        );
+
         this.chronometre = new Timer(16, e -> {
-            if (debutNs == 0L) return;
-            if (System.nanoTime() - debutNs >= DUREE_NS) {
+
+            if (debutNs == 0L) {
+                return;
+            }
+
+            long tempsEcoule
+                    = System.nanoTime() - debutNs;
+
+            double progression
+                    = tempsEcoule / (double) DUREE_NS;
+
+            if (progression >= DEBUT_FIGHT
+                    && !fightAnnonce) {
+
+                annoncerFight();
+            }
+
+            if (progression >= 1.0) {
+
                 terminer();
+
             } else {
+
                 panneau.repaint();
             }
         });
+
         chronometre.setCoalesce(true);
 
-        System.out.println("[BrawlMuLa][VS] Fenetre VS creee : "
-                + personnages.length + " joueurs, carte=" + panneau.nomCarte);
         setTitle("BrawlMuLa - VS : " + panneau.nomCarte);
         setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         setResizable(false);
@@ -85,50 +117,122 @@ public final class FenetreVS extends JFrame {
         pack();
         setLocationRelativeTo(null);
 
-        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
-                .put(KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0), "suivant");
-        getRootPane().getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
-                .put(KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0), "suivant");
-        getRootPane().getActionMap().put("suivant", new AbstractAction() {
-            @Override public void actionPerformed(ActionEvent e) { terminer(); }
+        // Passer le VS avec Entrée ou Espace
+        getRootPane()
+                .getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+                .put(
+                        KeyStroke.getKeyStroke(KeyEvent.VK_ENTER, 0),
+                        "suivant"
+                );
+
+        getRootPane()
+                .getInputMap(JComponent.WHEN_IN_FOCUSED_WINDOW)
+                .put(
+                        KeyStroke.getKeyStroke(KeyEvent.VK_SPACE, 0),
+                        "suivant"
+                );
+
+        getRootPane().getActionMap().put(
+                "suivant", new AbstractAction() {
+
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                terminer();
+            }
         });
+
         addWindowListener(new WindowAdapter() {
-            @Override public void windowOpened(WindowEvent e) {
-                if (debutNs == 0L) {
+
+            @Override
+            public void windowOpened(WindowEvent e) {
+
+                if (debutNs == 0L && !terminee) {
+
+                    Musiques_sons.playLoop(
+                            "/ressources/Musiques-sons/versus_theme.wav"
+                    );
+
                     debutNs = System.nanoTime();
                     panneau.debutNs = debutNs;
+
                     chronometre.start();
                 }
             }
-            @Override public void windowClosed(WindowEvent e) {
+
+            @Override
+            public void windowClosing(WindowEvent e) {
+
+                if (!terminee) {
+                    Musiques_sons.stop();
+                }
+            }
+
+            @Override
+            public void windowClosed(WindowEvent e) {
+
                 chronometre.stop();
             }
         });
+
+    } // FIN DU CONSTRUCTEUR
+
+    private void annoncerFight() {
+
+        if (fightAnnonce) {
+            return;
+        }
+
+        fightAnnonce = true;
+
+        Musiques_sons.jouerSon(
+                "/ressources/Musiques-sons/fight.wav"
+        );
+
+        System.out.println("[BrawlMuLa] FIGHT !");
     }
 
     private void terminer() {
-        if (terminee) return;
+
+        if (terminee) {
+            return;
+        }
+
         terminee = true;
+
         chronometre.stop();
+
+        if (!fightAnnonce) {
+            annoncerFight();
+        }
+
+        Musiques_sons.stop();
+
         dispose();
-        System.out.println("[BrawlMuLa][VS] VS termine : ouverture du combat.");
+
         apresVS.run();
     }
 
-    private static double borne(double n) { return Math.max(0.0, Math.min(1.0, n)); }
+    private static double borne(double n) {
+        return Math.max(0.0, Math.min(1.0, n));
+    }
+
     private static double doux(double n) {
         double t = borne(n);
         return t * t * (3.0 - 2.0 * t);
     }
+
     private static int couleurCanal(int valeur) {
         return Math.max(0, Math.min(255, valeur));
     }
+
     private static Color alpha(Color couleur, int a) {
         return new Color(couleur.getRed(), couleur.getGreen(),
                 couleur.getBlue(), couleurCanal(a));
     }
 
-    /** Panneau independant d'un JFrame, pratique pour le rendu et les tests. */
+    /**
+     * Panneau independant d'un JFrame, pratique pour le rendu et les tests.
+     */
     static final class PanneauVS extends JPanel {
 
         private final String nomCarte;
@@ -205,16 +309,24 @@ public final class FenetreVS extends JFrame {
         private static String nomSprite(String nom) {
             String n = Normalizer.normalize(nom, Normalizer.Form.NFD)
                     .replaceAll("\\p{M}", "").trim().toLowerCase(Locale.ROOT);
-            if (n.contains("nikku")) return "nikku_fight.png";
-            if (n.contains("tomato")) return "tomato_fight.png";
-            if (n.contains("potato")) return "potato_fight.png";
+            if (n.contains("nikku")) {
+                return "nikku_fight.png";
+            }
+            if (n.contains("tomato")) {
+                return "tomato_fight.png";
+            }
+            if (n.contains("potato")) {
+                return "potato_fight.png";
+            }
             return "carrot_fight.png";
         }
 
         private BufferedImage lireImage(String chemin, boolean obligatoire) {
             URL url = getClass().getResource(chemin);
             if (url == null) {
-                if (obligatoire) throw new IllegalStateException("Image absente : " + chemin);
+                if (obligatoire) {
+                    throw new IllegalStateException("Image absente : " + chemin);
+                }
                 System.err.println("[VS] Sprite absent : " + chemin);
                 return null;
             }
@@ -225,29 +337,38 @@ public final class FenetreVS extends JFrame {
                 }
                 return image;
             } catch (IOException ex) {
-                if (obligatoire) throw new IllegalStateException("Impossible de charger : " + chemin, ex);
+                if (obligatoire) {
+                    throw new IllegalStateException("Impossible de charger : " + chemin, ex);
+                }
                 System.err.println("[VS] Sprite illisible : " + chemin);
                 return null;
             }
         }
 
         private static BufferedImage recadrerAlpha(BufferedImage image) {
-            if (image == null) return null;
+            if (image == null) {
+                return null;
+            }
             int g = image.getWidth(), d = -1;
             int h = image.getHeight(), b = -1;
             for (int y = 0; y < image.getHeight(); y++) {
                 for (int x = 0; x < image.getWidth(); x++) {
                     if ((image.getRGB(x, y) >>> 24) > 8) {
-                        g = Math.min(g, x); d = Math.max(d, x);
-                        h = Math.min(h, y); b = Math.max(b, y);
+                        g = Math.min(g, x);
+                        d = Math.max(d, x);
+                        h = Math.min(h, y);
+                        b = Math.max(b, y);
                     }
                 }
             }
-            if (d < g) return image;
+            if (d < g) {
+                return image;
+            }
             return image.getSubimage(g, h, d - g + 1, b - h + 1);
         }
 
-        @Override protected void paintComponent(Graphics source) {
+        @Override
+        protected void paintComponent(Graphics source) {
             super.paintComponent(source);
             Graphics2D g = (Graphics2D) source.create();
             try {
@@ -261,7 +382,9 @@ public final class FenetreVS extends JFrame {
             }
         }
 
-        /** t de 0 a 1 : rendu deterministe, meme sans fenetre Swing ouverte. */
+        /**
+         * t de 0 a 1 : rendu deterministe, meme sans fenetre Swing ouverte.
+         */
         void dessiner(Graphics2D g, double t) {
             t = borne(t);
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
@@ -308,13 +431,19 @@ public final class FenetreVS extends JFrame {
             }
         }
 
-        /** Coordonnees des cartes : aucun emplacement fictif n'est cree. */
+        /**
+         * Coordonnees des cartes : aucun emplacement fictif n'est cree.
+         */
         private static int[] positionsCartes(int nombre) {
             switch (nombre) {
-                case 2: return new int[]{231, 811};
-                case 3: return new int[]{91, 521, 951};
-                case 4: return new int[]{38, 294, 748, 1004};
-                default: throw new IllegalArgumentException("Nombre de joueurs invalide");
+                case 2:
+                    return new int[]{231, 811};
+                case 3:
+                    return new int[]{91, 521, 951};
+                case 4:
+                    return new int[]{38, 294, 748, 1004};
+                default:
+                    throw new IllegalArgumentException("Nombre de joueurs invalide");
             }
         }
 
@@ -440,8 +569,8 @@ public final class FenetreVS extends JFrame {
         }
 
         private void dessinerPortrait(Graphics2D g,
-                                     BufferedImage image, String nom,
-                                     double echelle) {
+                BufferedImage image, String nom,
+                double echelle) {
             if (image == null) {
                 // Affichage lisible si un PNG est absent.
                 g.setColor(alpha(lumiere, 90));
@@ -471,10 +600,12 @@ public final class FenetreVS extends JFrame {
          * Deux emblemes reduits pour une partie a trois joueurs.
          */
         private void dessinerVS(Graphics2D g, double t,
-                                int centreX, int centreY,
-                                double echelle, double phase) {
+                int centreX, int centreY,
+                double echelle, double phase) {
             double apparition = doux((t - 0.20 - 0.03 * phase) / 0.22);
-            if (apparition <= 0) return;
+            if (apparition <= 0) {
+                return;
+            }
             Graphics2D v = (Graphics2D) g.create();
             try {
                 v.setComposite(AlphaComposite.getInstance(
@@ -533,15 +664,86 @@ public final class FenetreVS extends JFrame {
             g.setColor(secondaire);
             g.fillRoundRect(328, 715,
                     (int) Math.round(624 * borne(t)), 4, 4, 4);
+
+// Apparition du mot FIGHT en fin de VS
+            if (t >= DEBUT_FIGHT) {
+
+                double apparition = doux(
+                        (t - DEBUT_FIGHT) / 0.08
+                );
+
+                Graphics2D fightG = (Graphics2D) g.create();
+
+                try {
+
+                    fightG.setComposite(
+                            AlphaComposite.getInstance(
+                                    AlphaComposite.SRC_OVER,
+                                    (float) apparition
+                            )
+                    );
+
+                    // Fond sombre derrière le texte
+                    fightG.setColor(new Color(5, 10, 25, 225));
+                    fightG.fillRoundRect(
+                            370, 310, 540, 180, 25, 25
+                    );
+
+                    // Bordure lumineuse
+                    fightG.setColor(lumiere);
+                    fightG.setStroke(new BasicStroke(4f));
+                    fightG.drawRoundRect(
+                            370, 310, 540, 180, 25, 25
+                    );
+
+                    // Texte pixel art centré
+                    int taille = 16;
+                    String texte = "FIGHT";
+
+                    int largeur = texte.length() * 6 * taille - taille;
+                    int posX = (LARGEUR - largeur) / 2;
+
+                    dessinerTextePixel(
+                            fightG,
+                            texte,
+                            posX + 5,
+                            325 + 5,
+                            taille,
+                            new Color(0, 0, 0, 200)
+                    );
+
+                    dessinerTextePixel(
+                            fightG,
+                            texte,
+                            posX,
+                            325,
+                            taille,
+                            new Color(255, 205, 80)
+                    );
+
+                } finally {
+                    fightG.dispose();
+                }
+            }
+
         }
 
         private void decorerCarte(Graphics2D g, double t) {
             switch (carte) {
-                case "CHATEAU": decorChateau(g, t); break;
-                case "MARCHE": decorMarche(g, t); break;
-                case "POTAGER": decorPotager(g, t); break;
-                case "COLONIE": decorColonie(g, t); break;
-                default: break;
+                case "CHATEAU":
+                    decorChateau(g, t);
+                    break;
+                case "MARCHE":
+                    decorMarche(g, t);
+                    break;
+                case "POTAGER":
+                    decorPotager(g, t);
+                    break;
+                case "COLONIE":
+                    decorColonie(g, t);
+                    break;
+                default:
+                    break;
             }
         }
 
@@ -669,46 +871,79 @@ public final class FenetreVS extends JFrame {
 
         private static int[] pixelLettre(char c) {
             switch (c) {
-                case 'A': return new int[]{14,17,17,31,17,17,17};
-                case 'B': return new int[]{30,17,17,30,17,17,30};
-                case 'C': return new int[]{14,17,16,16,16,17,14};
-                case 'D': return new int[]{30,17,17,17,17,17,30};
-                case 'E': return new int[]{31,16,16,30,16,16,31};
-                case 'F': return new int[]{31,16,16,30,16,16,16};
-                case 'G': return new int[]{14,17,16,23,17,17,15};
-                case 'H': return new int[]{17,17,17,31,17,17,17};
-                case 'I': return new int[]{31,4,4,4,4,4,31};
-                case 'J': return new int[]{7,2,2,2,18,18,12};
-                case 'K': return new int[]{17,18,20,24,20,18,17};
-                case 'L': return new int[]{16,16,16,16,16,16,31};
-                case 'M': return new int[]{17,27,21,21,17,17,17};
-                case 'N': return new int[]{17,25,21,19,17,17,17};
-                case 'O': return new int[]{14,17,17,17,17,17,14};
-                case 'P': return new int[]{30,17,17,30,16,16,16};
-                case 'Q': return new int[]{14,17,17,17,21,18,13};
-                case 'R': return new int[]{30,17,17,30,20,18,17};
-                case 'S': return new int[]{15,16,16,14,1,1,30};
-                case 'T': return new int[]{31,4,4,4,4,4,4};
-                case 'U': return new int[]{17,17,17,17,17,17,14};
-                case 'V': return new int[]{17,17,17,17,17,10,4};
-                case 'W': return new int[]{17,17,17,21,21,21,10};
-                case 'X': return new int[]{17,17,10,4,10,17,17};
-                case 'Y': return new int[]{17,17,10,4,4,4,4};
-                case 'Z': return new int[]{31,1,2,4,8,16,31};
-                case '0': return new int[]{14,19,21,21,21,25,14};
-                case '1': return new int[]{4,12,4,4,4,4,14};
-                case '2': return new int[]{14,17,1,2,4,8,31};
-                case '3': return new int[]{30,1,1,14,1,1,30};
-                case '4': return new int[]{2,6,10,18,31,2,2};
-                case '?': return new int[]{14,17,1,2,4,0,4};
-                default: return new int[]{0,0,0,0,0,0,0};
+                case 'A':
+                    return new int[]{14, 17, 17, 31, 17, 17, 17};
+                case 'B':
+                    return new int[]{30, 17, 17, 30, 17, 17, 30};
+                case 'C':
+                    return new int[]{14, 17, 16, 16, 16, 17, 14};
+                case 'D':
+                    return new int[]{30, 17, 17, 17, 17, 17, 30};
+                case 'E':
+                    return new int[]{31, 16, 16, 30, 16, 16, 31};
+                case 'F':
+                    return new int[]{31, 16, 16, 30, 16, 16, 16};
+                case 'G':
+                    return new int[]{14, 17, 16, 23, 17, 17, 15};
+                case 'H':
+                    return new int[]{17, 17, 17, 31, 17, 17, 17};
+                case 'I':
+                    return new int[]{31, 4, 4, 4, 4, 4, 31};
+                case 'J':
+                    return new int[]{7, 2, 2, 2, 18, 18, 12};
+                case 'K':
+                    return new int[]{17, 18, 20, 24, 20, 18, 17};
+                case 'L':
+                    return new int[]{16, 16, 16, 16, 16, 16, 31};
+                case 'M':
+                    return new int[]{17, 27, 21, 21, 17, 17, 17};
+                case 'N':
+                    return new int[]{17, 25, 21, 19, 17, 17, 17};
+                case 'O':
+                    return new int[]{14, 17, 17, 17, 17, 17, 14};
+                case 'P':
+                    return new int[]{30, 17, 17, 30, 16, 16, 16};
+                case 'Q':
+                    return new int[]{14, 17, 17, 17, 21, 18, 13};
+                case 'R':
+                    return new int[]{30, 17, 17, 30, 20, 18, 17};
+                case 'S':
+                    return new int[]{15, 16, 16, 14, 1, 1, 30};
+                case 'T':
+                    return new int[]{31, 4, 4, 4, 4, 4, 4};
+                case 'U':
+                    return new int[]{17, 17, 17, 17, 17, 17, 14};
+                case 'V':
+                    return new int[]{17, 17, 17, 17, 17, 10, 4};
+                case 'W':
+                    return new int[]{17, 17, 17, 21, 21, 21, 10};
+                case 'X':
+                    return new int[]{17, 17, 10, 4, 10, 17, 17};
+                case 'Y':
+                    return new int[]{17, 17, 10, 4, 4, 4, 4};
+                case 'Z':
+                    return new int[]{31, 1, 2, 4, 8, 16, 31};
+                case '0':
+                    return new int[]{14, 19, 21, 21, 21, 25, 14};
+                case '1':
+                    return new int[]{4, 12, 4, 4, 4, 4, 14};
+                case '2':
+                    return new int[]{14, 17, 1, 2, 4, 8, 31};
+                case '3':
+                    return new int[]{30, 1, 1, 14, 1, 1, 30};
+                case '4':
+                    return new int[]{2, 6, 10, 18, 31, 2, 2};
+                case '?':
+                    return new int[]{14, 17, 1, 2, 4, 0, 4};
+                default:
+                    return new int[]{0, 0, 0, 0, 0, 0, 0};
             }
         }
     }
 
     /**
-     * Test autonome : Run File => 4 joueurs sur Chateau.
-     * Arguments optionnels : "2 marche", "3 colonie", "4 potager".
+     * Test autonome : Run File => 4 joueurs sur Chateau. Arguments optionnels :
+     * "2 marche", "3 colonie", "4 potager".
      */
     public static void main(String[] args) {
         int nombre = 4;
