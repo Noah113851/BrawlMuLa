@@ -621,6 +621,50 @@ public class Avatar {
             g.dispose();
         }
 
+        // Aura rouge pulsante : visible jusqu'a la consommation du bonus x2.
+        if (doubleDegatsActif) {
+            Graphics2D aura = (Graphics2D) contexte.create();
+            try {
+                aura.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+                double pulsation = 0.5 + 0.5 * Math.sin(temps * 6.0);
+                int cx = (int) Math.round(x + LARGEUR_AVATAR / 2.0);
+                int cy = (int) Math.round(y + HAUTEUR_AVATAR / 2.0);
+                // Plusieurs contours translucides donnent un halo lumineux.
+                for (int i = 12; i >= 0; i--) {
+                    int marge = 3 + i * 2;
+                    int opacite = (int) ((75 - i * 5) * (0.65 + 0.35 * pulsation));
+                    aura.setColor(new java.awt.Color(255, 18, 30, opacite));
+                    aura.setStroke(new java.awt.BasicStroke(3.5f));
+                    aura.drawOval((int) x - marge, (int) y - marge,
+                            LARGEUR_AVATAR + 2 * marge, HAUTEUR_AVATAR + 2 * marge);
+                }
+                // Lueur rouge douce, sans masquer le sprite.
+                aura.setColor(new java.awt.Color(255, 0, 20, (int) (16 + 14 * pulsation)));
+                aura.fillOval((int) x - 5, (int) y - 5,
+                        LARGEUR_AVATAR + 10, HAUTEUR_AVATAR + 10);
+                // Etincelles rouges qui remontent autour du combattant.
+                for (int i = 0; i < 16; i++) {
+                    double phase = (temps * 0.9 + i / 16.0) % 1.0;
+                    double angle = i * 2.399963 + temps * 0.7;
+                    int px = cx + (int) (Math.cos(angle) * (LARGEUR_AVATAR / 2.0 + 10));
+                    int py = cy + (int) ((0.5 - phase) * (HAUTEUR_AVATAR + 32));
+                    int alpha = (int) (210 * Math.sin(Math.PI * phase));
+                    int taille = 3 + i % 4;
+                    aura.setColor(new java.awt.Color(255, 45 + i % 3 * 25, 35, alpha));
+                    aura.fillOval(px, py, taille, taille);
+                }
+                // Indicateur du bonus, conserve au-dessus du personnage.
+                aura.setColor(new java.awt.Color(85, 5, 12, 225));
+                aura.fillRoundRect(cx - 21, (int) y - 23, 42, 23, 10, 10);
+                aura.setColor(new java.awt.Color(255, 110, 105));
+                aura.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 18));
+                aura.drawString("x2", cx - 12, (int) y - 6);
+            } finally {
+                aura.dispose();
+            }
+        }
+
         // Afficher la bulle de bouclier par-dessus le personnage
         if (bouclierActif) {
             Graphics2D gBouclier = (Graphics2D) contexte.create();
@@ -676,6 +720,25 @@ public class Avatar {
         }
         return new Rectangle((int) x + DECALAGE_HITBOX_X + LARGEUR_HITBOX / 2, haut,
                 portee + LARGEUR_HITBOX / 2, HAUTEUR_HITBOX);
+    }
+
+    // Le piment double les degats du prochain coup qui touche vraiment.
+    private boolean doubleDegatsActif = false;
+
+    public void activerDoubleDegats() {
+        doubleDegatsActif = true;
+    }
+
+    public boolean aDoubleDegats() {
+        return doubleDegatsActif;
+    }
+
+    public void consommerDoubleDegats() {
+        doubleDegatsActif = false;
+    }
+
+    public void setDoubleDegatsActif(boolean actif) {
+        doubleDegatsActif = actif;
     }
 
     private boolean bouclierActif = false;
