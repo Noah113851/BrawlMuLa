@@ -702,8 +702,8 @@ public class Avatar {
     
     /** Pousse l'avatar : direction = 1 (vers la droite) ou -1 (vers la gauche). */
     public void recevoirRecul(double direction) {
-        reculX = direction * 22;   // force horizontale
-        vy = -25;                  // petit saut
+        reculX = direction * 12;   // force horizontale
+        vy = -12;                  // petit saut
         auSol = false;
         support = null;
         plateformeEnCoursDeTraverse = null;
