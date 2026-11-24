@@ -490,9 +490,7 @@ public final class PanneauCombat extends JPanel {
             if (hud != null) {
                 hud.dessiner(g);
             }
-            if (hud != null) {
-                hud.dessiner(g);
-            }
+            
             if (afficherHitboxes) {
                 carte.getPlateformes().dessinerHitboxes(g);
             }
