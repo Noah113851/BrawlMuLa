@@ -1,5 +1,6 @@
 package brawlmula;
 
+
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.event.KeyEvent;
@@ -12,6 +13,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.imageio.ImageIO;
+import java.awt.Rectangle;
+
 
 /**
  * Personnage : touches, affichage, gravite, sauts et collisions. Compatible
@@ -30,6 +33,7 @@ public class Avatar {
     private boolean regardeGauche = false;
 
     private double vy;
+    private double reculX = 0;
     private boolean auSol;
     private static final double SOL = 420;
     private static final double GRAVITE = 15;
@@ -365,6 +369,13 @@ public class Avatar {
         if (x < 0) {
             x = 0;
         }
+        if (reculX != 0) {
+            x += reculX;
+            reculX *= 0.85;                    // le recul s'atténue
+            if (Math.abs(reculX) < 0.5) reculX = 0;
+            double largeurMonde2 = gestionnaire == null ? 960 : ConfigurationCarte.LARGEUR;
+            x = Math.max(0, Math.min(x, largeurMonde2 - LARGEUR_AVATAR));
+        }
 
         // S permet de traverser les petites plateformes par le dessus.
         if (gestionnaire != null && bas && auSol && support != null
@@ -466,15 +477,16 @@ public class Avatar {
             dernierSupportX = support.getX();
         }
 
-        // Garde-fou de l'ancienne version (Jeu gere les cartes flottantes).
-        if (y > LIMITE_CHUTE) {
+                // Garde-fou de l'ancienne version (Jeu gere les cartes flottantes).
+                if (y > LIMITE_CHUTE) {
+            aChute = true;          // signale la chute à Jeu
             x = 600;
             y = 400;
             vy = 0;
             auSol = true;
             support = null;
             plateformeEnCoursDeTraverse = null;
-        }
+                }
     }
 
 // Déclencher une attaque avec un délai entre deux coups
@@ -608,6 +620,92 @@ public class Avatar {
         } finally {
             g.dispose();
         }
-        
+
+        // Afficher la bulle de bouclier par-dessus le personnage
+        if (bouclierActif) {
+            Graphics2D gBouclier = (Graphics2D) contexte.create();
+            try {
+                gBouclier.setRenderingHint(
+                        RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON
+                );
+                gBouclier.setColor(new java.awt.Color(0, 200, 255, 80));
+                gBouclier.fillOval((int) x + 5, (int) y, LARGEUR_AVATAR - 10, HAUTEUR_AVATAR);
+
+                gBouclier.setStroke(new java.awt.BasicStroke(3f));
+                gBouclier.setColor(java.awt.Color.CYAN);
+                gBouclier.drawOval((int) x + 5, (int) y, LARGEUR_AVATAR - 10, HAUTEUR_AVATAR);
+            } finally {
+                gBouclier.dispose();
+            }
+        }
+    }
+
+    private boolean aChute = false;
+
+    /** Vrai une seule fois après une chute dans le vide. */
+    public boolean consommerChute() {
+        boolean r = aChute;
+        aChute = false;
+        return r;
+    }
+
+    /** Réapparition propre : l'avatar tombe de quelques pixels sur la plateforme. */
+    public void reapparaitreSur(double nx, double ny) {
+        x = nx;
+        y = ny;
+        vy = 0;
+        auSol = false;     // on laisse la gravité le poser normalement
+        support = null;
+        plateformeEnCoursDeTraverse = null;
+    }
+
+    /** Zone occupée par le personnage. */
+    public Rectangle getHitbox() {
+        return new Rectangle((int) x + DECALAGE_HITBOX_X,
+                (int) y + DECALAGE_HITBOX_Y, LARGEUR_HITBOX, HAUTEUR_HITBOX);
+    }
+
+    /** Zone touchée par un coup : devant le personnage. */
+    public Rectangle getZoneAttaque() {
+        int portee = 80;
+        int haut = (int) y + DECALAGE_HITBOX_Y;
+        if (regardeGauche) {
+            return new Rectangle((int) x + DECALAGE_HITBOX_X - portee, haut,
+                    portee + LARGEUR_HITBOX / 2, HAUTEUR_HITBOX);
+        }
+        return new Rectangle((int) x + DECALAGE_HITBOX_X + LARGEUR_HITBOX / 2, haut,
+                portee + LARGEUR_HITBOX / 2, HAUTEUR_HITBOX);
+    }
+
+    private boolean bouclierActif = false;
+
+    public void activerBouclier() {
+        this.bouclierActif = true;
+    }
+
+    public boolean hasBouclier() {
+        return bouclierActif;
+    }
+
+    public void setBouclierActif(boolean etat) {
+        this.bouclierActif = etat;
+    }
+
+    public boolean absorberAttaqueAvecBouclier() {
+        if (bouclierActif) {
+            bouclierActif = false;
+            return true;
+        }
+        return false;
+    }
+    
+    /** Pousse l'avatar : direction = 1 (vers la droite) ou -1 (vers la gauche). */
+    public void recevoirRecul(double direction) {
+        reculX = direction * 22;   // force horizontale
+        vy = -25;                  // petit saut
+        auSol = false;
+        support = null;
+        plateformeEnCoursDeTraverse = null;
     }
 }

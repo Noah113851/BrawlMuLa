@@ -86,6 +86,8 @@ public final class PanneauCombat extends JPanel {
     private BufferedImage spritePotagerPetite;
     private BufferedImage spritePotagerGrande;
 
+    private final VerDeTerre verDeTerre = new VerDeTerre();
+    
     private BufferedImage spriteColoniePetite;
     private BufferedImage spriteColonieGrande;
     private BufferedImage spriteColonieHolographique;
@@ -477,7 +479,7 @@ public final class PanneauCombat extends JPanel {
                             zone.height);
                 }
             }
-
+            verDeTerre.dessiner(g);
             for (int index = 0; index < avatars.length; index++) {
                 if (avatarsVisibles[index]) {
                     avatars[index].rendu(g);
@@ -639,4 +641,13 @@ public final class PanneauCombat extends JPanel {
         afficherHitboxes = afficher;
         repaint();
     }
+    
+    /**
+     *
+     * @return
+     */
+    public VerDeTerre getVerDeTerre() {
+        return verDeTerre;
+    }
+
 }

@@ -1,5 +1,6 @@
 package brawlmula;
 
+import java.awt.Rectangle;
 import java.awt.Graphics2D;
 import static brawlmula.Avatar.HAUTEUR_AVATAR;
 import static brawlmula.Avatar.LARGEUR_AVATAR;
@@ -19,7 +20,9 @@ public class Jeu {
     private final int indexLocal;
     private final JoueurSQL sql;
     private final ModeDeJeu mode;
-
+    private long derniereChute = 0L;
+    private long dernierSpawnVer = System.currentTimeMillis();
+    private static final long DELAI_SPAWN_MS = 12000; // Spawn toutes les 12 secondes
     /**
      * Compatibilite : FenetreDeJeu() continue d'ouvrir le Chateau.
      */
@@ -51,15 +54,12 @@ public class Jeu {
         panneauCombat = new PanneauCombat(cheminCarte, avatars, avatarsVisibles);
         panneauCombat.setSize(ConfigurationCarte.LARGEUR, ConfigurationCarte.HAUTEUR);
         panneauCombat.setAfficherHitboxes(false);
-        
-       // --- barre de vie (PV lus et écrits dans la base) ---
        sql = new JoueurSQL();
-       mode = ModeDeJeu.courant;   // mode choisi dans Selection
-       for (int i = 1; i <= mode.getNbJoueurs(); i++) {
-           sql.initialiserPv(i);
-       
-       }
-        panneauCombat.setHud(new BarreVieHUD(sql, mode));
+mode = ModeDeJeu.courant;
+for (int i = 1; i <= mode.getNbJoueurs(); i++) {
+    sql.initialiserPv(i);
+}
+panneauCombat.setHud(new BarreVieHUD(sql, mode));
 
         avatar = avatars[indexLocal];
         avatar.connecterPlateformes(panneauCombat.getGestionnairePlateformes());
@@ -79,7 +79,30 @@ public class Jeu {
                     avatars[index].afficherAttaqueDistante();
                 }
             });
-
+            reseau.demarrerEcouteVer(msg -> {
+                String[] parts = msg.split(":");
+                if (parts.length == 3 && "VER_SPAWN".equals(parts[0])) {
+                    if (indexLocal != 0) {
+                        int vx = Integer.parseInt(parts[1]);
+                        int vy = Integer.parseInt(parts[2]);
+                        panneauCombat.getVerDeTerre().synchroniser(
+                                true, vx, vy, panneauCombat.getGestionnairePlateformes().getPlateformes());
+                    }
+                } else if (parts.length == 2 && "VER_PRIS".equals(parts[0])) {
+                    if (indexLocal != 0) {
+                        int idx = Integer.parseInt(parts[1]) - 1;
+                        panneauCombat.getVerDeTerre().ramasser();
+                        if (idx >= 0 && idx < avatars.length && avatars[idx] != null) {
+                            avatars[idx].activerBouclier();
+                        }
+                    }
+                } else if (parts.length == 2 && "VER_UTILISE".equals(parts[0])) {
+                    int idx = Integer.parseInt(parts[1]) - 1;
+                    if (idx >= 0 && idx < avatars.length && avatars[idx] != null) {
+                        avatars[idx].setBouclierActif(false);
+                    }
+                }
+            });
         }
     }
 
@@ -141,17 +164,58 @@ public class Jeu {
     public void miseAJour() {
         // Un seul Timer pilote les plateformes et le personnage local (40 ms par tick).
         panneauCombat.getGestionnairePlateformes().miseAJour(0.040);
+        panneauCombat.getGestionnairePlateformes().miseAJour(0.040);
+        panneauCombat.getVerDeTerre().miseAJour();
         avatar.miseAJour();
 
         // Sur les cartes flottantes, remettre l'avatar sur le plateau principal.
-        if (estCarteFlottante() && avatar.y > ConfigurationCarte.HAUTEUR) {
-            avatar.connecterPlateformes(panneauCombat.getGestionnairePlateformes());
-            placerAvatarSurPlateformePrincipale();
-        }
+        if (avatar.consommerChute()) {
+    long maintenant = System.currentTimeMillis();
+    if (maintenant - derniereChute > 1500) {
+        sql.retirerPv(indexLocal + 1, 15);
+        derniereChute = maintenant;
+    }
+    Plateforme principale = chercherPlateformePrincipale();
+    avatar.connecterPlateformes(panneauCombat.getGestionnairePlateformes());
+    avatar.reapparaitreSur(
+            principale.getX() + principale.getLargeur() / 2.0 - LARGEUR_AVATAR / 2.0,
+            principale.getY() - HAUTEUR_AVATAR - 30);
+}
 
         if (reseau != null) {
             reseau.envoyerMaPosition((int) avatar.x, (int) avatar.y);
             actualiserAvatarsDistants();
+        }
+        VerDeTerre ver = panneauCombat.getVerDeTerre();
+            if (reseau == null || indexLocal == 0) {
+                // 1. L'hôte (J1) fait apparaître le ver toutes les 12s et envoie ses coordonnées
+                if (!ver.isActif() && (System.currentTimeMillis() - dernierSpawnVer >= DELAI_SPAWN_MS)) {
+                    ver.apparaitreAleatoirement(panneauCombat.getGestionnairePlateformes().getPlateformes());
+                    dernierSpawnVer = System.currentTimeMillis();
+                    if (reseau != null && ver.isActif()) {
+                        reseau.envoyerEvenementVer("VER_SPAWN:"
+                                + (int) Math.round(ver.getX()) + ":"
+                                + (int) Math.round(ver.getY()));
+                    }
+                }
+
+                // 2. L'hôte vérifie si un joueur ramasse le ver
+                if (ver.isActif()) {
+                    for (int i = 0; i < avatars.length; i++) {
+                        Avatar joueur = avatars[i];
+                        if (joueur != null && avatarsVisibles[i]) {
+                            if (ver.getHitbox().intersects(joueur.getHitbox())) {
+                                joueur.activerBouclier();
+                                ver.ramasser();
+                                dernierSpawnVer = System.currentTimeMillis();
+                                if (reseau != null) {
+                                    reseau.envoyerEvenementVer("VER_PRIS:" + (i + 1));
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
         }
     }
 
@@ -212,24 +276,45 @@ public class Jeu {
         panneauCombat.paint(contexte);
     }
 
-    public void fermer() {
+   public void fermer() {
     if (reseau != null) {
         reseau.fermer();
     }
     sql.closeTable();
-    }
+}
 
     public PanneauCombat getPanneauCombat() {
         return panneauCombat;
     }
 
-    public void attaquer() {
-
+public void attaquer() {
         if (avatar.attaquer()) {
 
             // Synchroniser l'attaque avec les autres joueurs
             if (reseau != null) {
                 reseau.envoyerAttaque();
+            }
+
+            // Détection des adversaires touchés
+            Rectangle zone = avatar.getZoneAttaque();
+            for (int i = 0; i < avatars.length; i++) {
+                if (i == indexLocal || avatars[i] == null || !avatarsVisibles[i]) {
+                    continue;
+                }
+                // Pas de tir ami en 2v2
+                if (mode.parEquipes() && mode.getEquipe(i) == mode.getEquipe(indexLocal)) {
+                    continue;
+                }
+                if (zone.intersects(avatars[i].getHitbox())) {
+                    if (avatars[i].absorberAttaqueAvecBouclier()) {
+                        // Le bouclier absorbe cette attaque et se brise (0 dégât subi)
+                        if (reseau != null) {
+                            reseau.envoyerEvenementVer("VER_UTILISE:" + (i + 1));
+                        }
+                    } else {
+                        sql.retirerPv(i + 1, sql.lireDegats(indexLocal + 1));
+                    }
+                }
             }
         }
     }
@@ -243,6 +328,7 @@ public class Jeu {
     public void gererToucheRelachee(int codeTouche) {
         avatar.gererToucheRelachee(codeTouche);
     }
+    
 }
 
 
