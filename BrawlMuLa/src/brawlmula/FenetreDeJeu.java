@@ -65,8 +65,10 @@ public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener 
             public void mousePressed(java.awt.event.MouseEvent evt) {
 
                 if (javax.swing.SwingUtilities.isLeftMouseButton(evt)) {
-
                     jeu.attaquer();
+                } else if (javax.swing.SwingUtilities.isRightMouseButton(evt)) {
+                    // Attaque lourde avec le clic droit
+                    jeu.attaquerLourd();
                 }
             }
         });

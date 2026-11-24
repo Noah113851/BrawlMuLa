@@ -67,16 +67,17 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
         if (reseau != null) {
             reseau.demarrerSynchronisation(monNumeroJoueur, (int) avatar.x, (int) avatar.y);
 
-            reseau.demarrerEcouteAttaques(numero -> {
-
+            reseau.demarrerEcouteAttaques((numero, lourde) -> {
                 int index = numero - 1;
-
                 if (index >= 0
                         && index < avatars.length
                         && index != indexLocal
                         && avatars[index] != null) {
-
-                    avatars[index].afficherAttaqueDistante();
+                    if (lourde) {
+                        avatars[index].afficherAttaqueLourdeDistante();
+                    } else {
+                        avatars[index].afficherAttaqueDistante();
+                    }
                 }
             });
             reseau.demarrerEcouteVer(msg -> {
@@ -287,44 +288,61 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
         return panneauCombat;
     }
 
-public void attaquer() {
+    public void attaquer() {
         if (avatar.attaquer()) {
-
             // Synchroniser l'attaque avec les autres joueurs
             if (reseau != null) {
-                reseau.envoyerAttaque();
+                reseau.envoyerAttaque(false);
             }
+            toucherAdversaires(avatar.getZoneAttaque(),
+                    sql.lireDegats(indexLocal + 1));
+        }
+    }
 
-            // Détection des adversaires touchés
-            Rectangle zone = avatar.getZoneAttaque();
-            for (int i = 0; i < avatars.length; i++) {
-                if (i == indexLocal || avatars[i] == null || !avatarsVisibles[i]) {
-                    continue;
-                }
-                // Pas de tir ami en 2v2
-                if (mode.parEquipes() && mode.getEquipe(i) == mode.getEquipe(indexLocal)) {
-                    continue;
-                }
-                if (zone.intersects(avatars[i].getHitbox())) {
-                    if (avatars[i].absorberAttaqueAvecBouclier()) {
-                        // Le bouclier absorbe cette attaque et se brise (0 dégât subi)
-                        if (reseau != null) {
-                            reseau.envoyerEvenementVer("VER_UTILISE:" + (i + 1));
-                        }
-                    } else {
-                        sql.retirerPv(i + 1, sql.lireDegats(indexLocal + 1));
+    /** Attaque lourde : la spécialité du personnage local. */
+    public void attaquerLourd() {
+        if (avatar.attaquerLourd()) {
+            if (reseau != null) {
+                reseau.envoyerAttaque(true);
+            }
+            int degats = avatar.getAttaqueLourde()
+                    .calculerDegats(sql.lireDegats(indexLocal + 1));
+            toucherAdversaires(avatar.getZoneAttaqueLourde(), degats);
+        }
+    }
+
+    /** Applique les dégâts aux adversaires présents dans la zone. */
+    private void toucherAdversaires(Rectangle zone, int degats) {
+        for (int i = 0; i < avatars.length; i++) {
+            if (i == indexLocal || avatars[i] == null || !avatarsVisibles[i]) {
+                continue;
+            }
+            // Pas de tir ami en 2v2
+            if (mode.parEquipes() && mode.getEquipe(i) == mode.getEquipe(indexLocal)) {
+                continue;
+            }
+            if (zone.intersects(avatars[i].getHitbox())) {
+                if (avatars[i].absorberAttaqueAvecBouclier()) {
+                    // Le bouclier absorbe cette attaque et se brise (0 dégât subi)
+                    if (reseau != null) {
+                        reseau.envoyerEvenementVer("VER_UTILISE:" + (i + 1));
                     }
+                } else {
+                    sql.retirerPv(i + 1, degats);
                 }
             }
         }
     }
 
     public void gererToucheAppuyee(int codeTouche) {
-
-        // Conserver uniquement les déplacements et le saut
+        // Touche d'attaque lourde définie dans les réglages (K par défaut)
+        Integer toucheLourde = config.touches.get("ATTAQUE_LOURDE");
+        if (toucheLourde != null && codeTouche == toucheLourde) {
+            attaquerLourd();
+            return;
+        }
         avatar.gererToucheAppuyee(codeTouche);
     }
-
     public void gererToucheRelachee(int codeTouche) {
         avatar.gererToucheRelachee(codeTouche);
     }
