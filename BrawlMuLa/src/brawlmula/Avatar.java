@@ -369,12 +369,12 @@ public class Avatar {
         if (x < 0) {
             x = 0;
         }
+        
         if (reculX != 0) {
             x += reculX;
-            reculX *= 0.85;                    // le recul s'atténue
+            reculX *= 0.85;
             if (Math.abs(reculX) < 0.5) reculX = 0;
-            double largeurMonde2 = gestionnaire == null ? 960 : ConfigurationCarte.LARGEUR;
-            x = Math.max(0, Math.min(x, largeurMonde2 - LARGEUR_AVATAR));
+            if (x < 0) x = 0;
         }
 
         // S permet de traverser les petites plateformes par le dessus.
@@ -765,10 +765,11 @@ public class Avatar {
     
     /** Pousse l'avatar : direction = 1 (vers la droite) ou -1 (vers la gauche). */
     public void recevoirRecul(double direction) {
-        reculX = direction * 22;   // force horizontale
-        vy = -25;                  // petit saut
+        reculX = direction * 12;   // force horizontale
+        vy = -12;                  // petit saut
         auSol = false;
         support = null;
         plateformeEnCoursDeTraverse = null;
+        System.out.println("RECUL reçu : " + direction);
     }
 }
