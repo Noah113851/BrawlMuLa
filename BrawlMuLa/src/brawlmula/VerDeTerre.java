@@ -27,7 +27,7 @@ public class VerDeTerre {
 
     public VerDeTerre() {
         try {
-            URL url = getClass().getResource("/ressources/verdeterre.png");
+            URL url = getClass().getResource("/ressources/verredeterre.png");
             if (url != null) {
                 BufferedImage brute = ImageIO.read(url);
                 if (brute != null) {
@@ -36,7 +36,7 @@ public class VerDeTerre {
                 }
             }
         } catch (Exception e) {
-            System.err.println("[BrawlMuLa] Erreur chargement verdeterre.png : " + e.getMessage());
+            System.err.println("[BrawlMuLa] Erreur chargement verredeterre.png : " + e.getMessage());
         }
     }
 
