@@ -1,7 +1,3 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Main.java to edit this template
- */
 package brawlmula;
 
 import java.awt.Graphics2D;
@@ -13,87 +9,131 @@ import java.awt.image.BufferedImage;
 import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 
+/**
+ * Fenetre de test + fenetre de combat lancee depuis Selection. Conserve
+ * exactement la boucle Jeu.miseAJour()/Jeu.rendu(), le framebuffer, les touches
+ * Q/D/ESPACE/S et la cadence de 40 ms.
+ */
 public class FenetreDeJeu extends JFrame implements ActionListener, KeyListener {
 
-    private BufferedImage framebuffer;
-    private Graphics2D contexte;
-    private JLabel jLabel1;
-    private Jeu jeu;
-    private Timer timer;
+    private final BufferedImage framebuffer;
+    private final Graphics2D contexte;
+    private final JLabel jLabel1;
+    private final Jeu jeu;
+    private final Timer timer;
 
+    /**
+     * Lancement historique de la fenetre de test Chateau.
+     */
     public FenetreDeJeu() {
-        // initialisation de la fenetre
-        this.setSize(960, 540);
-        this.setResizable(false);
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.addKeyListener(this);
-        this.jLabel1 = new JLabel();
-        this.jLabel1.setPreferredSize(new java.awt.Dimension(960, 540));
-        this.setContentPane(this.jLabel1);
-        this.pack();
-
-        // Creation du jeu
-        this.jeu = new Jeu();
-
-        // Creation du buffer pour l'affichage du jeu et recuperation du contexte graphique
-        this.framebuffer = new BufferedImage(this.jLabel1.getWidth(), this.jLabel1.getHeight(), BufferedImage.TYPE_INT_ARGB);
-        this.jLabel1.setIcon(new ImageIcon(framebuffer));
-        this.contexte = this.framebuffer.createGraphics();
-
-        // Creation du Timer qui appelle this.actionPerformed() tous les 40 ms
-        this.timer = new Timer(40, this);
-        this.timer.start();
+        this("Carrot", "Nikku", "Tomato", "Potato", "/ressources/Maps/chateau.png", null, 1);
     }
 
-    // Methode appelee par le timer et qui effectue la boucle de jeu
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        this.jeu.miseAJour();
-        this.jeu.rendu(contexte);
-        this.jLabel1.repaint();
+    /**
+     * Lancement direct sur une carte pour le test ou un autre ecran.
+     */
+    public FenetreDeJeu(String carteChoisie) {
+        this("Carrot", "Nikku", "Tomato", "Potato", carteChoisie, null, 1);
+    }
+
+    /**
+     * Appel utilise par Selection.java (noms des 4 joueurs + carte).
+     */
+    public FenetreDeJeu(String j1, String j2, String j3, String j4, String carteChoisie, Reseau reseau, int monNumeroJoueur) {
+        setTitle("BrawlMuLa - " + carteChoisie.substring(carteChoisie.lastIndexOf('/') + 1));
+        setResizable(false);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        addKeyListener(this);
+
+        jLabel1 = new JLabel();
+        jLabel1.setPreferredSize(new java.awt.Dimension(
+                ConfigurationCarte.LARGEUR, ConfigurationCarte.HAUTEUR));
+        setContentPane(jLabel1);
+        pack();
+        setLocationRelativeTo(null);
+
+        // Transmission de la configuration complète au moteur de jeu
+        jeu = new Jeu(j1, j2, j3, j4, carteChoisie, reseau, monNumeroJoueur);
+
+// Attaque avec le clic gauche de la souris
+        jLabel1.addMouseListener(new java.awt.event.MouseAdapter() {
+
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent evt) {
+
+                if (javax.swing.SwingUtilities.isLeftMouseButton(evt)) {
+
+                    jeu.attaquer();
+                }
+            }
+        });
+
+        framebuffer = new BufferedImage(jLabel1.getWidth(),
+                jLabel1.getHeight(), BufferedImage.TYPE_INT_ARGB);
+        jLabel1.setIcon(new ImageIcon(framebuffer));
+        contexte = framebuffer.createGraphics();
+
+        timer = new Timer(40, this);
+        timer.setCoalesce(true);
+        timer.start();
+
+        // Lancer automatiquement la musique de la carte
+        Musiques_sons.jouerMusiqueCarte(carteChoisie);
     }
 
     @Override
-    public void keyTyped(KeyEvent e) {
-        // NOP
+    public void actionPerformed(ActionEvent evenement) {
+
+        if (evenement.getSource() == timer) {
+            jeu.miseAJour();
+            jeu.rendu(contexte);
+            jLabel1.repaint();
+        }
+    }
+
+    @Override
+    public void keyTyped(KeyEvent evt) {
     }
 
     @Override
     public void keyPressed(KeyEvent evt) {
-        if (evt.getKeyCode() == evt.VK_D) {
-            this.jeu.avatar.setDroite(true);
-        }
-        if (evt.getKeyCode() == evt.VK_Q) {
-            this.jeu.avatar.setGauche(true);
-        }
-        if (evt.getKeyCode() == evt.VK_SPACE) {
-            this.jeu.avatar.saute();
-        }
-        if (evt.getKeyCode() == evt.VK_S) {
-            this.jeu.avatar.setBas(true);
-        }
-
+        jeu.gererToucheAppuyee(evt.getKeyCode());
     }
 
     @Override
     public void keyReleased(KeyEvent evt) {
-        if (evt.getKeyCode() == evt.VK_D) {
-            this.jeu.avatar.setDroite(false);
-        }
-        if (evt.getKeyCode() == evt.VK_Q) {
-            this.jeu.avatar.setGauche(false);
-        }
-        if (evt.getKeyCode() == evt.VK_S) {
-            this.jeu.avatar.setBas(false);
-        }
-
+        jeu.gererToucheRelachee(evt.getKeyCode());
     }
 
+    @Override
+    public void dispose() {
+
+        // Arrêter la musique de combat
+        Musiques_sons.stop();
+
+        if (timer != null) {
+            timer.stop();
+        }
+
+        if (jeu != null) {
+            jeu.fermer();
+        }
+
+        if (contexte != null) {
+            contexte.dispose();
+        }
+
+        super.dispose();
+    }
+
+    /**
+     * Run File : garde le test Chateau habituel.
+     */
     public static void main(String[] args) {
-        FenetreDeJeu fenetre = new FenetreDeJeu();
-        fenetre.setVisible(true);
+        SwingUtilities.invokeLater(() -> new FenetreDeJeu().setVisible(true));
     }
 
 }

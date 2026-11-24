@@ -1,241 +1,285 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
- */
 package brawlmula;
 
 import java.awt.Color;
-import java.awt.Image;
-import java.util.ArrayList;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.List;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 
-/**
- *
- * @author ndufour
- */
 public class Selection extends javax.swing.JFrame {
 
-    private boolean j1Selectionne = false;
-    private boolean j2Selectionne = false;
-    private boolean j3Selectionne = false;
-    private boolean j4Selectionne = false;
+    private static final String URL_BDD = "jdbc:mariadb://nemrod.ens2m.fr:3306/2026-2027_s1_vs2_tp2_brawlmula";
+    private static final String USER_BDD = "etudiant";
+    private static final String PASSWORD_BDD = "YTDTvj9TR3CDYCmP";
 
-    private boolean isHost;
-    private Reseau reseau;
+    private static final String[] PERSONNAGES_PAR_DEFAUT = {"Carrot", "Nikku", "Tomato", "Potato"};
 
-    private void demarrerEcouteReseau() {
-        new Thread(() -> {
-            try {
-                String msg;
-                while ((msg = reseau.lireMessage()) != null) {
-                    String messageRecu = msg;
-                    // Exécution dans le thread graphique Swing
-                    java.awt.EventQueue.invokeLater(() -> {
-                        traiterMessageReseau(messageRecu);
-                    });
-                }
-            } catch (Exception e) {
-                System.err.println("Déconnexion du réseau.");
-            }
-        }).start();
+    private final int monNumeroJoueur;
+    private final boolean isHost;
+    private final Reseau reseau;
+    private final JLabel[] nomsJoueurs;
+    private final JLabel[] portraitsJoueurs;
+    private boolean partieLancee = false;
+
+    // Vrais emplacements occupes dans la partie (J1 a J4).
+    // J1 est l'hote. Les autres deviennent presents avec PRESENCE_P2..P4.
+    private final boolean[] joueursPresents = {true, false, false, false};
+
+    private final int[] choixJoueurs = {-1, -1, -1, -1};
+    private int choixCarte = 0;
+    private int choixCarteReseau = 0;
+
+    private List<String> personnages = new ArrayList<>();
+    private List<String> cartes = new ArrayList<>();
+    private List<String> imagesPersonnages = new ArrayList<>();
+    private List<String> imagesCartes = new ArrayList<>();
+
+    public Selection(int monNumeroJoueur, Reseau reseau) {
+        initComponents();
+        BrawlMuLa.appliquerPoliceFairfax(getContentPane());
+        setSize(1280, 760);
+        setLocationRelativeTo(null);
+
+        this.monNumeroJoueur = monNumeroJoueur;
+        if (monNumeroJoueur >= 1 && monNumeroJoueur <= 4) {
+            joueursPresents[monNumeroJoueur - 1] = true;
+        }
+        this.isHost = (monNumeroJoueur == 1);
+        this.reseau = reseau;
+        nomsJoueurs = new JLabel[]{lblNomJ1, lblNomJ2, lblNomJ3, lblNomJ4};
+        portraitsJoueurs = new JLabel[]{lblAvatarJ1, lblAvatarJ2, lblAvatarJ3, lblAvatarJ4};
+
+        chargerAvatarsDepuisBDD();
+        chargerCartesDepuisBDD();
+
+        afficherCarteLocal(choixCarte);
+        if (!isHost) {
+            boutton_droite.setEnabled(false);
+            boutton_gauche.setEnabled(false);
+            btnCombat.setEnabled(false);
+        }
+
+        if (reseau != null) {
+            reseau.demarrerEcoute(this::traiterMessageReseau);
+            choisirPersonnage(PERSONNAGES_PAR_DEFAUT[monNumeroJoueur - 1]);
+        }
+
+        Musiques_sons.playLoop("/ressources/Musiques-sons/Welcome-Music-Brawlmula-Soundtrack.wav");
+    }
+
+    public Selection() {
+        this(1, null);
     }
 
     private void traiterMessageReseau(String msg) {
-        if (msg.startsWith("CHOIX_J1:")) {
-            int idx = Integer.parseInt(msg.split(":")[1]);
-            choisirPersonnageJ1(idx); // Applique le choix distant sur le cadre J1
-        } else if (msg.startsWith("CHOIX_J2:")) {
-            int idx = Integer.parseInt(msg.split(":")[1]);
-            choisirPersonnageJ2(idx); // Applique le choix distant sur le cadre J2
-
-        } else if (msg.startsWith("MAP:")) {
-            choixCarte = Integer.parseInt(msg.split(":")[1]);
-            afficherCarte(choixCarte);
-        } else if (msg.equals("START_GAME")) {
-            // Lancer le combat automatique reçu depuis l'hôte
-            Combat jeu = new Combat(
-                    personnages.get(choixJ1),
-                    personnages.get(choixJ2),
-                    personnages.get(choixJ3),
-                    personnages.get(choixJ4),
-                    imagesCartes[choixCarte]
-            );
-            jeu.setVisible(true);
-            this.dispose();
+        // Les evenements de presence n'ont pas de ':' : les intercepter
+        // AVANT la logique des choix de personnages et de START_GAME.
+        if (msg != null && msg.matches("PRESENCE_P[1-4]")) {
+            int numero = msg.charAt(msg.length() - 1) - '1';
+            joueursPresents[numero] = true;
+            System.out.println("[BrawlMuLa] Joueur J" + (numero + 1) + " present.");
+            return;
         }
-    }
-    private static final java.util.logging.Logger logger = java.util.logging.Logger.getLogger(Selection.class.getName());
-    // Index des 4 personnages (0: Carrot, 1: Nikku, 2: Tomato, 3: Potato)
-    private int choixJ1 = 0;
-    private int choixJ2 = 1;
-    private int choixJ3 = 2;
-    private int choixJ4 = 3;
+        if (msg == null) {
+            return;
+        }
 
-    // Liste des noms des 4 personnages disponibles
-    private List<String> personnages = new ArrayList<>();
-    private final String[] cartes = {"COLONIE", "CHATEAU", "POTAGER", "MARCHÉ"};
-
-    private List<String> imagesPersonnages = new ArrayList<>();
-    private final String[] imagesCartes = {
-        "/ressources/cartes/colonie.png",
-        "/ressources/cartes/chateau.png",
-        "/ressources/cartes/potager.png",
-        "/ressources/cartes/marche.png"
-
-    };
-    private int choixCarte = 0;
-
-    private void chargerAvatarsDepuisBDD() {
-        // On vide les listes au cas où
-        personnages.clear();
-        imagesPersonnages.clear();
-
-        String url = "jdbc:mariadb://nemrod.ens2m.fr:3306/2026-2027_s1_vs2_tp2_brawlmula";
-        String user = "etudiant";
-        String password = "YTDTvj9TR3CDYCmP";
-
-        // Reconstitution propre du try avec resources (Connection, PreparedStatement ET ResultSet)
-        try (Connection c = DriverManager.getConnection(url, user, password); PreparedStatement r = c.prepareStatement("SELECT nom, avatars_image, pv, degats FROM Avatars"); ResultSet rs = r.executeQuery()) { // <--- rs est bien exécuté ici !
-
-            while (rs.next()) {
-                personnages.add(rs.getString("nom"));
-
-                String cheminImage = rs.getString("avatars_image");
-                if (!cheminImage.startsWith("/")) {
-                    cheminImage = "/ressources/avatars/" + cheminImage;
+        if (Reseau.DEBUT_COMBAT.equals(msg)) {
+            ouvrirFenetreDeJeu();
+            return;
+        }
+        int separateur = msg.indexOf(':');
+        if (separateur < 0) {
+            return;
+        }
+        try {
+            int index = Integer.parseInt(msg.substring(separateur + 1));
+            if (msg.startsWith("CHOIX_J") && separateur == 8) {
+                int joueur = msg.charAt(7) - '1';
+                if (joueur >= 0 && joueur < choixJoueurs.length && index >= 0 && index < personnages.size()) {
+                    // Tous les postes utilisent les choix lus avant START_GAME, y compris les leurs.
+                    choixJoueurs[joueur] = index;
+                    joueursPresents[joueur] = true; // Choix recu = joueur bien connecte.
+                    afficherPersonnage(joueur, index);
                 }
-                imagesPersonnages.add(cheminImage);
+            } else if (msg.startsWith("MAP:") && index >= 0 && index < cartes.size()) {
+                choixCarteReseau = index;
+                if (!isHost) {
+                    afficherCarteLocal(index);
+                }
             }
-
-        } catch (SQLException ex) {
-            System.err.println("❌ Erreur SQL lors du chargement des avatars : " + ex.getMessage());
-            ex.printStackTrace();
-        }
-
-    }
-
-    private void choisirPersonnage(int index) {
-        if (isHost) {
-            // L'Hôte modifie UNIQUEMENT son propre emplacement (J1)
-            choisirPersonnageJ1(index);
-            if (reseau != null) {
-                reseau.envoyerMessage("CHOIX_J1:" + index);
-            }
-        } else {
-            // Le Client modifie UNIQUEMENT son propre emplacement (J2)
-            choisirPersonnageJ2(index);
-            if (reseau != null) {
-                reseau.envoyerMessage("CHOIX_J2:" + index);
-            }
-        }
-
-    }
-
-    private void choisirPersonnageJ1(int index) {
-        if (index >= 0 && index < personnages.size()) {
-            choixJ1 = index;
-            j1Selectionne = true;
-
-            lblNomJ1.setText(personnages.get(index));
-
-            String chemin = imagesPersonnages.get(index);
-            java.net.URL imgURL = getClass().getResource(chemin);
-            if (imgURL != null) {
-                javax.swing.ImageIcon originalIcon = new javax.swing.ImageIcon(imgURL);
-                java.awt.Image img = originalIcon.getImage().getScaledInstance(240, 240, java.awt.Image.SCALE_SMOOTH);
-                lblAvatarJ1.setIcon(new javax.swing.ImageIcon(img));
-                lblAvatarJ1.revalidate();
-                lblAvatarJ1.repaint();
-            }
-        }
-    }
-
-    private void choisirPersonnageJ2(int index) {
-        if (index >= 0 && index < personnages.size()) {
-            choixJ2 = index;
-            j2Selectionne = true;
-
-            lblNomJ2.setText(personnages.get(index));
-
-            String chemin = imagesPersonnages.get(index);
-            java.net.URL imgURL = getClass().getResource(chemin);
-            if (imgURL != null) {
-                javax.swing.ImageIcon originalIcon = new javax.swing.ImageIcon(imgURL);
-                java.awt.Image img = originalIcon.getImage().getScaledInstance(240, 240, java.awt.Image.SCALE_SMOOTH);
-                lblAvatarJ2.setIcon(new javax.swing.ImageIcon(img));
-                lblAvatarJ2.revalidate();
-                lblAvatarJ2.repaint();
-            }
-        }
-    }
-
-    private void afficherCarte(int index) {
-        // 1. Mettre à jour le texte
-        lblNomCartes.setText(cartes[index]);
-
-        // 2. Charger et redimensionner l'image de la carte
-        java.net.URL imgURL = getClass().getResource(imagesCartes[index]);
-        if (imgURL != null) {
-            javax.swing.ImageIcon icon = new javax.swing.ImageIcon(imgURL);
-
-            if (lblCartes.getWidth() > 0 && lblCartes.getHeight() > 0) {
-                java.awt.Image img = icon.getImage().getScaledInstance(
-                        lblCartes.getWidth(),
-                        lblCartes.getHeight(),
-                        java.awt.Image.SCALE_SMOOTH
-                );
-                lblCartes.setIcon(new javax.swing.ImageIcon(img));
-            } else {
-                lblCartes.setIcon(icon);
-            }
-            lblCartes.revalidate();
-            lblCartes.repaint();
+        } catch (NumberFormatException e) {
+            System.err.println("Index de sélection invalide dans le salon.");
         }
     }
 
     /**
-     * Creates new form Selection
+     * Au moment de START_GAME, consulte les vraies PRESENCE_P1..P4.
+     * Cela corrige le cas ou Selection n'a pas recu un message de presence.
+     * En cas d'erreur SQL, les choix et messages deja recus restent utilises.
      */
-    public Selection(boolean isHost, Reseau reseau) {
-        initComponents();
-
-        setSize(1280, 760);
-        setLocationRelativeTo(null);
-
-        this.isHost = isHost;
-        this.reseau = reseau;
-
-        chargerAvatarsDepuisBDD();
-
-        if (reseau != null) {
-            if (isHost) {
-                // L'Hôte (J1) est déjà sur la page. On attend la connexion de J2 en arrière-plan.
-                new Thread(() -> {
-                    try {
-                        System.out.println("⏳ En attente de la connexion du Joueur 2...");
-                        reseau.attendreClient(); // Bloquant uniquement dans ce Thread
-                        System.out.println("✅ Joueur 2 connecté !");
-
-                        // Une fois J2 connecté, on démarre la réception des choix
-                        demarrerEcouteReseau();
-                    } catch (Exception e) {
-                        System.err.println("Erreur attente client : " + e.getMessage());
-                    }
-                }).start();
-            } else {
-                // Le Client (J2) est déjà connecté, il écoute directement
-                demarrerEcouteReseau();
-            }
-
+    private boolean[] joueursPresentsAuDepart() {
+        boolean[] resultat = joueursPresents.clone();
+        resultat[0] = true;
+        if (monNumeroJoueur >= 1 && monNumeroJoueur <= 4) {
+            resultat[monNumeroJoueur - 1] = true;
         }
-
-        Musiques_sons.playLoop("src/ressources/Musiques-sons/Character-Select-Theme-Brawlmula-Soundtrack.wav");
-
+        for (int i = 0; i < choixJoueurs.length; i++) {
+            if (choixJoueurs[i] >= 0) {
+                resultat[i] = true;
+            }
+        }
+        if (reseau != null) {
+            String requete = "SELECT DISTINCT message FROM reseau_salon "
+                    + "WHERE message IN ('PRESENCE_P1', 'PRESENCE_P2', "
+                    + "'PRESENCE_P3', 'PRESENCE_P4')";
+            try (Connection c = DriverManager.getConnection(
+                        URL_BDD, USER_BDD, PASSWORD_BDD);
+                 PreparedStatement st = c.prepareStatement(requete);
+                 ResultSet rs = st.executeQuery()) {
+                while (rs.next()) {
+                    String message = rs.getString(1);
+                    if (message != null && message.matches("PRESENCE_P[1-4]")) {
+                        int numero = message.charAt(message.length() - 1) - '1';
+                        resultat[numero] = true;
+                    }
+                }
+            } catch (SQLException ex) {
+                System.err.println("[BrawlMuLa][VS] Lecture des joueurs "
+                        + "en base impossible : " + ex.getMessage());
+            }
+        }
+        return resultat;
     }
 
-    public Selection() {
-        this(true, null);
+    private void ouvrirFenetreDeJeu() {
+        if (partieLancee) return;
+
+        int carte = reseau == null ? choixCarte : choixCarteReseau;
+        String cheminCarte = imagesCartes.isEmpty()
+                ? "/ressources/Maps/chateau.png"
+                : imagesCartes.get(carte);
+        if (cheminCarte.contains("/cartes/")) {
+            cheminCarte = cheminCarte.replace("/cartes/", "/Maps/");
+        }
+
+        String j1 = nomPersonnage(0);
+        String j2 = nomPersonnage(1);
+        String j3 = nomPersonnage(2);
+        String j4 = nomPersonnage(3);
+        boolean[] presents = reseau == null
+                ? new boolean[]{true, true, true, true}
+                : joueursPresentsAuDepart();
+
+        StringBuilder joueurs = new StringBuilder();
+        for (int i = 0; i < presents.length; i++) {
+            if (presents[i]) joueurs.append(" J").append(i + 1);
+        }
+        System.out.println("[BrawlMuLa][Selection] START_GAME ; carte="
+                + cheminCarte + " ; joueurs=" + joueurs);
+
+        // Garder le reseau vivant lorsque Selection se ferme.
+        partieLancee = true;
+        Musiques_sons.stop();
+
+        // Intro de la map -> VS adaptatif -> fenetre de combat.
+        SequenceAvantCombat.lancer(j1, j2, j3, j4,
+                cheminCarte, reseau, monNumeroJoueur, presents);
+        this.dispose();
+    }
+
+    private String nomPersonnage(int joueur) {
+        int index = choixJoueurs[joueur];
+        return index < 0 ? PERSONNAGES_PAR_DEFAUT[joueur] : personnages.get(index);
+    }
+
+    @Override
+    public void dispose() {
+        if (reseau != null && !partieLancee) {
+            reseau.fermer();
+        }
+        super.dispose();
+    }
+
+    private void chargerCartesDepuisBDD() {
+        cartes.clear();
+        imagesCartes.clear();
+        try (Connection c = DriverManager.getConnection(URL_BDD, USER_BDD, PASSWORD_BDD);
+             PreparedStatement r = c.prepareStatement("SELECT nom, image FROM Maps ORDER BY nom, image");
+             ResultSet rs = r.executeQuery()) {
+            while (rs.next()) {
+                cartes.add(rs.getString("nom"));
+                String img = rs.getString("image");
+                if (!img.startsWith("/")) img = "/ressources/Maps/" + img;
+                imagesCartes.add(img);
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private void chargerAvatarsDepuisBDD() {
+        personnages.clear();
+        imagesPersonnages.clear();
+        try (Connection c = DriverManager.getConnection(URL_BDD, USER_BDD, PASSWORD_BDD);
+             PreparedStatement r = c.prepareStatement("SELECT nom, avatars_image FROM Avatars ORDER BY nom, avatars_image");
+             ResultSet rs = r.executeQuery()) {
+            while (rs.next()) {
+                personnages.add(rs.getString("nom"));
+                String img = rs.getString("avatars_image");
+                if (!img.startsWith("/")) img = "/ressources/avatars/" + img;
+                imagesPersonnages.add(img);
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    private void afficherCarteLocal(int index) {
+        if (index >= 0 && index < cartes.size()) {
+            lblNomCartes.setText(cartes.get(index));
+            String chemin = imagesCartes.get(index);
+            java.net.URL imgURL = getClass().getResource(chemin);
+            if (imgURL != null) {
+                javax.swing.ImageIcon originalIcon = new javax.swing.ImageIcon(imgURL);
+                int w = lblCartes.getWidth() > 0 ? lblCartes.getWidth() : 350;
+                int h = lblCartes.getHeight() > 0 ? lblCartes.getHeight() : 200;
+                java.awt.Image img = originalIcon.getImage().getScaledInstance(w, h, java.awt.Image.SCALE_SMOOTH);
+                lblCartes.setIcon(new javax.swing.ImageIcon(img));
+            }
+        }
+    }
+
+    private void choisirPersonnage(String nom) {
+        for (int index = 0; index < personnages.size(); index++) {
+            if (nom.equalsIgnoreCase(personnages.get(index).trim())) {
+                int joueur = monNumeroJoueur - 1;
+                if (reseau == null) {
+                    choixJoueurs[joueur] = index;
+                    afficherPersonnage(joueur, index);
+                } else {
+                    reseau.envoyerMessage("CHOIX_J" + monNumeroJoueur + ":" + index);
+                }
+                return;
+            }
+        }
+    }
+
+    private void afficherPersonnage(int joueur, int index) {
+        nomsJoueurs[joueur].setText(personnages.get(index));
+        afficherAvatarLabel(portraitsJoueurs[joueur], imagesPersonnages.get(index));
+    }
+
+    private void afficherAvatarLabel(javax.swing.JLabel label, String chemin) {
+        java.net.URL imgURL = getClass().getResource(chemin);
+        if (imgURL != null) {
+            javax.swing.ImageIcon originalIcon = new javax.swing.ImageIcon(imgURL);
+            java.awt.Image img = originalIcon.getImage().getScaledInstance(240, 240, java.awt.Image.SCALE_SMOOTH);
+            label.setIcon(new javax.swing.ImageIcon(img));
+            label.revalidate();
+            label.repaint();
+        }
     }
 
     /**
@@ -426,33 +470,22 @@ public class Selection extends javax.swing.JFrame {
 
     private void carrotActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_carrotActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
-
-        choixJ1 = 0;
-
-        choisirPersonnage(0);
+        choisirPersonnage("Carrot");
     }//GEN-LAST:event_carrotActionPerformed
 
     private void TomatoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_TomatoActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
-
-        choixJ3 = 2;
-        choisirPersonnage(2);
+        choisirPersonnage("Tomato");
     }//GEN-LAST:event_TomatoActionPerformed
 
     private void PotatoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_PotatoActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
-
-        choixJ4 = 3;
-
-        choisirPersonnage(3);
+        choisirPersonnage("Potato");
     }//GEN-LAST:event_PotatoActionPerformed
 
     private void NikkuActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_NikkuActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection_joueur.wav");
-
-        choixJ2 = 1;
-
-        choisirPersonnage(1);
+        choisirPersonnage("Nikku");
     }//GEN-LAST:event_NikkuActionPerformed
 
     private void carrotMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_carrotMouseEntered
@@ -473,19 +506,28 @@ public class Selection extends javax.swing.JFrame {
 
     private void boutton_droiteActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_boutton_droiteActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
+        if (!cartes.isEmpty()) {
+            choixCarte = (choixCarte + 1) % cartes.size();
+            afficherCarteLocal(choixCarte);
 
-        choixCarte = (choixCarte + 1) % cartes.length;
-        afficherCarte(choixCarte);
-        //lblNomCartes.setText(cartes[choixCarte]);
+            // Envoyer le changement au joueur 2 si on est l'hôte
+            if (isHost && reseau != null) {
+                reseau.envoyerMessage("MAP:" + choixCarte);
+            }
+        }
     }//GEN-LAST:event_boutton_droiteActionPerformed
 
     private void boutton_gaucheActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_boutton_gaucheActionPerformed
         Musiques_sons.jouerSon("/ressources/Musiques-sons/click.wav");
+        if (!cartes.isEmpty()) {
+            choixCarte = (choixCarte - 1 + cartes.size()) % cartes.size();
+            afficherCarteLocal(choixCarte);
 
-        choixCarte = (choixCarte - 1 + cartes.length) % cartes.length;
-        afficherCarte(choixCarte);
-
-        //lblNomCartes.setText(cartes[choixCarte]);
+            // Envoyer le changement au joueur 2 si on est l'hôte
+            if (isHost && reseau != null) {
+                reseau.envoyerMessage("MAP:" + choixCarte);
+            }
+        }
     }//GEN-LAST:event_boutton_gaucheActionPerformed
 
     private void boutton_gaucheMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_boutton_gaucheMouseEntered
@@ -505,26 +547,31 @@ public class Selection extends javax.swing.JFrame {
     }//GEN-LAST:event_btnCombatMouseEntered
 
     private void btnCombatActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btnCombatActionPerformed
-        if (!j1Selectionne || !j2Selectionne || !j3Selectionne || !j4Selectionne) {
-            javax.swing.JOptionPane.showMessageDialog(
-                    this,
-                    "Les quatres joueurs doivent choisir un personnage avant de lancer le combat !",
-                    "Sélection incomplète",
-                    javax.swing.JOptionPane.WARNING_MESSAGE
-            );
-            return; // Interrompt le lancement
+        if (!isHost) {
+            return;
         }
+
+//        if (!j1Selectionne || !j2Selectionne || !j3Selectionne || !j4Selectionne) {
+//            javax.swing.JOptionPane.showMessageDialog(
+//                    this,
+//                    "Les quatres joueurs doivent choisir un personnage avant de lancer le combat !",
+//                    "Sélection incomplète",
+//                    javax.swing.JOptionPane.WARNING_MESSAGE
+//            );
+//            return; // Interrompt le lancement
+//        }
         Musiques_sons.stop();
         Musiques_sons.jouerSon("/ressources/Musiques-sons/selection.wav");
-        Combat jeu = new Combat(
-                personnages.get(choixJ1),
-                personnages.get(choixJ2),
-                personnages.get(choixJ3),
-                personnages.get(choixJ4),
-                imagesCartes[choixCarte]);
 
-        jeu.setVisible(true);
-        this.dispose();
+        if (reseau == null) {
+            ouvrirFenetreDeJeu();
+        } else {
+            btnCombat.setEnabled(false);
+            reseau.lancerCombat(erreur -> {
+                btnCombat.setEnabled(true);
+                JOptionPane.showMessageDialog(this, erreur, "Erreur réseau", JOptionPane.ERROR_MESSAGE);
+            });
+        }
     }//GEN-LAST:event_btnCombatActionPerformed
 
     private void btnMenuMouseEntered(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_btnMenuMouseEntered
@@ -570,7 +617,7 @@ public class Selection extends javax.swing.JFrame {
                 }
             }
         } catch (ReflectiveOperationException | javax.swing.UnsupportedLookAndFeelException ex) {
-            logger.log(java.util.logging.Level.SEVERE, null, ex);
+            ex.printStackTrace();
         }
         //</editor-fold>
 

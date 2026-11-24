@@ -17,6 +17,7 @@ public class Reglages extends javax.swing.JFrame {
      */
     public Reglages() {
         initComponents();
+        BrawlMuLa.appliquerPoliceFairfax(getContentPane());
     }
 
     /**
