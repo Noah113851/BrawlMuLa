@@ -171,7 +171,27 @@ public class Selection extends javax.swing.JFrame {
         boolean[] presents = reseau == null
                 ? new boolean[]{true, true, true, true}
                 : joueursPresentsAuDepart();
-
+                // ===== Choix du mode de jeu =====
+        if (reseau == null) {
+            String[] choix = {"1v1", "1v1v1", "2v2"};
+            int rep = JOptionPane.showOptionDialog(this, "Mode de jeu ?", "Mode",
+                    JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE,
+                    null, choix, choix[0]);
+            if (rep == 1) {
+                ModeDeJeu.courant = ModeDeJeu.TRIO;
+            } else if (rep == 2) {
+                ModeDeJeu.courant = ModeDeJeu.DEUX_CONTRE_DEUX;
+            } else {
+                ModeDeJeu.courant = ModeDeJeu.DUEL;
+            }
+        } else {
+            int nbPresents = 0;
+            for (boolean p : presents) {
+                if (p) nbPresents++;
+            }
+            ModeDeJeu.courant = ModeDeJeu.depuisNombre(nbPresents);
+        }
+        System.out.println("[BrawlMuLa] Mode = " + ModeDeJeu.courant);
         StringBuilder joueurs = new StringBuilder();
         for (int i = 0; i < presents.length; i++) {
             if (presents[i]) joueurs.append(" J").append(i + 1);
