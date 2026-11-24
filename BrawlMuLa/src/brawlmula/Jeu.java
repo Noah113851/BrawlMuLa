@@ -139,8 +139,18 @@ public class Jeu {
                     if (victime == indexLocal) {
                         avatar.recevoirRecul(dir);
                     }
+                
+                } else if (parts.length == 2 && "VER_ULTI_PRET".equals(parts[0])) {
+                    int idx = Integer.parseInt(parts[1]) - 1;
+                    if (idx != indexLocal && idx >= 0 && idx < avatars.length && avatars[idx] != null) {
+                        avatars[idx].setUltiPretDistant(true);
+                    }
+                } else if (parts.length == 2 && "VER_ULTI_LANCE".equals(parts[0])) {
+                    int idx = Integer.parseInt(parts[1]) - 1;
+                    if (idx != indexLocal && idx >= 0 && idx < avatars.length && avatars[idx] != null) {
+                        avatars[idx].afficherUltiDistant();
+                    }
                 }
-
             });
         }
     }
@@ -374,7 +384,7 @@ public class Jeu {
             reseau.envoyerAttaque(false);
         }
         int degatsBase = Math.max(0, sql.lireDegats(indexLocal + 1));
-        boolean aInflige = toucherAdversaires(avatar.getZoneAttaque(), degatsBase, bonusSurCeCoup);
+        boolean aInflige = toucherAdversaires(avatar.getZoneAttaque(), degatsBase, bonusSurCeCoup, true);
         consommerBonusSiBesoin(bonusSurCeCoup, aInflige);
     }
 
@@ -389,7 +399,20 @@ public class Jeu {
         }
         int degatsBase = avatar.getAttaqueLourde()
                 .calculerDegats(sql.lireDegats(indexLocal + 1));
-        boolean aInflige = toucherAdversaires(avatar.getZoneAttaqueLourde(), degatsBase, bonusSurCeCoup);
+        boolean aInflige = toucherAdversaires(avatar.getZoneAttaqueLourde(), degatsBase, bonusSurCeCoup, true);
+        consommerBonusSiBesoin(bonusSurCeCoup, aInflige);
+    }
+    public void lancerUlti() {
+        if (!avatar.lancerUlti()) {
+            return;
+        }
+        boolean bonusSurCeCoup = avatar.aDoubleDegats();
+        if (reseau != null) {
+            reseau.envoyerEvenementVer("VER_ULTI_LANCE:" + (indexLocal + 1));
+        }
+        int degatsInitiaux = Math.max(0, sql.lireDegats(indexLocal + 1));
+        int degatsUlti = degatsInitiaux * 2;
+        boolean aInflige = toucherAdversaires(avatar.getZoneUlti(), degatsUlti, bonusSurCeCoup, false);
         consommerBonusSiBesoin(bonusSurCeCoup, aInflige);
     }
 
@@ -401,7 +424,7 @@ public class Jeu {
                 reseau.envoyerEvenementVer("VER_X2_UTILISE:" + (indexLocal + 1));
             }
         }
-
+    }
        
 
 //    public void gererToucheAppuyee(int codeTouche) {
@@ -410,15 +433,21 @@ public class Jeu {
 //        this.avatars.gererToucheAppuyee(codeTouche);
 //    }
 
-    
-        throw new UnsupportedOperationException("Not supported yet.") ; // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
+   
 
     /**
      * Applique les dégâts aux adversaires présents dans la zone.
      * Renvoie vrai si au moins un adversaire a perdu des PV.
      */
     private boolean toucherAdversaires(Rectangle zone, int degatsBase, boolean bonusX2) {
+        return toucherAdversaires(zone, degatsBase, bonusX2, true);
+    }
+
+    /**
+     * Applique les dégâts aux adversaires présents dans la zone.
+     * Renvoie vrai si au moins un adversaire a perdu des PV.
+     */
+    private boolean toucherAdversaires(Rectangle zone, int degatsBase, boolean bonusX2, boolean compterPourUlti) {
         boolean aInflige = false;
         for (int i = 0; i < avatars.length; i++) {
             if (i == indexLocal || avatars[i] == null || !avatarsVisibles[i]) {
@@ -440,6 +469,9 @@ public class Jeu {
                 int montant = BonusDoubleDegats.calculerDegats(degatsBase, bonusX2);
                 sql.retirerPv(i + 1, montant);
                 aInflige = true;
+                if (compterPourUlti && avatar.ajouterDegatsUlti(montant) && reseau != null) {
+                    reseau.envoyerEvenementVer("VER_ULTI_PRET:" + (indexLocal + 1));
+                }
                 if (reseau != null) {
                     int dir = avatars[i].x >= avatar.x ? 1 : -1;
                     reseau.envoyerEvenementVer("VER_RECUL:" + (i + 1) + ":" + dir);
@@ -450,6 +482,12 @@ public class Jeu {
     }
 
     public void gererToucheAppuyee(int codeTouche) {
+        Integer toucheUlti = config.touches.get("ULTI");
+        int codeUlti = (toucheUlti != null) ? toucheUlti : java.awt.event.KeyEvent.VK_R;
+        if (codeTouche == codeUlti) {
+            lancerUlti();
+            return;
+        }
         // Touche d'attaque lourde définie dans les réglages (K par défaut)
         Integer toucheLourde = config.touches.get("ATTAQUE_LOURDE");
         if (toucheLourde != null && codeTouche == toucheLourde) {

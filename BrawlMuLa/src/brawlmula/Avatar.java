@@ -55,7 +55,7 @@ public class Avatar {
     private long derniereAttaqueLourde = 0L;
     private static final double VITESSE_RUEE = 28;
     private static final double VITESSE_ECRASEMENT = 45;
-    
+
     private boolean animationDistante = false;
     private long dernierMouvementDistant = 0L;
     private long dernierSautDistant = 0L;
@@ -71,7 +71,8 @@ public class Avatar {
 
     private Plateforme plateformeEnCoursDeTraverse;
     private static final double MARGE_TRAVERSEE = 8.0;
-
+    private  String personnage ;
+    
     public Avatar() {
         this("Carrot");
     }
@@ -588,25 +589,26 @@ public class Avatar {
         if (sprite == null) {
             return;
         }
-
         long maintenant = System.nanoTime();
 
-        boolean attaqueLourdeActive = attaqueLourdeEnCours(maintenant);
-        boolean attaque = !attaqueLourdeActive
+        boolean ultiActif = ultiEnCours(maintenant);
+        boolean attaqueLourdeActive = !ultiActif && attaqueLourdeEnCours(maintenant);
+        boolean attaque = !ultiActif && !attaqueLourdeActive
                 && debutAttaque != 0L
                 && maintenant - debutAttaque < DUREE_ATTAQUE;
 
-        // Effet visuel de l'attaque lourde, derrière le personnage
-        if (attaqueLourdeActive) {
+        if (ultiActif) {
+            dessinerEffetUlti(contexte, maintenant);
+        } else if (attaqueLourdeActive) {
             dessinerEffetAttaqueLourde(contexte, maintenant);
         }
 
         // Choisir l'image suivant l'état du personnage
         BufferedImage imageAffichee
-                = (attaque || attaqueLourdeActive) && spriteAttaque != null
+                = (attaque || attaqueLourdeActive || ultiActif) && spriteAttaque != null
                         ? spriteAttaque
                         : sprite;
-
+       
         boolean saute = animationDistante
                 ? maintenant - dernierSautDistant < 160_000_000L
                 : !auSol;
@@ -776,6 +778,7 @@ public class Avatar {
                 gBouclier.dispose();
             }
         }
+        dessinerJaugeUlti(contexte, temps);
     }
 
     private boolean aChute = false;
@@ -928,5 +931,143 @@ public class Avatar {
         support = null;
         plateformeEnCoursDeTraverse = null;
         System.out.println("RECUL reçu : " + direction);
+    }
+    public static final int SEUIL_ULTI = 150;
+    private static final long DUREE_ULTI = 550_000_000L;
+
+    private int degatsCumulesUlti = 0;
+    private boolean ultiPretDistant = false;
+    private long debutUlti = 0L;
+
+    /** Ajoute des dégâts à la jauge. Renvoie true au moment exact où l'Ulti se débloque. */
+    public boolean ajouterDegatsUlti(int degats) {
+        if (degats <= 0 || degatsCumulesUlti >= SEUIL_ULTI) {
+            return false;
+        }
+        degatsCumulesUlti = Math.min(SEUIL_ULTI, degatsCumulesUlti + degats);
+        return degatsCumulesUlti >= SEUIL_ULTI;
+    }
+
+    public int getDegatsCumulesUlti() {
+        return degatsCumulesUlti;
+    }
+
+    public boolean estUltiPret() {
+        return degatsCumulesUlti >= SEUIL_ULTI || ultiPretDistant;
+    }
+
+    public void setUltiPretDistant(boolean etat) {
+        this.ultiPretDistant = etat;
+    }
+
+    /** Déclenche l'Ulti local si la jauge est à 150. */
+    public boolean lancerUlti() {
+        if (degatsCumulesUlti < SEUIL_ULTI) {
+            return false;
+        }
+        degatsCumulesUlti = 0;
+        debutUlti = System.nanoTime();
+
+        double direction = regardeGauche ? -1.0 : 1.0;
+        if ("nikku".equals(personnage)) {
+            reculX = direction * 40.0;
+        } else if ("potato".equals(personnage) && !auSol) {
+            vy = Math.max(vy, 50.0);
+        }
+        return true;
+    }
+
+    public void afficherUltiDistant() {
+        ultiPretDistant = false;
+        debutUlti = System.nanoTime();
+    }
+
+    private boolean ultiEnCours(long maintenant) {
+        return debutUlti != 0L && maintenant - debutUlti < DUREE_ULTI;
+    }
+
+    /** Hitbox de l'attaque spéciale propre à chaque personnage. */
+    public Rectangle getZoneUlti() {
+        int hitX = (int) x + DECALAGE_HITBOX_X;
+        int hitY = (int) y + DECALAGE_HITBOX_Y;
+
+        return switch (personnage) {
+            case "tomato" -> new Rectangle(
+                    hitX - 240, hitY - 60,
+                    LARGEUR_HITBOX + 480, HAUTEUR_HITBOX + 80);
+            case "potato" -> new Rectangle(
+                    hitX - 225, hitY - 40,
+                    LARGEUR_HITBOX + 450, HAUTEUR_HITBOX + 60);
+            case "nikku" -> {
+                int portee = 260;
+                int ax = regardeGauche ? hitX - portee : hitX + LARGEUR_HITBOX / 2;
+                yield new Rectangle(ax, hitY - 30, portee + LARGEUR_HITBOX / 2, HAUTEUR_HITBOX + 40);
+            }
+            default -> { // carrot : rayon perçant longue portée
+                int portee = 650;
+                int ax = regardeGauche ? hitX - portee : hitX + LARGEUR_HITBOX;
+                yield new Rectangle(ax, hitY + 10, portee, HAUTEUR_HITBOX - 20);
+            }
+        };
+    }
+
+    private void dessinerEffetUlti(Graphics2D contexte, long maintenant) {
+        double progression = (maintenant - debutUlti) / (double) DUREE_ULTI;
+        int alpha = (int) (190 * (1.0 - progression));
+        if (alpha <= 0) {
+            return;
+        }
+        Rectangle zone = getZoneUlti();
+        Graphics2D g = (Graphics2D) contexte.create();
+        try {
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            java.awt.Color couleur = switch (personnage) {
+                case "tomato" -> new java.awt.Color(235, 25, 45, alpha);
+                case "potato" -> new java.awt.Color(210, 140, 40, alpha);
+                case "nikku" -> new java.awt.Color(40, 220, 110, alpha);
+                default -> new java.awt.Color(255, 130, 0, alpha);
+            };
+            g.setColor(couleur);
+            g.fillRoundRect(zone.x, zone.y, zone.width, zone.height, 50, 50);
+
+            g.setStroke(new java.awt.BasicStroke(4f));
+            g.setColor(new java.awt.Color(255, 235, 120, Math.min(255, alpha + 40)));
+            g.drawRoundRect(zone.x, zone.y, zone.width, zone.height, 50, 50);
+        } finally {
+            g.dispose();
+        }
+    }
+
+    private void dessinerJaugeUlti(Graphics2D contexte, double temps) {
+        Graphics2D g = (Graphics2D) contexte.create();
+        try {
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            int cx = (int) Math.round(x + LARGEUR_AVATAR / 2.0);
+            int barreLargeur = 76;
+            int barreHauteur = 8;
+            int bx = cx - barreLargeur / 2;
+            int by = (int) y - 10;
+
+            if (estUltiPret()) {
+                double pulse = 0.5 + 0.5 * Math.sin(temps * 8.0);
+                g.setStroke(new java.awt.BasicStroke(3f));
+                g.setColor(new java.awt.Color(255, 215, 0, (int) (140 + 100 * pulse)));
+                g.drawOval((int) x + 2, (int) y - 2, LARGEUR_AVATAR - 4, HAUTEUR_AVATAR + 4);
+
+                g.setColor(new java.awt.Color(40, 25, 0, 220));
+                g.fillRoundRect(cx - 32, by - 14, 64, 18, 8, 8);
+                g.setColor(new java.awt.Color(255, 220, 50));
+                g.setFont(new java.awt.Font("SansSerif", java.awt.Font.BOLD, 12));
+                g.drawString("ULTI [R]", cx - 25, by - 1);
+            } else {
+                g.setColor(new java.awt.Color(20, 20, 25, 170));
+                g.fillRoundRect(bx, by, barreLargeur, barreHauteur, 6, 6);
+                int rempli = (int) Math.round(barreLargeur * (degatsCumulesUlti / (double) SEUIL_ULTI));
+                g.setColor(new java.awt.Color(255, 195, 30));
+                g.fillRoundRect(bx, by, rempli, barreHauteur, 6, 6);
+            }
+        } finally {
+            g.dispose();
+        }
     }
 }
