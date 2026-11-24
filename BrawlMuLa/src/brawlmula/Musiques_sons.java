@@ -178,6 +178,53 @@ public class Musiques_sons {
         playLoop(cheminMusique);
     }
 
+    public static void jouerMusiqueIntroCarte(String cheminCarte) {
+
+        if (cheminCarte == null) {
+            return;
+        }
+
+        String carte = cheminCarte.replace('\\', '/')
+                .toLowerCase(java.util.Locale.ROOT);
+
+        String musique;
+
+        if (carte.endsWith("chateau.png")) {
+            musique = "intro_chateau.wav";
+
+        } else if (carte.endsWith("marche.png")) {
+            musique = "intro_marche.wav";
+
+        } else if (carte.endsWith("colonie.png")) {
+            musique = "intro_colonie.wav";
+
+        } else if (carte.endsWith("potager.png")) {
+            musique = "intro_potager.wav";
+
+        } else {
+            System.err.println("Carte inconnue : " + cheminCarte);
+            return;
+        }
+
+        playLoop("/ressources/Musiques-sons/" + musique);
+    }
+
+// Musique pendant l'affichage des joueurs
+    public static void jouerMusiqueVersus() {
+
+        playLoop(
+                "/ressources/Musiques-sons/versus_theme.wav"
+        );
+    }
+
+// Voix annonçant le début du combat
+    public static void annoncerFight() {
+
+        jouerSon(
+                "/ressources/Musiques-sons/fight.wav"
+        );
+    }
+
     // Arrêter la musique
     public static void stop() {
 
