@@ -1,6 +1,10 @@
 package brawlmula;
 
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.Graphics2D;
 import static brawlmula.Avatar.HAUTEUR_AVATAR;
 import static brawlmula.Avatar.LARGEUR_AVATAR;
@@ -21,6 +25,10 @@ public class Jeu {
     private final JoueurSQL sql;
     private final ModeDeJeu mode;
     private long derniereChute = 0L;
+     // K.O. : numéro du joueur tombé à 0 PV (0 = partie en cours)
+    private int joueurKO = 0;
+    private long derniereVerificationKO = 0L;
+    private static final long DELAI_VERIFICATION_KO_MS = 300;
     private long dernierSpawnVer = System.currentTimeMillis();
     private static final long DELAI_SPAWN_MS = 12000; // Spawn toutes les 12 secondes
     // Second bonus independant : environ toutes les 18 secondes.
@@ -211,6 +219,14 @@ public class Jeu {
     }
 
     public void miseAJour() {
+         // Partie terminée : tout est figé sous l'écran GAME OVER
+        if (joueurKO != 0) {
+            return;
+        }
+        verifierKO();
+        if (joueurKO != 0) {
+            return;
+        }
         // Un seul Timer pilote les plateformes et le personnage local (40 ms par tick).
         panneauCombat.getGestionnairePlateformes().miseAJour(0.040);
         panneauCombat.getGestionnairePlateformes().miseAJour(0.040);
@@ -362,6 +378,9 @@ public class Jeu {
 
     public void rendu(Graphics2D contexte) {
         panneauCombat.paint(contexte);
+                if (joueurKO != 0) {
+                    dessinerGameOver(contexte);
+                }
     }
 
     public void fermer() {
@@ -374,8 +393,65 @@ public class Jeu {
     public PanneauCombat getPanneauCombat() {
         return panneauCombat;
     }
-        public void attaquer() {
-        if (!avatar.attaquer()) {
+
+    /** Numéro (1 à 4) du joueur K.O., ou 0 si la partie continue. */
+    public int getJoueurKO() {
+        return joueurKO;
+    }
+
+    /**
+     * K.O. : dès qu'un joueur tombe à 0 PV, la partie s'arrête.
+     * Les PV sont lus dans la base, donc tous les PC voient le même K.O.
+     */
+    private void verifierKO() {
+        long maintenant = System.currentTimeMillis();
+        if (maintenant - derniereVerificationKO < DELAI_VERIFICATION_KO_MS) {
+            return;
+        }
+        derniereVerificationKO = maintenant;
+        for (int numero = 1; numero <= mode.getNbJoueurs(); numero++) {
+            if (sql.lirePv(numero) <= 0) {
+                joueurKO = numero;
+                return;
+            }
+        }
+    }
+
+    /** Écran de fin : "GAME OVER Jn" par-dessus le combat figé. */
+    private void dessinerGameOver(Graphics2D contexte) {
+        Graphics2D g = (Graphics2D) contexte.create();
+        try {
+            int largeur = ConfigurationCarte.LARGEUR;
+            int hauteur = ConfigurationCarte.HAUTEUR;
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+                    RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+
+            // Assombrir le décor
+            g.setColor(new Color(0, 0, 0, 170));
+            g.fillRect(0, 0, largeur, hauteur);
+
+            String titre = "GAME OVER J" + joueurKO;
+            g.setFont(new Font("SansSerif", Font.BOLD, 110));
+            FontMetrics fm = g.getFontMetrics();
+            int x = (largeur - fm.stringWidth(titre)) / 2;
+            int y = hauteur / 2;
+            g.setColor(Color.BLACK);
+            g.drawString(titre, x + 5, y + 5);   // ombre
+            g.setColor(new Color(230, 30, 30));
+            g.drawString(titre, x, y);
+
+            String sousTitre = "J" + joueurKO + " est K.O. !";
+            g.setFont(new Font("SansSerif", Font.BOLD, 40));
+            fm = g.getFontMetrics();
+            g.setColor(Color.WHITE);
+            g.drawString(sousTitre, (largeur - fm.stringWidth(sousTitre)) / 2, y + 70);
+        } finally {
+            g.dispose();
+        }
+    }
+
+    public void attaquer() {
+        if (joueurKO != 0 || !avatar.attaquer()) {
             return;
         }
         // L'effet x2 s'applique au prochain COUP REUSSI, pas au prochain clic.
@@ -390,7 +466,7 @@ public class Jeu {
 
     /** Attaque lourde : la spécialité du personnage local. */
     public void attaquerLourd() {
-        if (!avatar.attaquerLourd()) {
+        if (joueurKO != 0 || !avatar.attaquerLourd()) {
             return;
         }
         boolean bonusSurCeCoup = avatar.aDoubleDegats();

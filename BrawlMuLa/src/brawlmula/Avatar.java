@@ -930,7 +930,7 @@ public class Avatar {
         auSol = false;
         support = null;
         plateformeEnCoursDeTraverse = null;
-        System.out.println("RECUL reçu : " + direction);
+//        System.out.println("RECUL reçu : " + direction);
     }
     public static final int SEUIL_ULTI = 150;
     private static final long DUREE_ULTI = 550_000_000L;
