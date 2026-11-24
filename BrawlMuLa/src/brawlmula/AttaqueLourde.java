@@ -9,16 +9,16 @@ import java.awt.Color;
 public enum AttaqueLourde {
 
     /** Carotte : coup d'estoc très long devant elle. */
-    CAROTTE("Perforation", 2.0, 1_400_000_000L, new Color(255, 140, 0)),
+    CAROTTE("Perforation", 2.1, 7_400_000_000L, new Color(255, 140, 0)),
 
     /** Nikku (poireau karatéka) : ruée vers l'avant qui frappe sur tout le trajet. */
-    NIKKU("Ruée du dojo", 1.6, 1_000_000_000L, new Color(90, 200, 70)),
+    NIKKU("Ruée du dojo", 1.8, 6_000_000_000L, new Color(90, 200, 70)),
 
     /** Tomate : éclaboussure qui touche des deux côtés. */
-    TOMATE("Éclaboussure", 1.5, 1_300_000_000L, new Color(230, 40, 40)),
+    TOMATE("Éclaboussure", 1.6, 5_300_000_000L, new Color(230, 40, 40)),
 
     /** Patate : écrasement très puissant mais lent, plonge vers le sol en l'air. */
-    PATATE("Écrasement", 2.5, 2_200_000_000L, new Color(200, 160, 90));
+    PATATE("Écrasement", 2, 7_200_000_000L, new Color(200, 160, 90));
 
     /** Durée de l'animation d'une attaque lourde. */
     public static final long DUREE = 450_000_000L;
