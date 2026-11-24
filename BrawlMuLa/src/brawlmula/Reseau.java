@@ -16,6 +16,7 @@ import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
+import java.util.function.BiConsumer;
 
 public class Reseau {
 
@@ -328,7 +329,7 @@ public class Reseau {
 
     }
 
-    public void envoyerAttaque() {
+        public void envoyerAttaque(boolean lourde) {
 
         if (ferme || idCombat == 0) {
             return;
@@ -343,7 +344,7 @@ public class Reseau {
             try (Connection c = getConnexion(); PreparedStatement st = c.prepareStatement(sql)) {
 
                 st.setString(1, monIdJoueur);
-                st.setString(2, "ATTAQUE_" + monIdJoueur);
+                st.setString(2, "ATTAQUE_" + monIdJoueur + (lourde ? "_L" : ""));
                 st.setInt(3, idCombat);
 
                 st.executeUpdate();
@@ -357,7 +358,7 @@ public class Reseau {
     }
 
     public void demarrerEcouteAttaques(
-            Consumer<Integer> recevoirAttaque) {
+            BiConsumer<Integer, Boolean> recevoirAttaque) {
 
         ecouteAttaques = new Thread(() -> {
 
@@ -383,13 +384,13 @@ public class Reseau {
 
                             String message = rs.getString("message");
 
-                            if (message.matches("ATTAQUE_P[1-4]")) {
+                            if (message.matches("ATTAQUE_P[1-4](_L)?")) {
 
                                 int numero = message.charAt(9) - '0';
-
+                                boolean lourde = message.endsWith("_L");
                                 EventQueue.invokeLater(() -> {
                                     if (!ferme) {
-                                        recevoirAttaque.accept(numero);
+                                        recevoirAttaque.accept(numero, lourde);
                                     }
                                 });
                             }

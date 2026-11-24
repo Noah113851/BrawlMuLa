@@ -87,6 +87,7 @@ public final class PanneauCombat extends JPanel {
     private BufferedImage spritePotagerGrande;
 
     private final VerDeTerre verDeTerre = new VerDeTerre();
+    private final BonusDoubleDegats bonusDoubleDegats = new BonusDoubleDegats();
     
     private BufferedImage spriteColoniePetite;
     private BufferedImage spriteColonieGrande;
@@ -480,6 +481,7 @@ public final class PanneauCombat extends JPanel {
                 }
             }
             verDeTerre.dessiner(g);
+            bonusDoubleDegats.dessiner(g);
             for (int index = 0; index < avatars.length; index++) {
                 if (avatarsVisibles[index]) {
                     avatars[index].rendu(g);
@@ -646,6 +648,10 @@ public final class PanneauCombat extends JPanel {
      *
      * @return
      */
+    public BonusDoubleDegats getBonusDoubleDegats() {
+        return bonusDoubleDegats;
+    }
+
     public VerDeTerre getVerDeTerre() {
         return verDeTerre;
     }
