@@ -23,6 +23,9 @@ public class Jeu {
     private long derniereChute = 0L;
     private long dernierSpawnVer = System.currentTimeMillis();
     private static final long DELAI_SPAWN_MS = 12000; // Spawn toutes les 12 secondes
+    // Second bonus independant : environ toutes les 18 secondes.
+    private static final long DELAI_PIMENT_MS = 18000;
+    private long dernierSpawnPiment = System.currentTimeMillis();
     /**
      * Compatibilite : FenetreDeJeu() continue d'ouvrir le Chateau.
      */
@@ -80,6 +83,7 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
                     }
                 }
             });
+
             reseau.demarrerEcouteVer(msg -> {
                 String[] parts = msg.split(":");
                 if (parts.length == 3 && "VER_SPAWN".equals(parts[0])) {
@@ -97,12 +101,43 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
                             avatars[idx].activerBouclier();
                         }
                     }
+                } else if (parts.length == 3 && "VER_X2_SPAWN".equals(parts[0])) {
+                    if (indexLocal != 0) {
+                        try {
+                            double bx = Double.parseDouble(parts[1]);
+                            double by = Double.parseDouble(parts[2]);
+                            panneauCombat.getBonusDoubleDegats().synchroniser(
+                                    bx, by, panneauCombat.getGestionnairePlateformes().getPlateformes());
+                        } catch (NumberFormatException ex) {
+                            System.err.println("[BrawlMuLa][X2] Position invalide : " + msg);
+                        }
+                    }
+                } else if (parts.length == 2 && "VER_X2_PRIS".equals(parts[0])) {
+                    int idx = Integer.parseInt(parts[1]) - 1;
+                    if (indexLocal != 0) {
+                        panneauCombat.getBonusDoubleDegats().ramasser();
+                        if (idx >= 0 && idx < avatars.length && avatars[idx] != null) {
+                            avatars[idx].activerDoubleDegats();
+                        }
+                    }
+                } else if (parts.length == 2 && "VER_X2_UTILISE".equals(parts[0])) {
+                    int idx = Integer.parseInt(parts[1]) - 1;
+                    if (idx >= 0 && idx < avatars.length && avatars[idx] != null) {
+                        avatars[idx].setDoubleDegatsActif(false);
+                    }
                 } else if (parts.length == 2 && "VER_UTILISE".equals(parts[0])) {
                     int idx = Integer.parseInt(parts[1]) - 1;
                     if (idx >= 0 && idx < avatars.length && avatars[idx] != null) {
                         avatars[idx].setBouclierActif(false);
                     }
+                } else if (parts.length == 3 && "VER_RECUL".equals(parts[0])) {
+                    int victime = Integer.parseInt(parts[1]) - 1;
+                    int dir = Integer.parseInt(parts[2]);
+                    if (victime == indexLocal) {
+                        avatar.recevoirRecul(dir);
+                    }
                 }
+                
             });
         }
     }
@@ -167,6 +202,7 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
         panneauCombat.getGestionnairePlateformes().miseAJour(0.040);
         panneauCombat.getGestionnairePlateformes().miseAJour(0.040);
         panneauCombat.getVerDeTerre().miseAJour();
+        panneauCombat.getBonusDoubleDegats().miseAJour();
         avatar.miseAJour();
 
         // Sur les cartes flottantes, remettre l'avatar sur le plateau principal.
@@ -187,6 +223,7 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
             reseau.envoyerMaPosition((int) avatar.x, (int) avatar.y);
             actualiserAvatarsDistants();
         }
+        gererBonusDoubleDegats();
         VerDeTerre ver = panneauCombat.getVerDeTerre();
             if (reseau == null || indexLocal == 0) {
                 // 1. L'hôte (J1) fait apparaître le ver toutes les 12s et envoie ses coordonnées
@@ -217,6 +254,41 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
                         }
                     }
                 }
+        }
+    }
+
+    /**
+     * Le PC hote choisit le support et le joueur qui ramasse le piment.
+     * Les clients appliquent uniquement les evenements diffuses par l'hote.
+     */
+    private void gererBonusDoubleDegats() {
+        if (reseau != null && indexLocal != 0) return;
+        BonusDoubleDegats bonus = panneauCombat.getBonusDoubleDegats();
+        long maintenant = System.currentTimeMillis();
+        if (!bonus.isActif() && maintenant - dernierSpawnPiment >= DELAI_PIMENT_MS) {
+            bonus.apparaitreAleatoirement(
+                    panneauCombat.getGestionnairePlateformes().getPlateformes());
+            dernierSpawnPiment = maintenant;
+            if (reseau != null && bonus.isActif()) {
+                reseau.envoyerEvenementVer("VER_X2_SPAWN:"
+                        + (int) Math.round(bonus.getX()) + ":"
+                        + (int) Math.round(bonus.getY()));
+            }
+        }
+        if (bonus.isActif()) {
+            for (int i = 0; i < avatars.length; i++) {
+                Avatar joueur = avatars[i];
+                if (joueur != null && avatarsVisibles[i]
+                        && bonus.getHitbox().intersects(joueur.getHitbox())) {
+                    joueur.activerDoubleDegats();
+                    bonus.ramasser();
+                    dernierSpawnPiment = System.currentTimeMillis();
+                    if (reseau != null) {
+                        reseau.envoyerEvenementVer("VER_X2_PRIS:" + (i + 1));
+                    }
+                    break;
+                }
+            }
         }
     }
 
@@ -287,7 +359,6 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
     public PanneauCombat getPanneauCombat() {
         return panneauCombat;
     }
-
     public void attaquer() {
         if (avatar.attaquer()) {
             // Synchroniser l'attaque avec les autres joueurs
@@ -330,6 +401,78 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
                 } else {
                     sql.retirerPv(i + 1, degats);
                 }
+public void attaquer() {
+        if (!avatar.attaquer()) return;
+    
+    public void attaquer() {
+        if (avatar.attaquer()) {
+
+        // L'effet s'applique au prochain COUP REUSSI, pas au prochain clic.
+        boolean bonusSurCeCoup = avatar.aDoubleDegats();
+        boolean aInfligeDesDegats = false;
+        int degatsBase = Math.max(0, sql.lireDegats(indexLocal + 1));
+
+        // Les animations d'attaque continuent d'etre synchronisees.
+        if (reseau != null) reseau.envoyerAttaque();
+        Rectangle zone = avatar.getZoneAttaque();
+        for (int i = 0; i < avatars.length; i++) {
+            if (i == indexLocal || avatars[i] == null || !avatarsVisibles[i]) continue;
+            if (mode.parEquipes() && mode.getEquipe(i) == mode.getEquipe(indexLocal)) {
+                continue; // Ne jamais toucher un allie.
+            }
+            if (!zone.intersects(avatars[i].getHitbox())) continue;
+
+            if (avatars[i].absorberAttaqueAvecBouclier()) {
+                // Coup absorbe : bonus x2 conserve, aucun PV retire.
+                if (reseau != null) {
+                    reseau.envoyerEvenementVer("VER_UTILISE:" + (i + 1));
+                }
+            } else if (degatsBase > 0 && sql.lirePv(i + 1) > 0) {
+                int montant = BonusDoubleDegats.calculerDegats(
+                        degatsBase, bonusSurCeCoup);
+                sql.retirerPv(i + 1, montant);
+                aInfligeDesDegats = true;
+            }
+        }
+
+        // Une seule charge consommee, meme si plusieurs ennemis ont ete touches.
+        if (bonusSurCeCoup && aInfligeDesDegats) {
+            avatar.consommerDoubleDegats();
+            if (reseau != null) {
+                reseau.envoyerEvenementVer("VER_X2_UTILISE:" + (indexLocal + 1));
+            // Détection des adversaires touchés
+            Rectangle zone = avatar.getZoneAttaque();
+            for (int i = 0; i < avatars.length; i++) {
+                if (i == indexLocal || avatars[i] == null || !avatarsVisibles[i]) {
+                    continue;
+                }
+                // Pas de tir ami en 2v2
+                if (mode.parEquipes() && mode.getEquipe(i) == mode.getEquipe(indexLocal)) {
+                    continue;
+                }
+                if (zone.intersects(avatars[i].getHitbox())) {
+                    if (avatars[i].absorberAttaqueAvecBouclier()) {
+                        // Le bouclier absorbe cette attaque et se brise (0 dégât subi)
+                        if (reseau != null) {
+                            reseau.envoyerEvenementVer("VER_UTILISE:" + (i + 1));
+                        }
+                    } else {
+                        sql.retirerPv(i + 1, sql.lireDegats(indexLocal + 1));
+                        System.out.println("ENVOI RECUL vers joueur " + (i + 1) + ", reseau=" + (reseau != null));
+                        if (reseau != null) {
+                            int dir = avatars[i].x >= avatar.x ? 1 : -1;
+                            reseau.envoyerEvenementVer("VER_RECUL:" + (i + 1) + ":" + dir);
+                        }
+                    }
+                } 
+                else {
+                        sql.retirerPv(i + 1, sql.lireDegats(indexLocal + 1));
+                        System.out.println("ENVOI RECUL vers joueur " + (i + 1) + ", reseau=" + (reseau != null));
+                        if (reseau != null) {
+                            int dir = avatars[i].x >= avatar.x ? 1 : -1;
+                            reseau.envoyerEvenementVer("VER_RECUL:" + (i + 1) + ":" + dir);
+                        }
+                    }
             }
         }
     }
@@ -341,6 +484,9 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
             attaquerLourd();
             return;
         }
+        public void gererToucheAppuyee(int codeTouche) {
+
+        // Conserver uniquement les déplacements et le saut2
         avatar.gererToucheAppuyee(codeTouche);
     }
     public void gererToucheRelachee(int codeTouche) {
