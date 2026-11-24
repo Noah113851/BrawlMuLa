@@ -82,6 +82,7 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
                     avatars[index].afficherAttaqueDistante();
                 }
             });
+
             reseau.demarrerEcouteVer(msg -> {
                 String[] parts = msg.split(":");
                 if (parts.length == 3 && "VER_SPAWN".equals(parts[0])) {
@@ -128,7 +129,14 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
                     if (idx >= 0 && idx < avatars.length && avatars[idx] != null) {
                         avatars[idx].setBouclierActif(false);
                     }
+                } else if (parts.length == 3 && "VER_RECUL".equals(parts[0])) {
+                    int victime = Integer.parseInt(parts[1]) - 1;
+                    int dir = Integer.parseInt(parts[2]);
+                    if (victime == indexLocal) {
+                        avatar.recevoirRecul(dir);
+                    }
                 }
+                
             });
         }
     }
@@ -350,9 +358,15 @@ panneauCombat.setHud(new BarreVieHUD(sql, mode));
     public PanneauCombat getPanneauCombat() {
         return panneauCombat;
     }
+<<<<<<< HEAD
 
 public void attaquer() {
         if (!avatar.attaquer()) return;
+=======
+    
+    public void attaquer() {
+        if (avatar.attaquer()) {
+>>>>>>> 1461e61ab17ed438783e41a7414cd3ffcc97271a
 
         // L'effet s'applique au prochain COUP REUSSI, pas au prochain clic.
         boolean bonusSurCeCoup = avatar.aDoubleDegats();
@@ -369,6 +383,7 @@ public void attaquer() {
             }
             if (!zone.intersects(avatars[i].getHitbox())) continue;
 
+<<<<<<< HEAD
             if (avatars[i].absorberAttaqueAvecBouclier()) {
                 // Coup absorbe : bonus x2 conserve, aucun PV retire.
                 if (reseau != null) {
@@ -387,6 +402,41 @@ public void attaquer() {
             avatar.consommerDoubleDegats();
             if (reseau != null) {
                 reseau.envoyerEvenementVer("VER_X2_UTILISE:" + (indexLocal + 1));
+=======
+            // Détection des adversaires touchés
+            Rectangle zone = avatar.getZoneAttaque();
+            for (int i = 0; i < avatars.length; i++) {
+                if (i == indexLocal || avatars[i] == null || !avatarsVisibles[i]) {
+                    continue;
+                }
+                // Pas de tir ami en 2v2
+                if (mode.parEquipes() && mode.getEquipe(i) == mode.getEquipe(indexLocal)) {
+                    continue;
+                }
+                if (zone.intersects(avatars[i].getHitbox())) {
+                    if (avatars[i].absorberAttaqueAvecBouclier()) {
+                        // Le bouclier absorbe cette attaque et se brise (0 dégât subi)
+                        if (reseau != null) {
+                            reseau.envoyerEvenementVer("VER_UTILISE:" + (i + 1));
+                        }
+                    } else {
+                        sql.retirerPv(i + 1, sql.lireDegats(indexLocal + 1));
+                        System.out.println("ENVOI RECUL vers joueur " + (i + 1) + ", reseau=" + (reseau != null));
+                        if (reseau != null) {
+                            int dir = avatars[i].x >= avatar.x ? 1 : -1;
+                            reseau.envoyerEvenementVer("VER_RECUL:" + (i + 1) + ":" + dir);
+                        }
+                    }
+                } 
+                else {
+                        sql.retirerPv(i + 1, sql.lireDegats(indexLocal + 1));
+                        System.out.println("ENVOI RECUL vers joueur " + (i + 1) + ", reseau=" + (reseau != null));
+                        if (reseau != null) {
+                            int dir = avatars[i].x >= avatar.x ? 1 : -1;
+                            reseau.envoyerEvenementVer("VER_RECUL:" + (i + 1) + ":" + dir);
+                        }
+                    }
+>>>>>>> 1461e61ab17ed438783e41a7414cd3ffcc97271a
             }
         }
     }
